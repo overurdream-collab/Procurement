@@ -1,0 +1,21 @@
+{
+  "project": {"name":"Procurement Command Center","activeRfq":"RFQ-001","company":"Alharir shipping and export"},
+  "requests":[{"id":"RFQ-001","title":"Cold Storage Project – Sana'a","status":"RFQ مرسل","createdAt":"2026-10-01"}],
+  "suppliers":[
+    {"id":"S1","name":"YangtzeCooling","email":"coldroom@yangtzecool.com","status":"تم الإرسال","excluded":false},
+    {"id":"S2","name":"Yanghu Refrigeration","email":"yanghure@gmail.com","status":"تم الإرسال","excluded":false},
+    {"id":"S3","name":"Yourshine / ChinaColdStorage","email":"project@chinacoldstorage.com","status":"تم الإرسال","excluded":false},
+    {"id":"S4","name":"Jinan Moon Refrigeration","email":"sophia@moonrefrigeration.com","status":"تم الإرسال","excluded":false},
+    {"id":"S5","name":"Hengliang/Cryobuilt","email":"info@hengliangcooling.com","status":"تم الإرسال","excluded":false},
+    {"id":"S6","name":"Damai","email":"sales3@dmllcn.com","status":"تم الإرسال","excluded":false},
+    {"id":"S7","name":"Icesource","email":"enquiries@icemakerchina.com","status":"تم الإرسال","excluded":false}
+  ],
+  "approvals":[
+    {"id":"A1","type":"followup","title":"إرسال متابعة للموردين غير المستجيبين","status":"pending"},
+    {"id":"A2","type":"new_supplier","title":"إضافة مورد جديد قبل المراسلة","status":"pending"}
+  ],
+  "quotes":[],
+  "activity":[{"time":"2026-10-01T22:30:00+03:00","type":"rfq","text":"تم إرسال RFQ-001 إلى 7 موردين"}],
+  "settings":{"autoSearch":true,"autoSend":false,"autoFollowup":false,"autoExclude":false,"autoAward":false},
+  "gmailMessages":[]
+}
