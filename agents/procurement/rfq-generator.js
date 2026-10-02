@@ -8,7 +8,7 @@ const LABELS={
  fob_price:'FOB price',fob_port:'FOB port',cbm:'Total CBM',gross_weight:'Gross weight',production_lead_time:'Production lead time',
  warranty:'Warranty',payment_terms:'Payment terms',dealer_price:'Dealer/long-term partner price',future_supply:'Long-term equipment/parts supply confirmation'
 };
-function dims(r){return (r.configurations||[]).map(x=>`${x.length_m} × ${x.width_m} × ${x.height_m} m (Qty: ${x.quantity})`).join('\n')}
+function dims(r){let x=(r.configurations||[]).map(x=>`${x.length_m} × ${x.width_m} × ${x.height_m} m (Qty: ${x.quantity||1})`).join('\n');return x||('Quantity: '+(r.quantity||'Please quote as specified'))}
 function generateRfq(r,{language='english'}={}){
  if(!r)throw Error('rfq_not_found');
  const fields=requiredQuoteFields(r).map(k=>'• '+(LABELS[k]||k)).join('\n');
@@ -20,8 +20,8 @@ We are sourcing a complete ${r.category.replaceAll('_',' ')} system for ${r.appl
 Please quote separately for:
 ${dims(r)}
 
-Operating temperature: ${r.temperature.min_c}°C to +${r.temperature.max_c}°C
-Maximum target storage: approximately ${r.max_storage_tons} tons, with seasonal variation.
+${r.temperature&&r.temperature.min_c!=null?'Operating temperature: '+r.temperature.min_c+'°C to '+r.temperature.max_c+'°C':''}
+${r.max_storage_tons?'Maximum target storage: approximately '+r.max_storage_tons+' tons.':''}
 
 Required scope:
 ${(r.scope||[]).map(x=>'• '+x.replaceAll('_',' ')).join('\n')}
@@ -34,9 +34,9 @@ Power may be supplied by diesel generator or solar, so energy efficiency is impo
 Please propose the technical solution you consider most suitable for each configuration.
 
 Best regards,
-${r.company.name}
-${r.company.locations.join(' / ')}
-${r.company.email}`;
+${r.company?.name||''}
+${(r.company?.locations||[]).join(' / ')}
+${r.company?.email||''}`;
  return {subject,body,language};
 }
 module.exports={generateRfq};
