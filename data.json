@@ -152,7 +152,9 @@
     "autoSend": false,
     "autoFollowup": false,
     "autoExclude": false,
-    "autoAward": false
+    "autoAward": false,
+    "autoInfoReply": true
   },
-  "gmailMessages": []
+  "gmailMessages": [],
+  "autoHandledMessages": []
 }
