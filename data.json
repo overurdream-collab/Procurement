@@ -1,21 +1,160 @@
 {
-  "project": {"name":"Procurement Command Center","activeRfq":"RFQ-001","company":"Alharir shipping and export"},
-  "requests":[{"id":"RFQ-001","title":"Cold Storage Project – Sana'a","status":"RFQ مرسل","createdAt":"2026-10-01"}],
-  "suppliers":[
-    {"id":"S1","name":"YangtzeCooling","email":"coldroom@yangtzecool.com","status":"تم الإرسال","excluded":false},
-    {"id":"S2","name":"Yanghu Refrigeration","email":"yanghure@gmail.com","status":"تم الإرسال","excluded":false},
-    {"id":"S3","name":"Yourshine / ChinaColdStorage","email":"project@chinacoldstorage.com","status":"تم الإرسال","excluded":false},
-    {"id":"S4","name":"Jinan Moon Refrigeration","email":"sophia@moonrefrigeration.com","status":"تم الإرسال","excluded":false},
-    {"id":"S5","name":"Hengliang/Cryobuilt","email":"info@hengliangcooling.com","status":"تم الإرسال","excluded":false},
-    {"id":"S6","name":"Damai","email":"sales3@dmllcn.com","status":"تم الإرسال","excluded":false},
-    {"id":"S7","name":"Icesource","email":"enquiries@icemakerchina.com","status":"تم الإرسال","excluded":false}
+  "project": {
+    "name": "Procurement Command Center",
+    "activeRfq": "RFQ-001",
+    "company": "Alharir shipping and export"
+  },
+  "requests": [
+    {
+      "id": "RFQ-001",
+      "title": "Cold Storage Project – Sana'a",
+      "status": "معتمد",
+      "createdAt": "2026-10-01",
+      "source_text": "Fresh fruits and vegetables cold storage project.",
+      "category": "cold_storage",
+      "application": "Fresh fruits and vegetables",
+      "location": "Sana'a, Yemen",
+      "temperature": {
+        "min_c": 0,
+        "max_c": 5
+      },
+      "max_storage_tons": 70,
+      "configurations": [
+        {
+          "length_m": 8,
+          "width_m": 6,
+          "height_m": 5,
+          "quantity": 1
+        },
+        {
+          "length_m": 12,
+          "width_m": 6,
+          "height_m": 5,
+          "quantity": 1
+        }
+      ],
+      "scope": [
+        "insulated_panels",
+        "cold_room_door",
+        "condensing_unit_compressor",
+        "evaporator",
+        "control_system",
+        "installation_accessories"
+      ],
+      "technical_requirements": {
+        "cooling_load_kw": true,
+        "refrigeration_capacity_kw": true,
+        "compressor_brand": true,
+        "compressor_model": true,
+        "evaporator_brand": true,
+        "evaporator_model": true,
+        "daily_product_load": true,
+        "product_entry_temperature": true,
+        "pull_down_time": true,
+        "power_kwh_24h": true,
+        "panel_type": true,
+        "panel_density": true,
+        "panel_thickness": true,
+        "floor_specification": true,
+        "spare_parts": true
+      },
+      "commercial_requirements": {
+        "fob_price": true,
+        "fob_port": true,
+        "cbm": true,
+        "gross_weight": true,
+        "production_lead_time": true,
+        "warranty": true,
+        "payment_terms": true,
+        "dealer_price": true,
+        "future_supply": true
+      },
+      "preferences": {
+        "power_sources": [
+          "diesel_generator",
+          "solar"
+        ],
+        "energy_efficiency": "high",
+        "relationship": "long_term"
+      },
+      "company": {
+        "name": "Alharir shipping and export",
+        "locations": [
+          "Guangzhou, People's Republic of China",
+          "Sana'a, Republic of Yemen"
+        ],
+        "email": "Alharirexport@gmail.com"
+      }
+    }
   ],
-  "approvals":[
-    {"id":"A1","type":"followup","title":"إرسال متابعة للموردين غير المستجيبين","status":"pending"},
-    {"id":"A2","type":"new_supplier","title":"إضافة مورد جديد قبل المراسلة","status":"pending"}
+  "suppliers": [
+    {
+      "id": "S1",
+      "name": "YangtzeCooling",
+      "email": "coldroom@yangtzecool.com",
+      "status": "تم الإرسال",
+      "excluded": false
+    },
+    {
+      "id": "S2",
+      "name": "Yanghu Refrigeration",
+      "email": "yanghure@gmail.com",
+      "status": "تم الإرسال",
+      "excluded": false
+    },
+    {
+      "id": "S3",
+      "name": "Yourshine / ChinaColdStorage",
+      "email": "project@chinacoldstorage.com",
+      "status": "تم الإرسال",
+      "excluded": false
+    },
+    {
+      "id": "S4",
+      "name": "Jinan Moon Refrigeration",
+      "email": "sophia@moonrefrigeration.com",
+      "status": "تم الإرسال",
+      "excluded": false
+    },
+    {
+      "id": "S5",
+      "name": "Hengliang/Cryobuilt",
+      "email": "info@hengliangcooling.com",
+      "status": "تم الإرسال",
+      "excluded": false
+    },
+    {
+      "id": "S6",
+      "name": "Damai",
+      "email": "sales3@dmllcn.com",
+      "status": "تم الإرسال",
+      "excluded": false
+    },
+    {
+      "id": "S7",
+      "name": "Icesource",
+      "email": "enquiries@icemakerchina.com",
+      "status": "تم الإرسال",
+      "excluded": false
+    }
   ],
-  "quotes":[],
-  "activity":[{"time":"2026-10-01T22:30:00+03:00","type":"rfq","text":"تم إرسال RFQ-001 إلى 7 موردين"}],
-  "settings":{"autoSearch":true,"autoSend":false,"autoFollowup":false,"autoExclude":false,"autoAward":false},
-  "gmailMessages":[]
+  "approvals": [],
+  "quotes": [],
+  "activity": [
+    {
+      "time": "2026-10-01T22:30:00+03:00",
+      "type": "rfq",
+      "text": "تم إرسال RFQ-001 إلى 7 موردين"
+    }
+  ],
+  "settings": {
+    "autoSearch": true,
+    "autoSend": false,
+    "autoFollowup": false,
+    "autoExclude": false,
+    "autoAward": false,
+    "autoInfoReply": true
+  },
+  "gmailMessages": [],
+  "autoHandledMessages": []
 }
