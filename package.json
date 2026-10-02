@@ -5,5 +5,8 @@
   "scripts": {
     "start": "node server.js",
     "test": "node tests/procurement-agent.test.js && node tests/procurement-workflow.test.js && node tests/procurement-actions.test.js && node tests/procurement-approval.test.js && node tests/procurement-quote-validity.test.js && node tests/procurement-auto-reply.test.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
   }
 }
