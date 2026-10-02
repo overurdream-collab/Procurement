@@ -1,0 +1,3 @@
+const {analyzeQuotation}=require('./agent');
+async function runProcurementWorkflow({supplier,emailText='',documents=[],extractor=null}){let extracted={},mode='rules';if(extractor){extracted=await extractor({supplier,text:[emailText,...documents.map(d=>d.text||'')].join('\n'),documents});mode='ai'}const analysis=analyzeQuotation({supplier,...extracted,source_attachments:documents.map(d=>({filename:d.filename,mimeType:d.mimeType,size:d.size,requires_document_ai:d.requires_document_ai}))});return {...analysis,extraction_mode:mode,document_status:documents.map(d=>({filename:d.filename,requires_document_ai:d.requires_document_ai}))}}
+module.exports={runProcurementWorkflow};
