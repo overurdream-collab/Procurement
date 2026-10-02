@@ -138,20 +138,7 @@
       "excluded": false
     }
   ],
-  "approvals": [
-    {
-      "id": "A1",
-      "type": "followup",
-      "title": "إرسال متابعة للموردين غير المستجيبين",
-      "status": "pending"
-    },
-    {
-      "id": "A2",
-      "type": "new_supplier",
-      "title": "إضافة مورد جديد قبل المراسلة",
-      "status": "pending"
-    }
-  ],
+  "approvals": [],
   "quotes": [],
   "activity": [
     {
