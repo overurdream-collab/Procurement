@@ -8,64 +8,39 @@ function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt
 
 function buildSignatureFooter(){
  return `
- <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:760px;border-collapse:separate;border-spacing:0;margin-top:26px;border:1px solid #cfdcf0;border-radius:12px;overflow:hidden;background:#ffffff">
+ <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:900px;border-collapse:separate;border-spacing:0;margin-top:26px;border:1px solid #c9d7ee;border-radius:10px;overflow:hidden;background:#ffffff">
   <tr>
-   <td style="padding:0">
+   <td colspan="6" style="height:5px;background:#173f7a;font-size:0;line-height:0">&nbsp;</td>
+  </tr>
+  <tr>
+   <td style="padding:16px 14px;width:82px;vertical-align:middle;border-right:1px solid #e3eaf5">
+    <img src="cid:${assets.logo.cid}" width="64" style="display:block;border:0;max-width:64px;height:auto">
+   </td>
+   <td style="padding:16px 16px;vertical-align:middle;width:175px;border-right:1px solid #e3eaf5">
+    <div style="font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;color:#173f7a;line-height:1.25">Alharir shipping<br>and export</div>
+   </td>
+   <td style="padding:16px 16px;vertical-align:middle;width:180px;border-right:1px solid #e3eaf5">
+    <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;color:#173f7a;margin-bottom:4px">Email</div>
+    <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;color:#374151">Alharirexport@gmail.com</div>
+   </td>
+   <td style="padding:16px 16px;vertical-align:middle;border-right:1px solid #e3eaf5">
+    <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;color:#173f7a;margin-bottom:4px">China Office</div>
+    <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;color:#374151">Office D99, 5th Floor, No. 604-2, Renmin North Road, Yuexiu District, Guangzhou City, China</div>
+   </td>
+   <td style="padding:16px 16px;vertical-align:middle;border-right:1px solid #e3eaf5">
+    <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;color:#173f7a;margin-bottom:4px">Yemen Office</div>
+    <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;color:#374151">304 A, 4th Floor, Algeria Street, Sana'a City, Yemen</div>
+   </td>
+   <td style="padding:10px 12px;vertical-align:middle;width:205px">
     <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse">
      <tr>
-      <td style="background:#173f7a;height:6px;font-size:0;line-height:0">&nbsp;</td>
-     </tr>
-    </table>
-
-    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse">
-     <tr>
-      <td style="padding:18px 18px 14px 18px;vertical-align:top;width:82px">
-       <img src="cid:${assets.logo.cid}" width="66" style="display:block;border:0;max-width:66px;height:auto">
+      <td style="text-align:center;padding:0 7px">
+       <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;color:#173f7a;margin-bottom:4px">WeChat</div>
+       <img src="cid:${assets.wechat.cid}" width="70" style="display:block;border:0;margin:0 auto">
       </td>
-      <td style="padding:18px 14px 14px 0;vertical-align:top">
-       <div style="font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:700;color:#173f7a;line-height:1.2">Alharir shipping and export</div>
-       <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#6b7280;margin-top:4px">Procurement & International Trade</div>
-      </td>
-      <td style="padding:18px 18px 14px 14px;vertical-align:top;text-align:right">
-       <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#173f7a;font-weight:700">Email</div>
-       <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#374151;margin-top:3px">Alharirexport@gmail.com</div>
-      </td>
-     </tr>
-    </table>
-
-    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;border-top:1px solid #e8eef8">
-     <tr>
-      <td style="width:50%;padding:14px 18px;vertical-align:top;border-right:1px solid #e8eef8">
-       <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;color:#173f7a;margin-bottom:5px">China Office</div>
-       <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.55;color:#374151">
-        Office D99, 5th Floor, No. 604-2, Renmin North Road,<br>
-        Yuexiu District, Guangzhou City, China
-       </div>
-      </td>
-      <td style="width:50%;padding:14px 18px;vertical-align:top">
-       <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;color:#173f7a;margin-bottom:5px">Yemen Office</div>
-       <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.55;color:#374151">
-        304 A, 4th Floor, Algeria Street,<br>
-        Sana'a City, Yemen
-       </div>
-      </td>
-     </tr>
-    </table>
-
-    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;border-top:1px solid #e8eef8;background:#f8fbff">
-     <tr>
-      <td style="padding:14px 18px;vertical-align:middle">
-       <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#6b7280;line-height:1.5">
-        Scan to contact us directly
-       </div>
-      </td>
-      <td style="padding:12px 10px;text-align:center;width:112px">
-       <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;color:#173f7a;margin-bottom:5px">WeChat</div>
-       <img src="cid:${assets.wechat.cid}" width="82" style="display:block;border:0;margin:0 auto">
-      </td>
-      <td style="padding:12px 18px 12px 10px;text-align:center;width:112px">
-       <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;color:#173f7a;margin-bottom:5px">WhatsApp</div>
-       <img src="cid:${assets.whatsapp.cid}" width="82" style="display:block;border:0;margin:0 auto">
+      <td style="text-align:center;padding:0 7px">
+       <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;color:#173f7a;margin-bottom:4px">WhatsApp</div>
+       <img src="cid:${assets.whatsapp.cid}" width="70" style="display:block;border:0;margin:0 auto">
       </td>
      </tr>
     </table>
@@ -73,7 +48,6 @@ function buildSignatureFooter(){
   </tr>
  </table>`;
 }
-
 function buildCompanyInfoReply({supplierName='Sales Team'}={}){
  const html=`<!doctype html><html><body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#1f2937">
  <div style="max-width:760px;margin:0 auto;padding:20px 18px">
