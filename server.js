@@ -3,6 +3,8 @@ const {analyzeQuotation,compareQuotations}=require('./agents/procurement/agent')
 const {ingestAttachments}=require('./services/documents');
 const {runProcurementWorkflow}=require('./agents/procurement/workflow');
 const {sendRfq}=require('./agents/procurement/actions');
+const {createRequest,updateRequest,approveRequest}=require('./agents/procurement/requirements');
+const {generateRfq}=require('./agents/procurement/rfq-generator');
 const DATA=path.join(__dirname,'data.json'),OAUTH=path.join(__dirname,'.gmail-oauth.json'),PUB=path.join(__dirname,'public');
 const GCLIENT=process.env.GOOGLE_CLIENT_ID||'',GSECRET=process.env.GOOGLE_CLIENT_SECRET||'',BASE=process.env.APP_BASE_URL||'http://localhost:'+(process.env.PORT||8787),REDIRECT=BASE+'/api/gmail/callback';
 const load=()=>JSON.parse(fs.readFileSync(DATA,'utf8')),save=x=>fs.writeFileSync(DATA,JSON.stringify(x,null,2));
@@ -38,7 +40,10 @@ if(u.pathname==='/api/gmail/callback'&&req.method==='GET'){let o=oauth();if(!u.s
 if(u.pathname==='/api/gmail/disconnect'&&req.method==='POST'){if(fs.existsSync(OAUTH))fs.unlinkSync(OAUTH);return json(res,200,{ok:true})}
 if(u.pathname==='/api/gmail/sync'&&req.method==='POST')return json(res,200,await syncGmail());
 if(u.pathname==='/api/agent/comparison'&&req.method==='GET'){let st=load();return json(res,200,{rfqId:'RFQ-001',comparison:compareQuotations((st.quotes||[]).filter(q=>q.rfqId==='RFQ-001'))})}
-if(u.pathname==='/api/requests'&&req.method==='POST'){let st=load(),b=await body(req),x={id:'REQ-'+String(Date.now()).slice(-6),title:b.title||'طلب مشتريات جديد',status:'جديد',createdAt:new Date().toISOString()};st.requests.unshift(x);st.activity.unshift({time:new Date().toISOString(),type:'request',text:'إنشاء '+x.id});save(st);return json(res,201,x)}
+if(u.pathname==='/api/requests'&&req.method==='POST'){let st=load(),b=await body(req),x=createRequest(st,b);st.activity.unshift({time:new Date().toISOString(),type:'request',text:'إنشاء مسودة '+x.id});save(st);return json(res,201,x)}
+let rm=u.pathname.match(/^\/api\/requests\/([^/]+)$/);if(rm&&req.method==='PATCH'){let st=load(),b=await body(req),x=updateRequest(st,rm[1],b);save(st);return json(res,200,x)}
+let ra=u.pathname.match(/^\/api\/requests\/([^/]+)\/approve$/);if(ra&&req.method==='POST'){let st=load(),x=approveRequest(st,ra[1]);st.activity.unshift({time:new Date().toISOString(),type:'request_approved',text:'اعتماد '+x.id});save(st);return json(res,200,{request:x,rfq:generateRfq(x)})}
+let rp=u.pathname.match(/^\/api\/requests\/([^/]+)\/preview$/);if(rp&&req.method==='GET'){let st=load(),x=(st.requests||[]).find(r=>r.id===rp[1]);if(!x)return json(res,404,{error:'not_found'});return json(res,200,{request:x,rfq:generateRfq(x)})}
 let sm=u.pathname.match(/^\/api\/suppliers\/([^/]+)$/);if(sm&&req.method==='PATCH'){let st=load(),b=await body(req),x=st.suppliers.find(x=>x.id===sm[1]);if(!x)return json(res,404,{error:'not_found'});Object.assign(x,b);save(st);return json(res,200,x)}
 let am=u.pathname.match(/^\/api\/approvals\/([^/]+)$/);if(am&&req.method==='PATCH'){let st=load(),b=await body(req),x=st.approvals.find(x=>x.id===am[1]);if(!x)return json(res,404,{error:'not_found'});x.status=b.status||x.status;x.updatedAt=new Date().toISOString();save(st);return json(res,200,x)}
 if(u.pathname==='/api/settings'&&req.method==='PATCH'){let st=load(),b=await body(req);st.settings={...st.settings,...b};save(st);return json(res,200,st.settings)}
