@@ -17,7 +17,23 @@ async function formPost(url,obj){let r=await fetch(url,{method:'POST',headers:{'
 async function accessToken(){let o=oauth();if(o.access_token&&o.expires_at>Date.now()+60000)return o.access_token;if(!o.refresh_token)throw Error('gmail_not_connected');let t=await formPost('https://oauth2.googleapis.com/token',{client_id:GCLIENT,client_secret:GSECRET,refresh_token:o.refresh_token,grant_type:'refresh_token'});o={...o,...t,expires_at:Date.now()+t.expires_in*1000};saveOauth(o);return o.access_token}
 async function gmail(endpoint,opt={}){let token=await accessToken(),r=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/'+endpoint,{...opt,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',...(opt.headers||{})}}),t=await r.json();if(!r.ok)throw Error(t.error?.message||'gmail_error');return t}
 const b64url=s=>Buffer.from(s).toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-async function sendMail(to,subject,text,threadId=null,replyToMessageId=null){let hdr=['To: '+to,'Subject: =?UTF-8?B?'+Buffer.from(subject).toString('base64')+'?='];if(replyToMessageId){hdr.push('In-Reply-To: '+replyToMessageId);hdr.push('References: '+replyToMessageId)}let raw=[...hdr,'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','',''+text].join('\r\n');let payload={raw:b64url(raw)};if(threadId)payload.threadId=threadId;return gmail('messages/send',{method:'POST',body:JSON.stringify(payload)})}
+function wrap76(s=''){return String(s).replace(/.{1,76}/g,'async function sendMail(to,subject,text,threadId=null,replyToMessageId=null){let hdr=['To: '+to,'Subject: =?UTF-8?B?'+Buffer.from(subject).toString('base64')+'?='];if(replyToMessageId){hdr.push('In-Reply-To: '+replyToMessageId);hdr.push('References: '+replyToMessageId)}let raw=[...hdr,'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','',''+text].join('\r\n');let payload={raw:b64url(raw)};if(threadId)payload.threadId=threadId;return gmail('messages/send',{method:'POST',body:JSON.stringify(payload)})}\r\n').trim()}
+async function sendMail(to,subject,text,threadId=null,replyToMessageId=null,options={}){
+ let hdr=['To: '+to,'Subject: =?UTF-8?B?'+Buffer.from(subject).toString('base64')+'?='];
+ if(replyToMessageId){hdr.push('In-Reply-To: '+replyToMessageId);hdr.push('References: '+replyToMessageId)}
+ let raw;
+ if(options.html){
+  const boundary='rel_'+crypto.randomBytes(8).toString('hex'),alt='alt_'+crypto.randomBytes(8).toString('hex');
+  const parts=[...hdr,'MIME-Version: 1.0','Content-Type: multipart/related; boundary="'+boundary+'"','','--'+boundary,'Content-Type: multipart/alternative; boundary="'+alt+'"','','--'+alt,'Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: 8bit','',text||'','--'+alt,'Content-Type: text/html; charset=UTF-8','Content-Transfer-Encoding: 8bit','',options.html,'--'+alt+'--'];
+  for(const img of options.inlineImages||[]){parts.push('--'+boundary,'Content-Type: '+img.mime+'; name="'+img.filename+'"','Content-Transfer-Encoding: base64','Content-ID: <'+img.cid+'>','Content-Disposition: inline; filename="'+img.filename+'"','',wrap76(img.data))}
+  parts.push('--'+boundary+'--');
+  raw=parts.join('\r\n');
+ }else{
+  raw=[...hdr,'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','',''+text].join('\r\n');
+ }
+ let payload={raw:b64url(raw)};if(threadId)payload.threadId=threadId;
+ return gmail('messages/send',{method:'POST',body:JSON.stringify(payload)})
+}
 function headers(m){return Object.fromEntries((m.payload?.headers||[]).map(h=>[h.name.toLowerCase(),h.value]))}
 function decodePart(p){if(p?.body?.data&&(!p.mimeType||p.mimeType.startsWith('text/')))return Buffer.from(p.body.data.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8');for(let x of p?.parts||[]){let v=decodePart(x);if(v)return v}return ''}
 function attachmentMeta(p,out=[]){for(const x of p?.parts||[]){if(x.filename&&x.body?.attachmentId)out.push({filename:x.filename,mimeType:x.mimeType||'',attachmentId:x.body.attachmentId});attachmentMeta(x,out)}return out}
@@ -61,7 +77,7 @@ async function autoHandleSupplierReply(st,{m,h,sub,txt,sup}){
  if(!isCompanyInfoRequest(txt))return null;
  const reply=buildCompanyInfoReply({supplierName:sup.name});
  const msgId=h['message-id']||null;
- const sent=await sendMail(emailFromHeader(h.from||''),reply.subjectPrefix+sub,reply.body,m.threadId||null,msgId);
+ const sent=await sendMail(emailFromHeader(h.from||''),reply.subjectPrefix+sub,reply.text,m.threadId||null,msgId,{html:reply.html,inlineImages:reply.inlineImages});
  st.autoHandledMessages.push(m.id);
  st.activity.unshift({id:Date.now()+Math.random(),time:new Date().toISOString(),type:'auto_reply',text:'رد الوكيل تلقائيًا على طلب معلومات الشركة من '+sup.name,messageId:m.id,replyMessageId:sent.id||null});
  return {messageId:sent.id||null,threadId:sent.threadId||m.threadId||null};
