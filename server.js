@@ -1,4 +1,5 @@
 const http=require('http'),fs=require('fs'),path=require('path'),crypto=require('crypto');
+const {analyzeQuotation,compareQuotations}=require('./agents/procurement/agent');
 const DATA=path.join(__dirname,'data.json'),OAUTH=path.join(__dirname,'.gmail-oauth.json'),PUB=path.join(__dirname,'public');
 const GCLIENT=process.env.GOOGLE_CLIENT_ID||'',GSECRET=process.env.GOOGLE_CLIENT_SECRET||'',BASE=process.env.APP_BASE_URL||'http://localhost:'+(process.env.PORT||8787),REDIRECT=BASE+'/api/gmail/callback';
 const load=()=>JSON.parse(fs.readFileSync(DATA,'utf8')),save=x=>fs.writeFileSync(DATA,JSON.stringify(x,null,2));
@@ -10,8 +11,22 @@ async function gmail(endpoint,opt={}){let token=await accessToken(),r=await fetc
 const b64url=s=>Buffer.from(s).toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 async function sendMail(to,subject,text){let raw=['To: '+to,'Subject: =?UTF-8?B?'+Buffer.from(subject).toString('base64')+'?=','MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','',''+text].join('\r\n');return gmail('messages/send',{method:'POST',body:JSON.stringify({raw:b64url(raw)})})}
 function headers(m){return Object.fromEntries((m.payload?.headers||[]).map(h=>[h.name.toLowerCase(),h.value]))}
-function decodePart(p){if(p?.body?.data)return Buffer.from(p.body.data.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8');for(let x of p?.parts||[]){let v=decodePart(x);if(v)return v}return ''}
-async function syncGmail(){let st=load(),list=await gmail('messages?q='+encodeURIComponent('RFQ-001 newer_than:90d')+'&maxResults=50'),known=new Set(st.gmailMessages||[]),added=0;for(let it of list.messages||[]){if(known.has(it.id))continue;let m=await gmail('messages/'+it.id+'?format=full'),h=headers(m),from=h.from||'',sub=h.subject||'',txt=decodePart(m.payload)||m.snippet||'';if(/RFQ-001/i.test(sub+' '+txt)){let sup=st.suppliers.find(s=>from.toLowerCase().includes((s.email||'').toLowerCase()));if(sup){sup.status='رد';sup.lastReply=new Date().toISOString();sup.lastSubject=sub}st.activity.unshift({id:Date.now()+Math.random(),time:new Date().toISOString(),type:'gmail_reply',text:'رد جديد: '+(sup?.name||from),messageId:it.id,subject:sub});added++}known.add(it.id)}st.gmailMessages=[...known];save(st);return {added}}
+function decodePart(p){if(p?.body?.data&&(!p.mimeType||p.mimeType.startsWith('text/')))return Buffer.from(p.body.data.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8');for(let x of p?.parts||[]){let v=decodePart(x);if(v)return v}return ''}
+function attachmentMeta(p,out=[]){for(const x of p?.parts||[]){if(x.filename&&x.body?.attachmentId)out.push({filename:x.filename,mimeType:x.mimeType||'',attachmentId:x.body.attachmentId});attachmentMeta(x,out)}return out}
+function isInbound(m){return !(m.labelIds||[]).includes('SENT')}
+function extractQuoteHints(text=''){const v=(re)=>{let m=text.match(re);return m?m[1].trim():null};return {
+  price:v(/(?:FOB\s*(?:price)?|total\s*(?:price|amount)|quotation)\s*[:：-]?\s*(?:USD|US\$|\$)?\s*([\d,.]+)/i),
+  currency:/\bUSD\b|US\$/i.test(text)?'USD':null,
+  cooling_load_kw:v(/cooling\s*load[^\d]{0,30}([\d.]+)\s*kW/i),
+  refrigeration_capacity_kw:v(/(?:refrigeration|cooling)\s*capacity[^\d]{0,30}([\d.]+)\s*kW/i),
+  power_kwh_24h:v(/([\d.]+)\s*kWh\s*\/\s*24\s*h/i),
+  panel_thickness:v(/(?:panel|PIR|PU)[^\n]{0,50}?(\d{2,3})\s*mm/i),
+  fob_port:v(/FOB\s+([A-Za-z][A-Za-z .-]{2,30})/i),
+  production_lead_time:v(/(?:lead|production)\s*time\s*[:：-]?\s*([^\n,;]+)/i),
+  warranty:v(/warranty\s*[:：-]?\s*([^\n;]+)/i),
+  payment_terms:v(/payment\s*terms?\s*[:：-]?\s*([^\n;]+)/i)
+}}
+async function syncGmail(){let st=load(),list=await gmail('messages?q='+encodeURIComponent('in:anywhere RFQ-001 newer_than:90d')+'&maxResults=50'),known=new Set(st.gmailMessages||[]),added=0,analyzed=0;for(let it of list.messages||[]){if(known.has(it.id))continue;let m=await gmail('messages/'+it.id+'?format=full');known.add(it.id);if(!isInbound(m))continue;let h=headers(m),from=h.from||'',sub=h.subject||'',txt=decodePart(m.payload)||m.snippet||'';if(!/RFQ-001/i.test(sub+' '+txt))continue;let sup=st.suppliers.find(x=>from.toLowerCase().includes((x.email||'').toLowerCase()));if(!sup)continue;sup.status='رد';sup.lastReply=new Date().toISOString();sup.lastSubject=sub;let raw={supplier:sup.name,source_message_id:it.id,source_attachments:attachmentMeta(m.payload),...extractQuoteHints(txt)};let analysis=analyzeQuotation(raw);let q={id:'Q-'+Date.now()+'-'+sup.id,rfqId:'RFQ-001',supplierId:sup.id,rawText:txt,...analysis.quote,risks:analysis.risks,followup:analysis.followup,createdAt:new Date().toISOString()};st.quotes=st.quotes||[];st.quotes.unshift(q);st.activity.unshift({id:Date.now()+Math.random(),time:new Date().toISOString(),type:'quote_analyzed',text:'تم تحليل رد '+sup.name,messageId:it.id,subject:sub,missingFields:q.missing_fields.length,riskCount:q.risks.length});added++;analyzed++}st.gmailMessages=[...known];st.quoteComparison=compareQuotations((st.quotes||[]).filter(q=>q.rfqId==='RFQ-001'));save(st);return {added,analyzed,quotes:(st.quotes||[]).length}}
 function gate(st,action){let map={followup:'autoFollowup',send:'autoSend',exclude:'autoExclude',award:'autoAward'},key=map[action];if(key&&st.settings?.[key])return true;return st.approvals.some(a=>a.type===action&&a.status==='approved')}
 const server=http.createServer(async(req,res)=>{try{let u=new URL(req.url,'http://localhost');if(u.pathname==='/api/state'&&req.method==='GET'){let st=load();st.gmail={connected:!!oauth().refresh_token,configured:!!(GCLIENT&&GSECRET)};return json(res,200,st)}
 if(u.pathname==='/api/gmail/status'&&req.method==='GET')return json(res,200,{connected:!!oauth().refresh_token,configured:!!(GCLIENT&&GSECRET),redirectUri:REDIRECT});
@@ -19,6 +34,7 @@ if(u.pathname==='/api/gmail/connect'&&req.method==='GET'){if(!GCLIENT||!GSECRET)
 if(u.pathname==='/api/gmail/callback'&&req.method==='GET'){let o=oauth();if(!u.searchParams.get('code')||u.searchParams.get('state')!==o.state)return json(res,400,{error:'invalid_oauth_state'});let t=await formPost('https://oauth2.googleapis.com/token',{code:u.searchParams.get('code'),client_id:GCLIENT,client_secret:GSECRET,redirect_uri:REDIRECT,grant_type:'authorization_code'});saveOauth({...t,expires_at:Date.now()+t.expires_in*1000});res.writeHead(302,{Location:'/#agent'});return res.end()}
 if(u.pathname==='/api/gmail/disconnect'&&req.method==='POST'){if(fs.existsSync(OAUTH))fs.unlinkSync(OAUTH);return json(res,200,{ok:true})}
 if(u.pathname==='/api/gmail/sync'&&req.method==='POST')return json(res,200,await syncGmail());
+if(u.pathname==='/api/agent/comparison'&&req.method==='GET'){let st=load();return json(res,200,{rfqId:'RFQ-001',comparison:compareQuotations((st.quotes||[]).filter(q=>q.rfqId==='RFQ-001'))})}
 if(u.pathname==='/api/requests'&&req.method==='POST'){let st=load(),b=await body(req),x={id:'REQ-'+String(Date.now()).slice(-6),title:b.title||'طلب مشتريات جديد',status:'جديد',createdAt:new Date().toISOString()};st.requests.unshift(x);st.activity.unshift({time:new Date().toISOString(),type:'request',text:'إنشاء '+x.id});save(st);return json(res,201,x)}
 let sm=u.pathname.match(/^\/api\/suppliers\/([^/]+)$/);if(sm&&req.method==='PATCH'){let st=load(),b=await body(req),x=st.suppliers.find(x=>x.id===sm[1]);if(!x)return json(res,404,{error:'not_found'});Object.assign(x,b);save(st);return json(res,200,x)}
 let am=u.pathname.match(/^\/api\/approvals\/([^/]+)$/);if(am&&req.method==='PATCH'){let st=load(),b=await body(req),x=st.approvals.find(x=>x.id===am[1]);if(!x)return json(res,404,{error:'not_found'});x.status=b.status||x.status;x.updatedAt=new Date().toISOString();save(st);return json(res,200,x)}
