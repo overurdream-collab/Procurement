@@ -1,0 +1,9 @@
+{
+  "name": "procurement-command-center",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/procurement-agent.test.js"
+  }
+}
