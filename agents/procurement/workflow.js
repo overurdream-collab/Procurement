@@ -9,7 +9,7 @@ async function runProcurementWorkflow({supplier,emailText='',documents=[],extrac
     extracted=(await chosen({supplier,text:combined,documents}))||{};
     mode=extractor?'custom':'ai';
   }
-  const source_attachments=documents.map(d=>({filename:d.filename,mimeType:d.mimeType,size:d.size,requires_document_ai:d.requires_document_ai}));
+  const source_attachments=documents.map(d=>({filename:d.filename,mimeType:d.mimeType,type:d.type,size:d.size,requires_document_ai:d.requires_document_ai}));
   const analysis=analyzeQuotation({supplier,...extracted,source_attachments});
   return {...analysis,extraction_mode:mode,evidence:extracted.evidence||{},document_status:source_attachments};
 }
