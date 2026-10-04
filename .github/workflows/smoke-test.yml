@@ -1,0 +1,49 @@
+name: Procurement Smoke Test
+
+on:
+  push:
+    branches: [ "ui/ecilab-design-system" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntax check
+        run: node --check server.js
+      - name: Start application
+        run: |
+          node server.js > /tmp/procurement.log 2>&1 &
+          echo $! > /tmp/procurement.pid
+          for i in {1..20}; do
+            curl -fsS http://127.0.0.1:8787/api/state >/tmp/state.json && break
+            sleep 0.5
+          done
+          curl -fsS http://127.0.0.1:8787/ >/tmp/index.html
+      - name: API and UI assertions
+        run: |
+          grep -q '"activeRfq":"RFQ-001"' /tmp/state.json
+          grep -q '"dryRun":true' /tmp/state.json
+          grep -q '"requirePerMessageApproval":true' /tmp/state.json
+          grep -q 'PROCUREMENT COMMAND CENTER' /tmp/index.html
+          grep -q 'Compliance' /tmp/index.html
+          grep -q 'AI Assistant' /tmp/index.html
+      - name: Verify follow-up safety gate
+        run: |
+          code=$(curl -sS -o /tmp/followup.json -w "%{http_code}" -X POST             -H "Content-Type: application/json"             -d '{"action":"followup"}'             http://127.0.0.1:8787/api/agent/run)
+          test "$code" = "409"
+          grep -q 'dry_run_enabled' /tmp/followup.json
+      - name: Stop application
+        if: always()
+        run: |
+          test ! -f /tmp/procurement.pid || kill $(cat /tmp/procurement.pid) || true
+          cat /tmp/procurement.log || true
