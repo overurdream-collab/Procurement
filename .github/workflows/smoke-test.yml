@@ -30,6 +30,10 @@ jobs:
             sleep 0.5
           done
           curl -fsS http://127.0.0.1:8787/ >/tmp/index.html
+      - name: Inline UI script syntax check
+        run: |
+          node -e "const fs=require('fs');const h=fs.readFileSync('public/index.html','utf8');const m=h.match(/<script>([\s\S]*?)<\/script>/);if(!m)throw new Error('inline script missing');new Function(m[1]);"
+
       - name: API and UI assertions
         run: |
           grep -q '"activeRfq":"RFQ-001"' /tmp/state.json
@@ -38,6 +42,10 @@ jobs:
           grep -q 'PROCUREMENT COMMAND CENTER' /tmp/index.html
           grep -q 'Compliance' /tmp/index.html
           grep -q 'AI Assistant' /tmp/index.html
+          grep -q 'Supplier Pipeline Overview' /tmp/index.html
+          grep -q 'chart-grid' /tmp/index.html
+          grep -q 'class="ic"' /tmp/index.html
+          grep -q '#030A28' /tmp/index.html
       - name: Verify follow-up safety gate
         run: |
           code=$(curl -sS -o /tmp/followup.json -w "%{http_code}" -X POST             -H "Content-Type: application/json"             -d '{"action":"followup"}'             http://127.0.0.1:8787/api/agent/run)
