@@ -1,6 +1,7 @@
 name: Procurement Smoke Test
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "ui/ecilab-design-system" ]
   pull_request:
