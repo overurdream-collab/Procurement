@@ -43,6 +43,14 @@ jobs:
           code=$(curl -sS -o /tmp/followup.json -w "%{http_code}" -X POST             -H "Content-Type: application/json"             -d '{"action":"followup"}'             http://127.0.0.1:8787/api/agent/run)
           test "$code" = "409"
           grep -q 'dry_run_enabled' /tmp/followup.json
+      - name: Static responsive and RTL assertions
+        run: |
+          grep -q 'dir="rtl"' /tmp/index.html
+          grep -q '@media(max-width:900px)' /tmp/index.html
+          grep -q '@media(max-width:520px)' /tmp/index.html
+          grep -q 'viewport-fit=cover' /tmp/index.html
+          grep -q "localStorage.setItem('procurement-theme'" /tmp/index.html
+          grep -q 'class="mobile"' /tmp/index.html
       - name: Stop application
         if: always()
         run: |
