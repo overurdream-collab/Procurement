@@ -1,21 +1,39 @@
 {
   "project": {"name":"Procurement Command Center","activeRfq":"RFQ-001","company":"Alharir shipping and export"},
-  "requests":[{"id":"RFQ-001","title":"Cold Storage Project – Sana'a","status":"RFQ مرسل","createdAt":"2026-10-01"}],
+  "requests":[{"id":"RFQ-001","title":"Cold Storage Project – Sana'a","status":"RFQ مرسل","createdAt":"2026-10-01","designBasis":{"roomSizes":["8 × 6 × 5 m","12 × 6 × 5 m"],"application":"Fresh fruits and vegetables","temperature":"0°C to +5°C"}}],
   "suppliers":[
-    {"id":"S1","name":"YangtzeCooling","email":"coldroom@yangtzecool.com","status":"تم الإرسال","excluded":false},
-    {"id":"S2","name":"Yanghu Refrigeration","email":"yanghure@gmail.com","status":"تم الإرسال","excluded":false},
-    {"id":"S3","name":"Yourshine / ChinaColdStorage","email":"project@chinacoldstorage.com","status":"تم الإرسال","excluded":false},
-    {"id":"S4","name":"Jinan Moon Refrigeration","email":"sophia@moonrefrigeration.com","status":"تم الإرسال","excluded":false},
-    {"id":"S5","name":"Hengliang/Cryobuilt","email":"info@hengliangcooling.com","status":"تم الإرسال","excluded":false},
-    {"id":"S6","name":"Damai","email":"sales3@dmllcn.com","status":"تم الإرسال","excluded":false},
-    {"id":"S7","name":"Icesource","email":"enquiries@icemakerchina.com","status":"تم الإرسال","excluded":false}
+    {"id":"S1","name":"YangtzeCooling","email":"coldroom@yangtzecool.com","status":"تم التواصل","excluded":false,"source":"project_record"},
+    {"id":"S2","name":"Yanghu Refrigeration","email":null,"status":"ضمن القائمة الأساسية","excluded":false,"source":"project_record","note":"البريد يحتاج تحقق قبل الإرسال"},
+    {"id":"S3","name":"Yourshine Group","email":"sale@czpbc.com","alternateEmails":["coldroom@czpbc.com"],"status":"رد — ينتظر بيانات الشركة","excluded":false,"source":"project_record"},
+    {"id":"S4","name":"Hengliang Cooling","email":"info@hengliangcooling.com","status":"تم الرد — ننتظر العرض","excluded":false,"source":"verified_email_thread"},
+    {"id":"S5","name":"Xiamen Jialiang","email":null,"status":"ضمن القائمة الأساسية","excluded":false,"source":"project_record","note":"بيانات التواصل تحتاج تحقق قبل الإرسال"},
+    {"id":"S6","name":"Guangzhou Cryo Systems","email":"sales@cryo-systems.com","status":"ضمن القائمة الأساسية","excluded":false,"source":"project_record"},
+    {"id":"S7","name":"YuanShengHeTong","email":null,"status":"ضمن القائمة الأساسية","excluded":false,"source":"project_record","note":"بيانات التواصل تحتاج تحقق قبل الإرسال"},
+    {"id":"S8","name":"Emaar Industries LLC","email":null,"status":"رد — عرض ألواح PIR مستلم","excluded":false,"source":"project_record","note":"لا يتم الإرسال حتى ربط البريد من سلسلة المراسلات الفعلية"},
+    {"id":"S9","name":"Shanghai Champion","email":null,"status":"Benchmark quote","excluded":false,"source":"project_record","note":"مرجع سعري/فني وليس فائزاً"},
+    {"id":"S10","name":"Deye","email":"service@deye.com.cn","alternateEmails":["it@deye.com.cn"],"status":"بحث نظام Solar Direct-Drive","excluded":false,"source":"project_record"},
+    {"id":"S11","name":"AtlasCool","email":"info@atlascool.com","status":"مورد مقارنة","excluded":false,"source":"project_record"},
+    {"id":"S12","name":"ARTECO","email":null,"status":"مورد مقارنة","excluded":false,"source":"project_record","note":"بيانات التواصل تحتاج تحقق قبل الإرسال"}
   ],
+  "rfqCompliance":{
+    "requiredMetrics":[
+      {"key":"coolingLoadKw","label":"Cooling Load / Capacity (kW)"},
+      {"key":"storageTons","label":"Maximum Storage Capacity (tons)"},
+      {"key":"dailyLoadingTpd","label":"Daily Fresh Product Load (tons/day)"},
+      {"key":"pullDown","label":"Entering Product Temperature + Pull-down Time"},
+      {"key":"energyKwh24h","label":"Energy Consumption (kWh/24h)"}
+    ],
+    "rule":"لا تتم المقارنة النهائية أو التوصية بالشراء قبل استكمال المؤشرات الخمسة لكل مقاس على أساس 0°C إلى +5°C."
+  },
   "approvals":[
     {"id":"A1","type":"followup","title":"إرسال متابعة للموردين غير المستجيبين","status":"pending"},
     {"id":"A2","type":"new_supplier","title":"إضافة مورد جديد قبل المراسلة","status":"pending"}
   ],
   "quotes":[],
-  "activity":[{"time":"2026-10-01T22:30:00+03:00","type":"rfq","text":"تم إرسال RFQ-001 إلى 7 موردين"}],
-  "settings":{"autoSearch":true,"autoSend":false,"autoFollowup":false,"autoExclude":false,"autoAward":false},
+  "activity":[
+    {"time":"2026-10-04T13:00:00+03:00","type":"data_quality","text":"تنظيف Supplier Master Data وإزالة الموردين غير المثبتين من السجل الحالي"},
+    {"time":"2026-10-04T13:00:00+03:00","type":"gmail_reply","text":"Hengliang: تم الرد ببيانات الشركة وننتظر العرض الفني والتجاري"}
+  ],
+  "settings":{"autoSearch":true,"autoSend":false,"autoFollowup":false,"autoExclude":false,"autoAward":false,"dryRun":true,"requirePerMessageApproval":true},
   "gmailMessages":[]
 }
