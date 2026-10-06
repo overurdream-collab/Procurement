@@ -31,6 +31,17 @@ function headers(m){return Object.fromEntries((m.payload?.headers||[]).map(h=>[h
 function decodePart(p){if(p?.body?.data)return Buffer.from(p.body.data.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8');for(let x of p?.parts||[]){let v=decodePart(x);if(v)return v}return ''}
 function supplierForFrom(st,from){let f=String(from||'').toLowerCase();return (st.suppliers||[]).find(s=>[s.email,...(s.alternateEmails||[])].filter(Boolean).some(e=>f.includes(String(e).toLowerCase())))}
 function attachmentNames(p,out=[]){if(p?.filename)out.push(p.filename);for(let x of p?.parts||[])attachmentNames(x,out);return out}
+function classifyReply(subject,body,attachments=[]){
+  let t=(String(subject||'')+' '+String(body||'')).toLowerCase(),files=(attachments||[]).join(' ').toLowerCase();
+  let promised=/10[.\/-]?8|8[.\/-]?10|will send|send.*quotation|quotation.*later|报价.*发给|价格.*发给|可以.*报价|报价.*可以吗/.test(t);
+  let info=/who are you|company info|company information|contact number|联系电话|公司信息|贵公司信息|联系方式/.test(t);
+  let priced=/(?:usd|us\$|\$|rmb|cny|fob|exw|cif|cfr)\s*[:：]?\s*[0-9]|[0-9][0-9,]*(?:\.[0-9]+)?\s*(?:usd|us\$|\$|rmb|cny)|单价|总价|unit price|total price/.test(t);
+  let quoteFile=/quotation|quote|报价|offer|proposal|price|\.pdf\b|\.xlsx?\b|\.docx?\b/.test(files);
+  if(priced||quoteFile)return 'quote_received';
+  if(promised)return 'quote_promised';
+  if(info)return 'info_request';
+  return 'general_reply';
+}
 async function syncGmail(){
   let st=load(),list=await gmail('messages?q='+encodeURIComponent('RFQ-001 newer_than:90d -from:me')+'&maxResults=50');
   st.gmailReplies=Array.isArray(st.gmailReplies)?st.gmailReplies:[];
@@ -39,12 +50,15 @@ async function syncGmail(){
     if(known.has(it.id))continue;
     let m=await gmail('messages/'+it.id+'?format=full'),h=headers(m),from=h.from||'',sub=h.subject||'',txt=decodePart(m.payload)||m.snippet||'';
     if(!/RFQ-001/i.test(sub+' '+txt))continue;
-    let sup=supplierForFrom(st,from),receivedAt=m.internalDate?new Date(Number(m.internalDate)).toISOString():new Date().toISOString();
-    let rec={messageId:it.id,threadId:m.threadId||'',supplierId:sup?.id||null,supplierName:sup?.name||null,from,to:h.to||'',cc:h.cc||'',subject:sub,body:txt,snippet:m.snippet||'',receivedAt,attachments:attachmentNames(m.payload)};
+    let sup=supplierForFrom(st,from),receivedAt=m.internalDate?new Date(Number(m.internalDate)).toISOString():new Date().toISOString(),attachments=attachmentNames(m.payload),replyType=classifyReply(sub,txt,attachments);
+    let rec={messageId:it.id,threadId:m.threadId||'',supplierId:sup?.id||null,supplierName:sup?.name||null,from,to:h.to||'',cc:h.cc||'',subject:sub,body:txt,snippet:m.snippet||'',receivedAt,attachments,replyType};
     st.gmailReplies.unshift(rec);known.add(it.id);added++;
     if(sup){
       matched++;
-      if(!/رد|عرض/i.test(sup.status||''))sup.status='رد — يحتاج استخراج';
+      if(replyType==='quote_received')sup.status='عرض مستلم — يحتاج استخراج';
+      else if(replyType==='quote_promised')sup.status='وعد بإرسال العرض';
+      else if(replyType==='info_request')sup.status='رد — يطلب معلومات';
+      else if(!/عرض مسجل|تم الرد — ننتظر العرض/i.test(sup.status||''))sup.status='رد غير سعري';
       sup.lastReply=receivedAt;sup.lastSubject=sub;
     }else unmatched++;
     st.activity.unshift({id:Date.now()+Math.random(),time:receivedAt,type:'gmail_reply',text:'رد جديد: '+(sup?.name||from),messageId:it.id,supplierId:sup?.id||null,subject:sub});
