@@ -1,39 +1,301 @@
 {
-  "project": {"name":"Procurement Command Center","activeRfq":"RFQ-001","company":"Alharir shipping and export"},
-  "requests":[{"id":"RFQ-001","title":"Cold Storage Project – Sana'a","status":"RFQ مرسل","createdAt":"2026-10-01","designBasis":{"roomSizes":["8 × 6 × 5 m","12 × 6 × 5 m"],"application":"Fresh fruits and vegetables","temperature":"0°C to +5°C"}}],
-  "suppliers":[
-    {"id":"S1","name":"YangtzeCooling","email":"coldroom@yangtzecool.com","status":"تم التواصل","excluded":false,"source":"project_record"},
-    {"id":"S2","name":"Yanghu Refrigeration","email":null,"status":"ضمن القائمة الأساسية","excluded":false,"source":"project_record","note":"البريد يحتاج تحقق قبل الإرسال"},
-    {"id":"S3","name":"Yourshine Group","email":"sale@czpbc.com","alternateEmails":["coldroom@czpbc.com"],"status":"رد — ينتظر بيانات الشركة","excluded":false,"source":"project_record"},
-    {"id":"S4","name":"Hengliang Cooling","email":"info@hengliangcooling.com","status":"تم الرد — ننتظر العرض","excluded":false,"source":"verified_email_thread"},
-    {"id":"S5","name":"Xiamen Jialiang","email":null,"status":"ضمن القائمة الأساسية","excluded":false,"source":"project_record","note":"بيانات التواصل تحتاج تحقق قبل الإرسال"},
-    {"id":"S6","name":"Guangzhou Cryo Systems","email":"sales@cryo-systems.com","status":"ضمن القائمة الأساسية","excluded":false,"source":"project_record"},
-    {"id":"S7","name":"YuanShengHeTong","email":null,"status":"ضمن القائمة الأساسية","excluded":false,"source":"project_record","note":"بيانات التواصل تحتاج تحقق قبل الإرسال"},
-    {"id":"S8","name":"Emaar Industries LLC","email":null,"status":"رد — عرض ألواح PIR مستلم","excluded":false,"source":"project_record","note":"لا يتم الإرسال حتى ربط البريد من سلسلة المراسلات الفعلية"},
-    {"id":"S9","name":"Shanghai Champion","email":null,"status":"Benchmark quote","excluded":false,"source":"project_record","note":"مرجع سعري/فني وليس فائزاً"},
-    {"id":"S10","name":"Deye","email":"service@deye.com.cn","alternateEmails":["it@deye.com.cn"],"status":"بحث نظام Solar Direct-Drive","excluded":false,"source":"project_record"},
-    {"id":"S11","name":"AtlasCool","email":"info@atlascool.com","status":"مورد مقارنة","excluded":false,"source":"project_record"},
-    {"id":"S12","name":"ARTECO","email":null,"status":"مورد مقارنة","excluded":false,"source":"project_record","note":"بيانات التواصل تحتاج تحقق قبل الإرسال"}
-  ],
-  "rfqCompliance":{
-    "requiredMetrics":[
-      {"key":"coolingLoadKw","label":"Cooling Load / Capacity (kW)"},
-      {"key":"storageTons","label":"Maximum Storage Capacity (tons)"},
-      {"key":"dailyLoadingTpd","label":"Daily Fresh Product Load (tons/day)"},
-      {"key":"pullDown","label":"Entering Product Temperature + Pull-down Time"},
-      {"key":"energyKwh24h","label":"Energy Consumption (kWh/24h)"}
-    ],
-    "rule":"لا تتم المقارنة النهائية أو التوصية بالشراء قبل استكمال المؤشرات الخمسة لكل مقاس على أساس 0°C إلى +5°C."
+  "project": {
+    "name": "Procurement Command Center",
+    "activeRfq": "RFQ-001",
+    "company": "Alharir shipping and export"
   },
-  "approvals":[
-    {"id":"A1","type":"followup","title":"إرسال متابعة للموردين غير المستجيبين","status":"pending"},
-    {"id":"A2","type":"new_supplier","title":"إضافة مورد جديد قبل المراسلة","status":"pending"}
+  "requests": [
+    {
+      "id": "RFQ-001",
+      "title": "Cold Storage Project – Sana'a",
+      "status": "RFQ مرسل",
+      "createdAt": "2026-10-01",
+      "designBasis": {
+        "roomSizes": [
+          "8 × 6 × 5 m",
+          "12 × 6 × 5 m"
+        ],
+        "application": "Fresh fruits and vegetables",
+        "temperature": "0°C to +5°C"
+      },
+      "workspace": {
+        "specifications": [
+          {
+            "id": "SPEC-1",
+            "value": "Application: Fresh fruits and vegetables; storage temperature 0°C to +5°C.",
+            "status": "Verified Fact",
+            "source": "Project requirement",
+            "updatedAt": "2026-10-06T18:00:00+03:00",
+            "updatedBy": "User"
+          },
+          {
+            "id": "SPEC-2",
+            "value": "Reference room sizes: 8 × 6 × 5 m and 12 × 6 × 5 m.",
+            "status": "Confirmed Decision",
+            "source": "Project requirement",
+            "updatedAt": "2026-10-06T18:00:00+03:00",
+            "updatedBy": "User"
+          }
+        ],
+        "analysisRules": [
+          {
+            "id": "RULE-1",
+            "value": "Keep Panel & Door Manufacturers separate from Complete Cold Room Manufacturers. Never compare panel-only pricing directly with a complete cold-room package.",
+            "status": "Confirmed Decision",
+            "source": "User instruction",
+            "updatedAt": "2026-10-06T18:00:00+03:00",
+            "updatedBy": "User"
+          },
+          {
+            "id": "RULE-2",
+            "value": "Published internet/B2B prices are market intelligence only and must not be treated as Verified Supplier Quotes.",
+            "status": "Confirmed Decision",
+            "source": "Procurement policy",
+            "updatedAt": "2026-10-06T18:00:00+03:00",
+            "updatedBy": "User"
+          }
+        ],
+        "commercialTerms": [
+          {
+            "id": "TERM-1",
+            "value": "Use supplier quotations and evidence classifications when calculating procurement benchmarks.",
+            "status": "Confirmed Decision",
+            "source": "Procurement policy",
+            "updatedAt": "2026-10-06T18:00:00+03:00",
+            "updatedBy": "User"
+          }
+        ],
+        "supplierStrategy": [
+          {
+            "id": "SUP-1",
+            "value": "Supplier categories: Complete Cold Room Manufacturer; Panel & Door Manufacturer; Refrigeration Equipment Manufacturer.",
+            "status": "Confirmed Decision",
+            "source": "User instruction",
+            "updatedAt": "2026-10-06T18:00:00+03:00",
+            "updatedBy": "User"
+          }
+        ],
+        "scenarios": [
+          {
+            "id": "SC-1",
+            "value": "Scenario A: import a complete cold-room package.",
+            "status": "Confirmed Decision",
+            "source": "User instruction",
+            "updatedAt": "2026-10-06T18:00:00+03:00",
+            "updatedBy": "User"
+          },
+          {
+            "id": "SC-2",
+            "value": "Scenario B: import panels, doors, floor/ceiling components and refrigeration equipment separately, then assemble/install locally in Sana’a.",
+            "status": "Confirmed Decision",
+            "source": "User instruction",
+            "updatedAt": "2026-10-06T18:00:00+03:00",
+            "updatedBy": "User"
+          }
+        ],
+        "facts": [
+          {
+            "id": "FACT-1",
+            "value": "When panels, doors and ceiling/floor components are imported, assembly and installation will be performed locally in Sana’a.",
+            "status": "Confirmed Decision",
+            "source": "User instruction",
+            "updatedAt": "2026-10-06T18:00:00+03:00",
+            "updatedBy": "User"
+          }
+        ],
+        "aiInstructions": [
+          {
+            "id": "AI-1",
+            "value": "All AI agents working on RFQ-001 must use this Request Intelligence Workspace as shared request context and preserve evidence/status distinctions.",
+            "status": "Confirmed Decision",
+            "source": "System architecture decision",
+            "updatedAt": "2026-10-06T18:00:00+03:00",
+            "updatedBy": "User"
+          }
+        ],
+        "changeHistory": [
+          {
+            "id": "CH-BASE",
+            "time": "2026-10-06T18:00:00+03:00",
+            "kind": "baseline",
+            "text": "Initialized Request Intelligence Workspace for RFQ-001.",
+            "source": "User-approved architecture"
+          }
+        ],
+        "chat": []
+      }
+    }
   ],
-  "quotes":[],
-  "activity":[
-    {"time":"2026-10-04T13:00:00+03:00","type":"data_quality","text":"تنظيف Supplier Master Data وإزالة الموردين غير المثبتين من السجل الحالي"},
-    {"time":"2026-10-04T13:00:00+03:00","type":"gmail_reply","text":"Hengliang: تم الرد ببيانات الشركة وننتظر العرض الفني والتجاري"}
+  "suppliers": [
+    {
+      "id": "S1",
+      "name": "YangtzeCooling",
+      "email": "coldroom@yangtzecool.com",
+      "status": "تم التواصل",
+      "excluded": false,
+      "source": "project_record"
+    },
+    {
+      "id": "S2",
+      "name": "Yanghu Refrigeration",
+      "email": null,
+      "status": "ضمن القائمة الأساسية",
+      "excluded": false,
+      "source": "project_record",
+      "note": "البريد يحتاج تحقق قبل الإرسال"
+    },
+    {
+      "id": "S3",
+      "name": "Yourshine Group",
+      "email": "sale@czpbc.com",
+      "alternateEmails": [
+        "coldroom@czpbc.com"
+      ],
+      "status": "رد — ينتظر بيانات الشركة",
+      "excluded": false,
+      "source": "project_record"
+    },
+    {
+      "id": "S4",
+      "name": "Hengliang Cooling",
+      "email": "info@hengliangcooling.com",
+      "status": "تم الرد — ننتظر العرض",
+      "excluded": false,
+      "source": "verified_email_thread"
+    },
+    {
+      "id": "S5",
+      "name": "Xiamen Jialiang",
+      "email": null,
+      "status": "ضمن القائمة الأساسية",
+      "excluded": false,
+      "source": "project_record",
+      "note": "بيانات التواصل تحتاج تحقق قبل الإرسال"
+    },
+    {
+      "id": "S6",
+      "name": "Guangzhou Cryo Systems",
+      "email": "sales@cryo-systems.com",
+      "status": "ضمن القائمة الأساسية",
+      "excluded": false,
+      "source": "project_record"
+    },
+    {
+      "id": "S7",
+      "name": "YuanShengHeTong",
+      "email": null,
+      "status": "ضمن القائمة الأساسية",
+      "excluded": false,
+      "source": "project_record",
+      "note": "بيانات التواصل تحتاج تحقق قبل الإرسال"
+    },
+    {
+      "id": "S8",
+      "name": "Emaar Industries LLC",
+      "email": null,
+      "status": "رد — عرض ألواح PIR مستلم",
+      "excluded": false,
+      "source": "project_record",
+      "note": "لا يتم الإرسال حتى ربط البريد من سلسلة المراسلات الفعلية"
+    },
+    {
+      "id": "S9",
+      "name": "Shanghai Champion",
+      "email": null,
+      "status": "Benchmark quote",
+      "excluded": false,
+      "source": "project_record",
+      "note": "مرجع سعري/فني وليس فائزاً"
+    },
+    {
+      "id": "S10",
+      "name": "Deye",
+      "email": "service@deye.com.cn",
+      "alternateEmails": [
+        "it@deye.com.cn"
+      ],
+      "status": "بحث نظام Solar Direct-Drive",
+      "excluded": false,
+      "source": "project_record"
+    },
+    {
+      "id": "S11",
+      "name": "AtlasCool",
+      "email": "info@atlascool.com",
+      "status": "مورد مقارنة",
+      "excluded": false,
+      "source": "project_record"
+    },
+    {
+      "id": "S12",
+      "name": "ARTECO",
+      "email": null,
+      "status": "مورد مقارنة",
+      "excluded": false,
+      "source": "project_record",
+      "note": "بيانات التواصل تحتاج تحقق قبل الإرسال"
+    }
   ],
-  "settings":{"autoSearch":true,"autoSend":false,"autoFollowup":false,"autoExclude":false,"autoAward":false,"dryRun":true,"requirePerMessageApproval":true},
-  "gmailMessages":[]
+  "rfqCompliance": {
+    "requiredMetrics": [
+      {
+        "key": "coolingLoadKw",
+        "label": "Cooling Load / Capacity (kW)"
+      },
+      {
+        "key": "storageTons",
+        "label": "Maximum Storage Capacity (tons)"
+      },
+      {
+        "key": "dailyLoadingTpd",
+        "label": "Daily Fresh Product Load (tons/day)"
+      },
+      {
+        "key": "pullDown",
+        "label": "Entering Product Temperature + Pull-down Time"
+      },
+      {
+        "key": "energyKwh24h",
+        "label": "Energy Consumption (kWh/24h)"
+      }
+    ],
+    "rule": "لا تتم المقارنة النهائية أو التوصية بالشراء قبل استكمال المؤشرات الخمسة لكل مقاس على أساس 0°C إلى +5°C."
+  },
+  "approvals": [
+    {
+      "id": "A1",
+      "type": "followup",
+      "title": "إرسال متابعة للموردين غير المستجيبين",
+      "status": "pending"
+    },
+    {
+      "id": "A2",
+      "type": "new_supplier",
+      "title": "إضافة مورد جديد قبل المراسلة",
+      "status": "pending"
+    }
+  ],
+  "quotes": [],
+  "activity": [
+    {
+      "time": "2026-10-04T13:00:00+03:00",
+      "type": "data_quality",
+      "text": "تنظيف Supplier Master Data وإزالة الموردين غير المثبتين من السجل الحالي"
+    },
+    {
+      "time": "2026-10-04T13:00:00+03:00",
+      "type": "gmail_reply",
+      "text": "Hengliang: تم الرد ببيانات الشركة وننتظر العرض الفني والتجاري"
+    }
+  ],
+  "settings": {
+    "autoSearch": true,
+    "autoSend": false,
+    "autoFollowup": false,
+    "autoExclude": false,
+    "autoAward": false,
+    "dryRun": true,
+    "requirePerMessageApproval": true
+  },
+  "gmailMessages": []
 }
