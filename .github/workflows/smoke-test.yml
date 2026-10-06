@@ -102,7 +102,7 @@ jobs:
           grep -F "مصنّعو الألواح والأبواب" public/index.html
       - name: Verify quote details interaction
         run: |
-          grep -F "toggleQuoteDetails" public/index.html
+          grep -F "<details><summary class=\"btn\">فتح التفاصيل</summary>" public/index.html
           grep -F "تفاصيل العرض" public/index.html
       - name: Static responsive and RTL assertions
         run: |
