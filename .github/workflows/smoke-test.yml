@@ -90,7 +90,7 @@ jobs:
         run: |
           grep -F "window.addEventListener('hashchange'" public/index.html
           grep -F "function render(v)" public/index.html
-          grep -F "لا توجد Quote Records مسجلة حاليًا" public/index.html
+          grep -F "function quotes()" public/index.html
       - name: Verify shared UI escape helper exists
         run: |
           grep -F "function esc(v)" public/index.html
