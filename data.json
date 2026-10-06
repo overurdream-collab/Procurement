@@ -133,7 +133,8 @@
       "email": "coldroom@yangtzecool.com",
       "status": "تم التواصل",
       "excluded": false,
-      "source": "project_record"
+      "source": "project_record",
+      "category": "cold_room_manufacturer"
     },
     {
       "id": "S2",
@@ -142,7 +143,8 @@
       "status": "ضمن القائمة الأساسية",
       "excluded": false,
       "source": "project_record",
-      "note": "البريد يحتاج تحقق قبل الإرسال"
+      "note": "البريد يحتاج تحقق قبل الإرسال",
+      "category": "cold_room_manufacturer"
     },
     {
       "id": "S3",
@@ -153,7 +155,8 @@
       ],
       "status": "رد — ينتظر بيانات الشركة",
       "excluded": false,
-      "source": "project_record"
+      "source": "project_record",
+      "category": "cold_room_manufacturer"
     },
     {
       "id": "S4",
@@ -161,7 +164,8 @@
       "email": "info@hengliangcooling.com",
       "status": "تم الرد — ننتظر العرض",
       "excluded": false,
-      "source": "verified_email_thread"
+      "source": "verified_email_thread",
+      "category": "cold_room_manufacturer"
     },
     {
       "id": "S5",
@@ -170,7 +174,8 @@
       "status": "ضمن القائمة الأساسية",
       "excluded": false,
       "source": "project_record",
-      "note": "بيانات التواصل تحتاج تحقق قبل الإرسال"
+      "note": "بيانات التواصل تحتاج تحقق قبل الإرسال",
+      "category": "cold_room_manufacturer"
     },
     {
       "id": "S6",
@@ -178,7 +183,8 @@
       "email": "sales@cryo-systems.com",
       "status": "ضمن القائمة الأساسية",
       "excluded": false,
-      "source": "project_record"
+      "source": "project_record",
+      "category": "cold_room_manufacturer"
     },
     {
       "id": "S7",
@@ -187,7 +193,8 @@
       "status": "ضمن القائمة الأساسية",
       "excluded": false,
       "source": "project_record",
-      "note": "بيانات التواصل تحتاج تحقق قبل الإرسال"
+      "note": "بيانات التواصل تحتاج تحقق قبل الإرسال",
+      "category": "cold_room_manufacturer"
     },
     {
       "id": "S8",
@@ -196,7 +203,8 @@
       "status": "رد — عرض ألواح PIR مستلم",
       "excluded": false,
       "source": "project_record",
-      "note": "لا يتم الإرسال حتى ربط البريد من سلسلة المراسلات الفعلية"
+      "note": "لا يتم الإرسال حتى ربط البريد من سلسلة المراسلات الفعلية",
+      "category": "panel_door_manufacturer"
     },
     {
       "id": "S9",
@@ -205,7 +213,8 @@
       "status": "Benchmark quote",
       "excluded": false,
       "source": "project_record",
-      "note": "مرجع سعري/فني وليس فائزاً"
+      "note": "مرجع سعري/فني وليس فائزاً",
+      "category": "benchmark_only"
     },
     {
       "id": "S10",
@@ -216,7 +225,8 @@
       ],
       "status": "بحث نظام Solar Direct-Drive",
       "excluded": false,
-      "source": "project_record"
+      "source": "project_record",
+      "category": "refrigeration_power_equipment"
     },
     {
       "id": "S11",
@@ -224,7 +234,8 @@
       "email": "info@atlascool.com",
       "status": "مورد مقارنة",
       "excluded": false,
-      "source": "project_record"
+      "source": "project_record",
+      "category": "cold_room_manufacturer"
     },
     {
       "id": "S12",
@@ -233,7 +244,8 @@
       "status": "مورد مقارنة",
       "excluded": false,
       "source": "project_record",
-      "note": "بيانات التواصل تحتاج تحقق قبل الإرسال"
+      "note": "بيانات التواصل تحتاج تحقق قبل الإرسال",
+      "category": "cold_room_manufacturer"
     }
   ],
   "rfqCompliance": {
@@ -289,7 +301,50 @@
       }
     }
   ],
-  "quotes": [],
+  "quotes": [
+    {
+      "id": "Q-Emaar-001",
+      "supplierId": "S8",
+      "requestId": "RFQ-001",
+      "category": "panel_door_manufacturer",
+      "evidenceClass": "Verified Quote",
+      "status": "received",
+      "currency": "USD",
+      "basis": "EXW Samail, Oman",
+      "items": [
+        {
+          "description": "PIR panel 100 mm, 0.5/0.5 PE",
+          "unit": "m²",
+          "unitPrice": 28.5
+        },
+        {
+          "description": "PIR panel 150 mm",
+          "unit": "m²",
+          "unitPrice": 36.5
+        }
+      ],
+      "technical": {
+        "insulation": "PIR",
+        "densityKgM3": "40",
+        "steelThickness": "0.5/0.5 mm",
+        "coatings": "Polyester / PVDF / Food-safe available",
+        "refrigerationIncluded": false
+      },
+      "commercial": {
+        "moq": "1,000 m²",
+        "payment": "50/50",
+        "packing": "≈2 trailers / 1,000 m²"
+      },
+      "missing": [
+        "FOB price",
+        "Final door prices",
+        "Final floor pricing/specification",
+        "Fire rating/certificate confirmation",
+        "Final freight/CBM/weight"
+      ],
+      "note": "Panel-only quotation. Must not be compared directly with complete cold-room package quotations."
+    }
+  ],
   "activity": [
     {
       "time": "2026-10-04T13:00:00+03:00",
