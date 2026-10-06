@@ -100,15 +100,12 @@ jobs:
           curl -fsS http://127.0.0.1:8787/api/state | grep -q '"panel_door_manufacturer"'
           grep -F "مصنّعو غرف التبريد الكاملة" public/index.html
           grep -F "مصنّعو الألواح والأبواب" public/index.html
-      - name: Verify quote details interaction
+      - name: Verify conversation and comparison detail flows
         run: |
-          grep -F "فتح التفاصيل</summary>" public/index.html
-          grep -F "Technical:" public/index.html
-      - name: Verify response details flow
-        run: |
-          grep -F "function showSupplierRecord(id)" public/index.html
-          grep -F "showSupplierRecord" public/index.html
-          grep -F "العودة إلى الردود" public/index.html
+          grep -F "function openConversation(id)" public/index.html
+          grep -F "فتح سجل المراسلات" public/index.html
+          grep -F "function openComparisonDetail(id)" public/index.html
+          grep -F "رد المورد — يحتاج استخراج" public/index.html
       - name: Static responsive and RTL assertions
         run: |
           grep -q 'dir="rtl"' /tmp/index.html
