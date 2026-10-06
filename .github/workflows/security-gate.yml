@@ -44,7 +44,7 @@ jobs:
           NODE
       - name: Dynamic baseline scan
         run: |
-          docker run --rm --network host -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://127.0.0.1:8787 -I -r zap-report.html
+          docker run --rm --network host -v "${{ github.workspace }}:/zap/wrk/:rw" -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://127.0.0.1:8787 -I -r zap-report.html
       - name: Upload ZAP report
         if: always()
         uses: actions/upload-artifact@v4
