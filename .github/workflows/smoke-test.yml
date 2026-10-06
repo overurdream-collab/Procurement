@@ -86,6 +86,11 @@ jobs:
           curl -fsS -X POST -H "Content-Type: application/json" -d '{}' http://127.0.0.1:8787/api/requests/RFQ-001/market-scan | grep -q '"requestId":"RFQ-001"'
           curl -fsS -X PATCH -H "Content-Type: application/json" -d '{"status":"approved"}' http://127.0.0.1:8787/api/approvals/A1 | grep -q '"status":"approved"'
           curl -fsS -X PATCH -H "Content-Type: application/json" -d '{"status":"pending"}' http://127.0.0.1:8787/api/approvals/A1 | grep -q '"status":"pending"'
+      - name: Verify reliable hash navigation and quote visibility
+        run: |
+          grep -F "window.addEventListener('hashchange'" public/index.html
+          grep -F "function render(v)" public/index.html
+          grep -F "لا توجد Quote Records مسجلة حاليًا" public/index.html
       - name: Static responsive and RTL assertions
         run: |
           grep -q 'dir="rtl"' /tmp/index.html
