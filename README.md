@@ -33,7 +33,15 @@ $env:APP_BASE_URL="http://localhost:8787"
 node server.js
 ```
 
-ثم افتح `http://localhost:8787` → Agent → ربط Gmail.
+انسخ ملف الإعدادات مرة واحدة:
+```cmd
+copy .env.example .env
+```
+ثم افتح `.env` وضع القيم الحقيقية لـ `GOOGLE_CLIENT_ID` و`GOOGLE_CLIENT_SECRET`. يجب أن يكون OAuth Client من نوع **Web application** وأن ينتهي Client ID بـ `.apps.googleusercontent.com`.
+
+ثم أعد تشغيل الخادم وافتح `http://localhost:8787` → Agent → ربط Gmail.
+
+> إذا ظهرت سابقًا رسالة `Could not determine client ID from request` فهذا يعني أن Client ID المرسل إلى Google كان مفقودًا أو غير صالح. الخادم الآن يتحقق منه قبل التحويل إلى Google ويعرض سبب الخطأ داخل الواجهة.
 
 ## ما أصبح يعمل
 - OAuth آمن بدون كلمة مرور Gmail.
