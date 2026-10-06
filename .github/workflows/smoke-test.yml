@@ -106,6 +106,12 @@ jobs:
           grep -F "فتح سجل المراسلات" public/index.html
           grep -F "function openComparisonDetail(id)" public/index.html
           grep -F "رد المورد — يحتاج استخراج" public/index.html
+      - name: Verify dedicated Gmail sync page
+        run: |
+          grep -F "show('gmail')" public/index.html
+          grep -F "function gmailView()" public/index.html
+          grep -F "مزامنة RFQ-001 الآن" public/index.html
+          grep -F "connectGmail()" public/index.html
       - name: Static responsive and RTL assertions
         run: |
           grep -q 'dir="rtl"' /tmp/index.html
