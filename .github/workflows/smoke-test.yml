@@ -94,6 +94,12 @@ jobs:
       - name: Verify shared UI escape helper exists
         run: |
           grep -F "function esc(v)" public/index.html
+      - name: Verify structured quote comparison
+        run: |
+          curl -fsS http://127.0.0.1:8787/api/state | grep -q '"Q-Emaar-001"'
+          curl -fsS http://127.0.0.1:8787/api/state | grep -q '"panel_door_manufacturer"'
+          grep -F "مصنّعو غرف التبريد الكاملة" public/index.html
+          grep -F "مصنّعو الألواح والأبواب" public/index.html
       - name: Static responsive and RTL assertions
         run: |
           grep -q 'dir="rtl"' /tmp/index.html
