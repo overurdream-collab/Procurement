@@ -19,7 +19,26 @@ const oauthConfig=()=>{
   if(!/^https?:\/\//i.test(BASE))return {ok:false,error:'invalid_app_base_url',message:'APP_BASE_URL غير صالح.'};
   return {ok:true};
 };
-const load=()=>JSON.parse(fs.readFileSync(DATA,'utf8')),save=x=>fs.writeFileSync(DATA,JSON.stringify(x,null,2));
+const RECENT_SUPPLIERS=[
+  {id:'SA1',name:'Al Musairiey Steel Industries',country:'Saudi Arabia',email:null,status:'مورد جديد — يحتاج تحقق التواصل',excluded:false,source:'recent_sourcing',category:'panel_door_manufacturer'},
+  {id:'SA2',name:'BTR',country:'Saudi Arabia',email:null,status:'مورد جديد — يحتاج تحقق التواصل',excluded:false,source:'recent_sourcing',category:'panel_door_manufacturer'},
+  {id:'SA3',name:'TSSC',country:'Saudi Arabia',email:null,status:'مورد جديد — يحتاج تحقق التواصل',excluded:false,source:'recent_sourcing',category:'panel_door_manufacturer'},
+  {id:'OM1',name:'Panel Tech International',country:'Oman',email:null,status:'مورد جديد — يحتاج تحقق التواصل',excluded:false,source:'recent_sourcing',category:'panel_door_manufacturer'},
+  {id:'OM2',name:'Al Jazeera Panel',country:'Oman',email:null,status:'مورد جديد — يحتاج تحقق التواصل',excluded:false,source:'recent_sourcing',category:'panel_door_manufacturer'},
+  {id:'CN1',name:'Shandong Lantian',country:'China',email:null,status:'مورد جديد — يحتاج تحقق التواصل',excluded:false,source:'recent_sourcing',category:'panel_door_manufacturer'},
+  {id:'CN2',name:'Dongmeng Group',country:'China',email:null,status:'مورد جديد — يحتاج تحقق التواصل',excluded:false,source:'recent_sourcing',category:'panel_door_manufacturer'},
+  {id:'CN3',name:'Propanel',country:'China',email:null,status:'مورد جديد — يحتاج تحقق التواصل',excluded:false,source:'recent_sourcing',category:'panel_door_manufacturer'}
+];
+function ensureRecentSuppliers(st){
+  st.suppliers=Array.isArray(st.suppliers)?st.suppliers:[];
+  let changed=false;
+  for(const s of RECENT_SUPPLIERS){
+    let exists=st.suppliers.some(x=>String(x.name||'').trim().toLowerCase()===s.name.toLowerCase());
+    if(!exists){st.suppliers.push({...s});changed=true}
+  }
+  return changed
+}
+const load=()=>{let st=JSON.parse(fs.readFileSync(DATA,'utf8'));if(ensureRecentSuppliers(st))fs.writeFileSync(DATA,JSON.stringify(st,null,2));return st},save=x=>fs.writeFileSync(DATA,JSON.stringify(x,null,2));
 const oauth=()=>fs.existsSync(OAUTH)?JSON.parse(fs.readFileSync(OAUTH,'utf8')):{},saveOauth=x=>fs.writeFileSync(OAUTH,JSON.stringify(x,null,2),{mode:0o600});
 const json=(r,s,x)=>{r.writeHead(s,{'Content-Type':'application/json; charset=utf-8'});r.end(JSON.stringify(x))},body=req=>new Promise((ok,no)=>{let d='';req.on('data',c=>d+=c);req.on('end',()=>{try{ok(d?JSON.parse(d):{})}catch(e){no(e)}})});
 async function formPost(url,obj){let r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(obj)}),t=await r.json();if(!r.ok)throw Error(t.error_description||t.error||'oauth_error');return t}
