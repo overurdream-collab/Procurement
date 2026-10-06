@@ -193,11 +193,55 @@ function copilotPlan(message){
 }
 function gate(st,action){let map={followup:'autoFollowup',send:'autoSend',exclude:'autoExclude',award:'autoAward'},key=map[action];if(key&&st.settings?.[key])return true;return st.approvals.some(a=>a.type===action&&a.status==='approved')}
 
-function marketNums(v){return (String(v||'').match(/(?:USD|[$])\s*[0-9,.]+|[0-9,.]+\s*(?:USD|US[$])/gi)||[]).map(x=>Number(x.replace(/[^0-9.]/g,'').replace(/,(?=[0-9]{3}\\b)/g,''))).filter(x=>Number.isFinite(x)&&x>0)}
-function marketStats(a){a=[...a].sort((x,y)=>x-y);if(!a.length)return null;let q=p=>a[Math.min(a.length-1,Math.floor((a.length-1)*p))];return {low:a[0],median:q(.5),high:a[a.length-1],targetLow:q(.2),targetHigh:q(.45),count:a.length}}
-async function googleMarketSources(q){if(!process.env.GOOGLE_CSE_API_KEY||!process.env.GOOGLE_CSE_ID)return [];let u='https://www.googleapis.com/customsearch/v1?key='+encodeURIComponent(process.env.GOOGLE_CSE_API_KEY)+'&cx='+encodeURIComponent(process.env.GOOGLE_CSE_ID)+'&num=10&q='+encodeURIComponent(q);let r=await fetch(u),j=await r.json();if(!r.ok)throw Error(j.error?.message||'market_search_error');return (j.items||[]).map(x=>({type:'Published Price',title:x.title,url:x.link,snippet:x.snippet,prices:marketNums(x.title+' '+x.snippet)}))}
-function historicalMarketSources(st,req){return (st.quotes||[]).map(x=>({type:'Historical Price',title:'Internal quote '+x.id,url:null,prices:[x.totalPrice,x.price,x.unitPrice].map(Number).filter(n=>Number.isFinite(n)&&n>0)})).filter(x=>x.prices.length)}
-async function marketScan(st,req){let query=[req.title,req.product,req.specifications,req.quantity,req.targetMarkets,'price supplier manufacturer'].filter(Boolean).join(' '),sources=historicalMarketSources(st,req),mode='historical';try{let live=await googleMarketSources(query);if(live.length){sources.push(...live);mode='live+historical'}}catch(e){mode='historical-search-error'}for(let x of req.sourceObservations||[]){let p=marketNums((x.price||'')+' '+(x.note||''));if(p.length)sources.push({type:x.type||'Published Price',title:x.title||'User supplied source',url:x.url||null,prices:p})}let values=sources.flatMap(x=>x.prices||[]),s=marketStats(values),confidence=Math.min(95,Math.round((sources.length>=6?55:sources.length*8)+(values.length>=8?25:values.length*3)+(mode.startsWith('live')?15:0)));return {id:'MS-'+Date.now(),requestId:req.id,createdAt:new Date().toISOString(),query,mode,sourceCount:sources.length,confidence,benchmark:s,classification:{verifiedQuotes:sources.filter(x=>x.type==='Verified Quote').length,publishedPrices:sources.filter(x=>x.type==='Published Price').length,historicalPrices:sources.filter(x=>x.type==='Historical Price').length,aiEstimates:sources.filter(x=>x.type==='AI Estimate').length},sources:sources.slice(0,30),disclaimer:'Indicative benchmark only; published and AI-derived prices are not verified supplier quotations.'}}
+function marketNums(v){return (String(v||'').match(/(?:USD|US\\$|[$])\\s*[0-9,.]+|[0-9,.]+\\s*(?:USD|US\\$)/gi)||[]).map(x=>Number(x.replace(/[^0-9.]/g,'').replace(/,(?=[0-9]{3}\\b)/g,''))).filter(x=>Number.isFinite(x)&&x>0)}
+function marketPriceMentions(v){return (String(v||'').match(/(?:USD|US\\$|[$]|RMB|CNY|CN¥|¥)\\s*[0-9,.]+|[0-9,.]+\\s*(?:USD|US\\$|RMB|CNY|CN¥|¥)/gi)||[]).slice(0,8)}
+function marketStats(a){a=[...a].sort((x,y)=>x-y);if(!a.length)return null;let q=p=>a[Math.min(a.length-1,Math.floor((a.length-1)*p))];return {low:a[0],median:q(.5),high:a[a.length-1],targetLow:q(.2),targetHigh:q(.45),count:a.length,currency:'USD'}}
+const MARKET_TARGETS=[
+  {platform:'Alibaba',domain:'alibaba.com',region:'China / International',query:'site:alibaba.com'},
+  {platform:'1688',domain:'1688.com',region:'China',query:'site:1688.com'},
+  {platform:'Made-in-China',domain:'made-in-china.com',region:'China / International',query:'site:made-in-china.com'},
+  {platform:'Taobao',domain:'taobao.com',region:'China',query:'site:taobao.com'},
+  {platform:'Global Sources',domain:'globalsources.com',region:'Asia / International',query:'site:globalsources.com'},
+  {platform:'Company websites',domain:null,region:'International',query:'manufacturer supplier factory official website'}
+];
+function marketBaseQuery(req){return [req.product||'cold room',req.title,req.specifications,(req.designBasis?.temperature||''),(req.designBasis?.roomSizes||[]).join(' '),'cold storage refrigeration panel PIR PU compressor evaporator price'].filter(Boolean).join(' ')}
+async function googleCse(q,num=10){
+  if(!process.env.GOOGLE_CSE_API_KEY||!process.env.GOOGLE_CSE_ID)return {configured:false,items:[]};
+  let u='https://www.googleapis.com/customsearch/v1?key='+encodeURIComponent(process.env.GOOGLE_CSE_API_KEY)+'&cx='+encodeURIComponent(process.env.GOOGLE_CSE_ID)+'&num='+Math.min(10,num)+'&q='+encodeURIComponent(q);
+  let r=await fetch(u),j=await r.json();if(!r.ok)throw Error(j.error?.message||'market_search_error');return {configured:true,items:j.items||[]}
+}
+async function googleMarketSources(req){
+  let base=marketBaseQuery(req),out=[],configured=!!(process.env.GOOGLE_CSE_API_KEY&&process.env.GOOGLE_CSE_ID),errors=[];
+  for(const target of MARKET_TARGETS){
+    try{
+      let r=await googleCse(base+' '+target.query,8);configured=r.configured;
+      for(const x of r.items||[]){
+        let domain='';try{domain=new URL(x.link).hostname.replace(/^www\./,'')}catch{}
+        let txt=(x.title||'')+' '+(x.snippet||'');
+        out.push({type:'Published Market Source',platform:target.platform,region:target.region,domain:domain||target.domain,title:x.title,url:x.link,snippet:x.snippet||'',priceMentions:marketPriceMentions(txt),prices:marketNums(txt),searchQuery:base+' '+target.query})
+      }
+    }catch(e){errors.push(target.platform+': '+e.message)}
+  }
+  let seen=new Set();out=out.filter(x=>{let k=x.url||x.title;if(seen.has(k))return false;seen.add(k);return true});
+  return {configured,sources:out,errors}
+}
+function historicalMarketSources(st,req){return (st.quotes||[]).filter(x=>!x.requestId||x.requestId===req.id).map(x=>({type:'Historical Price',platform:'Internal',region:'Internal',domain:null,title:'Internal quote '+x.id,url:null,snippet:x.basis||'',priceMentions:[],prices:[x.totalPrice,x.price,x.unitPrice].map(Number).filter(n=>Number.isFinite(n)&&n>0)})).filter(x=>x.prices.length)}
+async function marketScan(st,req){
+  let query=marketBaseQuery(req),sources=historicalMarketSources(st,req),mode='historical',searchStatus={configured:false,targets:MARKET_TARGETS.map(x=>x.platform),errors:[]};
+  try{
+    let live=await googleMarketSources(req);searchStatus={configured:live.configured,targets:MARKET_TARGETS.map(x=>x.platform),errors:live.errors||[]};
+    if(live.sources.length){sources.push(...live.sources);mode='live-internet+historical'}
+    else if(!live.configured)mode='internet-not-configured';
+    else mode='live-no-results'
+  }catch(e){mode='internet-search-error';searchStatus.errors=[e.message]}
+  for(let x of req.sourceObservations||[]){
+    let txt=(x.price||'')+' '+(x.note||''),p=marketNums(txt);
+    sources.push({type:x.type||'User supplied source',platform:x.platform||'Manual',region:x.region||'',domain:x.domain||'',title:x.title||'User supplied source',url:x.url||null,snippet:x.note||'',priceMentions:marketPriceMentions(txt),prices:p})
+  }
+  let usdValues=sources.flatMap(x=>x.prices||[]),s=marketStats(usdValues),published=sources.filter(x=>x.type==='Published Market Source'),platforms=[...new Set(published.map(x=>x.platform).filter(Boolean))],domains=[...new Set(published.map(x=>x.domain).filter(Boolean))];
+  let confidence=Math.min(95,Math.round((published.length>=12?50:published.length*4)+(platforms.length>=4?20:platforms.length*5)+(usdValues.length>=6?15:usdValues.length*2)+(mode.startsWith('live')?10:0)));
+  return {id:'MS-'+Date.now(),requestId:req.id,createdAt:new Date().toISOString(),query,mode,sourceCount:sources.length,confidence,benchmark:s,searchStatus,coverage:{platforms,domains,platformCount:platforms.length,domainCount:domains.length},classification:{verifiedQuotes:sources.filter(x=>x.type==='Verified Quote').length,publishedPrices:published.length,historicalPrices:sources.filter(x=>x.type==='Historical Price').length,aiEstimates:0},sources:sources.slice(0,80),disclaimer:'Internet marketplace prices are market intelligence only, not verified supplier quotations. USD benchmark uses only explicit USD prices; RMB/CNY mentions are retained as source evidence and are not mixed into the USD benchmark.'}
+}
 
 const server=http.createServer(async(req,res)=>{try{
 res.setHeader('X-Content-Type-Options','nosniff');
