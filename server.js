@@ -1,6 +1,24 @@
 const http=require('http'),fs=require('fs'),path=require('path'),crypto=require('crypto');
 const DATA=path.join(__dirname,'data.json'),OAUTH=path.join(__dirname,'.gmail-oauth.json'),PUB=path.join(__dirname,'public');
-const GCLIENT=process.env.GOOGLE_CLIENT_ID||'',GSECRET=process.env.GOOGLE_CLIENT_SECRET||'',BASE=process.env.APP_BASE_URL||'http://localhost:'+(process.env.PORT||8787),REDIRECT=BASE+'/api/gmail/callback';
+
+// Load a local .env file without adding a dependency. Existing process environment wins.
+const ENVFILE=path.join(__dirname,'.env');
+if(fs.existsSync(ENVFILE)){
+  for(const raw of fs.readFileSync(ENVFILE,'utf8').split(/\r?\n/)){
+    const line=raw.trim(); if(!line||line.startsWith('#'))continue;
+    const i=line.indexOf('='); if(i<1)continue;
+    const k=line.slice(0,i).trim(); let v=line.slice(i+1).trim();
+    if((v.startsWith('"')&&v.endsWith('"'))||(v.startsWith("'")&&v.endsWith("'")))v=v.slice(1,-1);
+    if(process.env[k]===undefined)process.env[k]=v;
+  }
+}
+const GCLIENT=(process.env.GOOGLE_CLIENT_ID||'').trim(),GSECRET=(process.env.GOOGLE_CLIENT_SECRET||'').trim(),BASE=(process.env.APP_BASE_URL||'http://localhost:'+(process.env.PORT||8787)).replace(/\/$/,''),REDIRECT=BASE+'/api/gmail/callback';
+const oauthConfig=()=>{
+  if(!GCLIENT||!GSECRET)return {ok:false,error:'missing_google_oauth_config',message:'إعداد Gmail غير مكتمل. أضف GOOGLE_CLIENT_ID و GOOGLE_CLIENT_SECRET في ملف .env ثم أعد تشغيل الخادم.'};
+  if(!/^[0-9]+-[a-z0-9_-]+\.apps\.googleusercontent\.com$/i.test(GCLIENT))return {ok:false,error:'invalid_google_client_id',message:'GOOGLE_CLIENT_ID غير صالح. استخدم OAuth Client ID من نوع Web application والمنتهي بـ apps.googleusercontent.com.'};
+  if(!/^https?:\/\//i.test(BASE))return {ok:false,error:'invalid_app_base_url',message:'APP_BASE_URL غير صالح.'};
+  return {ok:true};
+};
 const load=()=>JSON.parse(fs.readFileSync(DATA,'utf8')),save=x=>fs.writeFileSync(DATA,JSON.stringify(x,null,2));
 const oauth=()=>fs.existsSync(OAUTH)?JSON.parse(fs.readFileSync(OAUTH,'utf8')):{},saveOauth=x=>fs.writeFileSync(OAUTH,JSON.stringify(x,null,2),{mode:0o600});
 const json=(r,s,x)=>{r.writeHead(s,{'Content-Type':'application/json; charset=utf-8'});r.end(JSON.stringify(x))},body=req=>new Promise((ok,no)=>{let d='';req.on('data',c=>d+=c);req.on('end',()=>{try{ok(d?JSON.parse(d):{})}catch(e){no(e)}})});
@@ -75,11 +93,11 @@ res.setHeader('Referrer-Policy','no-referrer');
 res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');
 res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
 let u=new URL(req.url,'http://localhost');if(u.pathname==='/api/state'&&req.method==='GET'){let st=load();st.gmail={connected:!!oauth().refresh_token,configured:!!(GCLIENT&&GSECRET)};return json(res,200,st)}
-if(u.pathname==='/api/gmail/status'&&req.method==='GET')return json(res,200,{connected:!!oauth().refresh_token,configured:!!(GCLIENT&&GSECRET),redirectUri:REDIRECT});
-if(u.pathname==='/api/gmail/connect'&&req.method==='GET'){if(!GCLIENT||!GSECRET)return json(res,400,{error:'missing_google_oauth_config',message:'أضف GOOGLE_CLIENT_ID و GOOGLE_CLIENT_SECRET أولاً.'});let state=crypto.randomBytes(18).toString('hex');saveOauth({...oauth(),state});let q=new URLSearchParams({client_id:GCLIENT,redirect_uri:REDIRECT,response_type:'code',scope:'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send',access_type:'offline',prompt:'consent',state});res.writeHead(302,{Location:'https://accounts.google.com/o/oauth2/v2/auth?'+q});return res.end()}
+if(u.pathname==='/api/gmail/status'&&req.method==='GET'){let cfg=oauthConfig();return json(res,200,{connected:!!oauth().refresh_token,configured:cfg.ok,redirectUri:REDIRECT,error:cfg.ok?null:cfg.error,message:cfg.ok?null:cfg.message});}
+if(u.pathname==='/api/gmail/connect'&&req.method==='GET'){let cfg=oauthConfig();if(!cfg.ok)return json(res,400,cfg);let state=crypto.randomBytes(18).toString('hex');saveOauth({...oauth(),state});let q=new URLSearchParams({client_id:GCLIENT,redirect_uri:REDIRECT,response_type:'code',scope:'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send',access_type:'offline',prompt:'consent',state});res.writeHead(302,{Location:'https://accounts.google.com/o/oauth2/v2/auth?'+q});return res.end()}
 if(u.pathname==='/api/gmail/callback'&&req.method==='GET'){let o=oauth();if(!u.searchParams.get('code')||u.searchParams.get('state')!==o.state)return json(res,400,{error:'invalid_oauth_state'});let t=await formPost('https://oauth2.googleapis.com/token',{code:u.searchParams.get('code'),client_id:GCLIENT,client_secret:GSECRET,redirect_uri:REDIRECT,grant_type:'authorization_code'});saveOauth({...t,expires_at:Date.now()+t.expires_in*1000});res.writeHead(302,{Location:'/#agent'});return res.end()}
 if(u.pathname==='/api/gmail/disconnect'&&req.method==='POST'){if(fs.existsSync(OAUTH))fs.unlinkSync(OAUTH);return json(res,200,{ok:true})}
-if(u.pathname==='/api/gmail/sync'&&req.method==='POST')return json(res,200,await syncGmail());
+if(u.pathname==='/api/gmail/sync'&&req.method==='POST'){let cfg=oauthConfig();if(!cfg.ok)return json(res,400,cfg);if(!oauth().refresh_token)return json(res,409,{error:'gmail_not_connected',message:'اربط Gmail أولاً ثم أعد المزامنة.'});return json(res,200,await syncGmail());}
 if(u.pathname==='/api/requests'&&req.method==='POST'){let st=load(),b=await body(req),x={id:'REQ-'+String(Date.now()).slice(-6),title:b.title||'طلب مشتريات جديد',product:b.product||'',specifications:b.specifications||'',quantity:b.quantity||'',deliveryCountry:b.deliveryCountry||'',targetMarkets:b.targetMarkets||'',currency:b.currency||'USD',incoterm:b.incoterm||'FOB',neededBy:b.neededBy||'',notes:b.notes||'',status:'جديد',createdAt:new Date().toISOString()};st.requests=st.requests||[];st.marketScans=st.marketScans||[];st.requests.unshift(x);st.activity.unshift({time:new Date().toISOString(),type:'request',text:'إنشاء '+x.id});save(st);return json(res,201,x)}
 let mm=u.pathname.match(new RegExp('^/api/requests/([^/]+)/market-scan$'));if(mm&&req.method==='POST'){let st=load(),b=await body(req),x=(st.requests||[]).find(x=>x.id===mm[1]);if(!x)return json(res,404,{error:'request_not_found'});let scan=await marketScan(st,{...x,sourceObservations:b.sourceObservations||[]});st.marketScans=st.marketScans||[];st.marketScans.unshift(scan);x.marketScanId=scan.id;x.marketStatus='completed';st.activity.unshift({time:new Date().toISOString(),type:'market_scan',text:'Market Intelligence '+x.id+' — '+scan.sourceCount+' sources'});save(st);return json(res,200,scan)}
 if(u.pathname==='/api/market-scans'&&req.method==='GET'){let st=load();return json(res,200,st.marketScans||[])}
