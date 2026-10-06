@@ -29,12 +29,35 @@ const RECENT_SUPPLIERS=[
   {id:'CN2',name:'Dongmeng Group',country:'China',email:null,status:'مورد جديد — يحتاج تحقق التواصل',excluded:false,source:'recent_sourcing',category:'panel_door_manufacturer'},
   {id:'CN3',name:'Propanel',country:'China',email:null,status:'مورد جديد — يحتاج تحقق التواصل',excluded:false,source:'recent_sourcing',category:'panel_door_manufacturer'}
 ];
+const SUPPLIER_COUNTRIES={
+  'YangtzeCooling':'China',
+  'Yanghu Refrigeration':'China',
+  'Yourshine Group':'China',
+  'Hengliang Cooling':'China',
+  'Xiamen Jialiang':'China',
+  'Guangzhou Cryo Systems':'China',
+  'YuanShengHeTong':'China',
+  'Emaar Industries LLC':'Oman',
+  'Shanghai Champion':'China',
+  'Deye':'China',
+  'Al Musairiey Steel Industries':'Saudi Arabia',
+  'BTR':'Saudi Arabia',
+  'TSSC':'Saudi Arabia',
+  'Panel Tech International':'Oman',
+  'Al Jazeera Panel':'Oman',
+  'Shandong Lantian':'China',
+  'Dongmeng Group':'China',
+  'Propanel':'China'
+};
 function ensureRecentSuppliers(st){
   st.suppliers=Array.isArray(st.suppliers)?st.suppliers:[];
   let changed=false;
   for(const s of RECENT_SUPPLIERS){
     let exists=st.suppliers.some(x=>String(x.name||'').trim().toLowerCase()===s.name.toLowerCase());
     if(!exists){st.suppliers.push({...s});changed=true}
+  }
+  for(const s of st.suppliers){
+    if(!s.country&&SUPPLIER_COUNTRIES[s.name]){s.country=SUPPLIER_COUNTRIES[s.name];changed=true}
   }
   return changed
 }
