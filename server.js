@@ -29,7 +29,29 @@ const b64url=s=>Buffer.from(s).toString('base64').replace(/\+/g,'-').replace(/\/
 async function sendMail(to,subject,text){let raw=['To: '+to,'Subject: =?UTF-8?B?'+Buffer.from(subject).toString('base64')+'?=','MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','',''+text].join('\r\n');return gmail('messages/send',{method:'POST',body:JSON.stringify({raw:b64url(raw)})})}
 function headers(m){return Object.fromEntries((m.payload?.headers||[]).map(h=>[h.name.toLowerCase(),h.value]))}
 function decodePart(p){if(p?.body?.data)return Buffer.from(p.body.data.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8');for(let x of p?.parts||[]){let v=decodePart(x);if(v)return v}return ''}
-async function syncGmail(){let st=load(),list=await gmail('messages?q='+encodeURIComponent('RFQ-001 newer_than:90d')+'&maxResults=50'),known=new Set(st.gmailMessages||[]),added=0;for(let it of list.messages||[]){if(known.has(it.id))continue;let m=await gmail('messages/'+it.id+'?format=full'),h=headers(m),from=h.from||'',sub=h.subject||'',txt=decodePart(m.payload)||m.snippet||'';if(/RFQ-001/i.test(sub+' '+txt)){let sup=st.suppliers.find(s=>from.toLowerCase().includes((s.email||'').toLowerCase()));if(sup){sup.status='رد';sup.lastReply=new Date().toISOString();sup.lastSubject=sub}st.activity.unshift({id:Date.now()+Math.random(),time:new Date().toISOString(),type:'gmail_reply',text:'رد جديد: '+(sup?.name||from),messageId:it.id,subject:sub});added++}known.add(it.id)}st.gmailMessages=[...known];save(st);return {added}}
+function supplierForFrom(st,from){let f=String(from||'').toLowerCase();return (st.suppliers||[]).find(s=>[s.email,...(s.alternateEmails||[])].filter(Boolean).some(e=>f.includes(String(e).toLowerCase())))}
+function attachmentNames(p,out=[]){if(p?.filename)out.push(p.filename);for(let x of p?.parts||[])attachmentNames(x,out);return out}
+async function syncGmail(){
+  let st=load(),list=await gmail('messages?q='+encodeURIComponent('RFQ-001 newer_than:90d -from:me')+'&maxResults=50');
+  st.gmailReplies=Array.isArray(st.gmailReplies)?st.gmailReplies:[];
+  let known=new Set(st.gmailReplies.map(x=>x.messageId)),added=0,matched=0,unmatched=0;
+  for(let it of list.messages||[]){
+    if(known.has(it.id))continue;
+    let m=await gmail('messages/'+it.id+'?format=full'),h=headers(m),from=h.from||'',sub=h.subject||'',txt=decodePart(m.payload)||m.snippet||'';
+    if(!/RFQ-001/i.test(sub+' '+txt))continue;
+    let sup=supplierForFrom(st,from),receivedAt=m.internalDate?new Date(Number(m.internalDate)).toISOString():new Date().toISOString();
+    let rec={messageId:it.id,threadId:m.threadId||'',supplierId:sup?.id||null,supplierName:sup?.name||null,from,to:h.to||'',cc:h.cc||'',subject:sub,body:txt,snippet:m.snippet||'',receivedAt,attachments:attachmentNames(m.payload)};
+    st.gmailReplies.unshift(rec);known.add(it.id);added++;
+    if(sup){
+      matched++;
+      if(!/رد|عرض/i.test(sup.status||''))sup.status='رد — يحتاج استخراج';
+      sup.lastReply=receivedAt;sup.lastSubject=sub;
+    }else unmatched++;
+    st.activity.unshift({id:Date.now()+Math.random(),time:receivedAt,type:'gmail_reply',text:'رد جديد: '+(sup?.name||from),messageId:it.id,supplierId:sup?.id||null,subject:sub});
+  }
+  st.gmailReplies=st.gmailReplies.slice(0,500);
+  save(st);return {added,matched,unmatched,totalReplies:st.gmailReplies.length};
+}
 function ensureWorkspace(x){
   x.workspace=x.workspace||{};
   x.workspace.specifications=x.workspace.specifications||[];
