@@ -79,6 +79,13 @@ jobs:
           node -e "let x=JSON.parse(process.argv[1]);if(x.intent!=='ask'||!/0°C/.test(x.reply))process.exit(1)" "$spec"
           act=$(curl -fsS -X POST -H "Content-Type: application/json" -d '{"message":"أضف شرط أن المورد يجب أن يكون من الصين"}' http://127.0.0.1:8787/api/requests/RFQ-001/copilot)
           node -e "let x=JSON.parse(process.argv[1]);if(x.intent!=='act'||!x.executed.length||x.executed[0].status!=='Confirmed Decision')process.exit(1)" "$act"
+      - name: Verify Market Intelligence and Approvals UI wiring
+        run: |
+          grep -F "if(v==='market')el.innerHTML=market()" public/index.html
+          grep -F "show('approvals');toast" public/index.html
+          curl -fsS -X POST -H "Content-Type: application/json" -d '{}' http://127.0.0.1:8787/api/requests/RFQ-001/market-scan | grep -q '"requestId":"RFQ-001"'
+          curl -fsS -X PATCH -H "Content-Type: application/json" -d '{"status":"approved"}' http://127.0.0.1:8787/api/approvals/A1 | grep -q '"status":"approved"'
+          curl -fsS -X PATCH -H "Content-Type: application/json" -d '{"status":"pending"}' http://127.0.0.1:8787/api/approvals/A1 | grep -q '"status":"pending"'
       - name: Static responsive and RTL assertions
         run: |
           grep -q 'dir="rtl"' /tmp/index.html
