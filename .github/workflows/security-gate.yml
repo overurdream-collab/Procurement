@@ -1,0 +1,54 @@
+name: Security Gate
+on:
+  push:
+    branches: [ main, security/automated-security-gates ]
+  pull_request:
+    branches: [ main ]
+permissions:
+  contents: read
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax and dependency audit
+        run: |
+          node --check server.js
+          if [ -f package-lock.json ]; then npm audit --audit-level=high; fi
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start application
+        run: |
+          node server.js > /tmp/procurement.log 2>&1 &
+          echo $! > /tmp/procurement.pid
+          for i in {1..20}; do curl -fsS http://127.0.0.1:8787/ >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8787/ >/dev/null
+      - name: API security regression
+        run: |
+          set -e
+          test "$(curl -s -o /tmp/traversal -w '%{http_code}' 'http://127.0.0.1:8787/../../etc/passwd')" != "200"
+          test "$(curl -s -o /tmp/badsection -w '%{http_code}' -X PATCH -H 'Content-Type: application/json' -d '{"section":"__proto__","value":"x"}' http://127.0.0.1:8787/api/requests/RFQ-001/workspace)" = "400"
+          test "$(curl -s -o /tmp/emptychat -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"message":""}' http://127.0.0.1:8787/api/requests/RFQ-001/copilot)" = "400"
+          node - <<'NODE'
+          const http=require('http');
+          const payload=JSON.stringify({message:'<script>alert(1)</script>'});
+          const r=http.request({host:'127.0.0.1',port:8787,path:'/api/requests/RFQ-001/copilot',method:'POST',headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(payload)}},res=>{let d='';res.on('data',x=>d+=x);res.on('end',()=>{if(res.statusCode!==200)process.exit(1);let x=JSON.parse(d);if(!x.workspace?.chat?.length)process.exit(1)})});r.end(payload);
+          NODE
+      - name: Dynamic baseline scan
+        run: |
+          docker run --rm --network host -v "${{ github.workspace }}:/zap/wrk/:rw" -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://127.0.0.1:8787 -I -r zap-report.html
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-security-report
+          path: zap-report.html
+          if-no-files-found: ignore
