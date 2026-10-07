@@ -1,0 +1,13 @@
+{
+  "name": "marketplace-1688-playwright-test",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "node test-1688.js",
+    "api": "node api.js"
+  },
+  "dependencies": {
+    "playwright": "^1.47.0"
+  }
+}
