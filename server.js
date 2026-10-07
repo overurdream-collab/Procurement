@@ -268,6 +268,18 @@ if(u.pathname==='/api/gmail/attachment'&&req.method==='GET'){
 if(u.pathname==='/api/requests'&&req.method==='POST'){let st=load(),b=await body(req),x={id:'REQ-'+String(Date.now()).slice(-6),title:b.title||'طلب مشتريات جديد',product:b.product||'',specifications:b.specifications||'',quantity:b.quantity||'',deliveryCountry:b.deliveryCountry||'',targetMarkets:b.targetMarkets||'',currency:b.currency||'USD',incoterm:b.incoterm||'FOB',neededBy:b.neededBy||'',notes:b.notes||'',status:'جديد',createdAt:new Date().toISOString()};st.requests=st.requests||[];st.marketScans=st.marketScans||[];st.requests.unshift(x);st.activity.unshift({time:new Date().toISOString(),type:'request',text:'إنشاء '+x.id});save(st);return json(res,201,x)}
 let mm=u.pathname.match(new RegExp('^/api/requests/([^/]+)/market-scan$'));if(mm&&req.method==='POST'){let st=load(),b=await body(req),x=(st.requests||[]).find(x=>x.id===mm[1]);if(!x)return json(res,404,{error:'request_not_found'});let scan=await marketScan(st,{...x,sourceObservations:b.sourceObservations||[]});st.marketScans=st.marketScans||[];st.marketScans.unshift(scan);x.marketScanId=scan.id;x.marketStatus='completed';st.activity.unshift({time:new Date().toISOString(),type:'market_scan',text:'Market Intelligence '+x.id+' — '+scan.sourceCount+' sources'});save(st);return json(res,200,scan)}
 if(u.pathname==='/api/market-scans'&&req.method==='GET'){let st=load();return json(res,200,st.marketScans||[])}
+if(u.pathname==='/api/market-search'&&req.method==='POST'){
+  let b=await body(req);
+  let r=await fetch('http://localhost:8790/api/market-search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+  let x=await r.json().catch(()=>({error:'invalid_alibaba_api_response'}));
+  return json(res,r.status,x)
+}
+let msearch=u.pathname.match(/^\/api\/market-search\/([^/]+)$/);
+if(msearch&&req.method==='GET'){
+  let r=await fetch('http://localhost:8790/api/market-search/'+encodeURIComponent(msearch[1]));
+  let x=await r.json().catch(()=>({error:'invalid_alibaba_api_response'}));
+  return json(res,r.status,x)
+}
 let wm=u.pathname.match(/^\/api\/requests\/([^/]+)\/workspace$/);
 if(wm&&req.method==='GET'){let st=load(),x=(st.requests||[]).find(x=>x.id===wm[1]);if(!x)return json(res,404,{error:'request_not_found'});return json(res,200,{request:x,workspace:ensureWorkspace(x)})}
 if(wm&&req.method==='PATCH'){let st=load(),b=await body(req),x=(st.requests||[]).find(x=>x.id===wm[1]);if(!x)return json(res,404,{error:'request_not_found'});let w=ensureWorkspace(x),allowed=['specifications','analysisRules','commercialTerms','supplierStrategy','scenarios','facts','aiInstructions'];if(!allowed.includes(b.section))return json(res,400,{error:'invalid_workspace_section'});let item=addWorkspaceItem(x,b.section,b.value,b.status||'Confirmed Decision',b.source||'Manual UI');save(st);return json(res,200,{item,workspace:w})}
