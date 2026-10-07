@@ -115,6 +115,12 @@ jobs:
           grep -F "st.gmailReplies.unshift(rec)" server.js
           grep -F "relinked" server.js
           grep -F "sales@emaarllc.com" data.json
+      - name: Verify deterministic Gmail reconciliation
+        run: |
+          grep -F '"Fresh Produce Cold Room" newer_than:90d' server.js
+          grep -F "st.correspondence||[]" server.js
+          grep -F "gmailSyncStatus" server.js
+          grep -F "آخر مزامنة" public/index.html
       - name: Static responsive and RTL assertions
         run: |
           grep -q 'dir="rtl"' /tmp/index.html
