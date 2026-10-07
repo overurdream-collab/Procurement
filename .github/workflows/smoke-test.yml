@@ -110,6 +110,11 @@ jobs:
           grep -F "supplierEmails=new Map()" server.js
           grep -F "st.correspondence=records" server.js
           grep -F "needs_extraction" server.js
+      - name: Verify Gmail recent-reply detection
+        run: |
+          grep -F "newer_than:14d -from:me" server.js
+          grep -F "sales@emaarllc.com" data.json
+          grep -F "function gmailView()" public/index.html
       - name: Static responsive and RTL assertions
         run: |
           grep -q 'dir="rtl"' /tmp/index.html
