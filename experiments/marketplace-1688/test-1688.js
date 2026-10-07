@@ -88,12 +88,43 @@ async function main(){
       }
     }
 
-    if(
-      (html.includes('登录') || html.includes('login') || html.includes('sign in')) &&
-      (html.includes('密码') || html.includes('password') || html.includes('账号'))
-    ){
+    const loginUrlDetected = /login\.(?:taobao|1688)\.com|passport\.taobao\.com/i.test(page.url());
+    const loginTextDetected =
+      (html.includes('密码登录') || html.includes('短信登录') || html.includes('免费注册') ||
+       html.includes('扫码登录') || html.includes('忘记密码') || html.includes('登录页面'));
+
+    if(loginUrlDetected || loginTextDetected){
       report.checks.loginEncountered=true;
-      log('guard','login wall possibly detected');
+      log('guard','LOGIN_REQUIRED');
+      log('guard','1688/Taobao login required; waiting up to 300 seconds for manual login');
+
+      const deadline=Date.now()+300000;
+      let cleared=false;
+      while(Date.now()<deadline){
+        await page.waitForTimeout(3000);
+        const currentUrl=page.url();
+        const currentHtml=(await page.content()).toLowerCase();
+        const stillLogin=
+          /login\.(?:taobao|1688)\.com|passport\.taobao\.com/i.test(currentUrl) ||
+          currentHtml.includes('密码登录') ||
+          currentHtml.includes('短信登录') ||
+          currentHtml.includes('扫码登录');
+
+        if(!stillLogin){
+          cleared=true;
+          log('guard','LOGIN_CLEARED');
+          break;
+        }
+      }
+
+      if(!cleared){
+        log('guard','LOGIN_TIMEOUT');
+      }else{
+        await page.waitForLoadState('domcontentloaded').catch(()=>{});
+        await page.waitForTimeout(4000);
+        report.finalUrl=page.url();
+        report.pageTitle=await page.title().catch(()=>report.pageTitle);
+      }
     }
 
     await page.mouse.wheel(0,1600).catch(()=>{});
