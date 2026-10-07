@@ -109,6 +109,20 @@ function classifyReply(subject,body,attachments=[]){
   if(info)return 'info_request';
   return 'general_reply';
 }
+function ensureVerifiedRfqSuppliers(st){
+  const defs=[
+    {id:'S4',name:'Hengliang Cooling',email:'info@hengliangcooling.com',alt:['alan@hengliangcooling.com']},
+    {id:'S10',name:'Deye',email:'service@deye.com.cn',alt:['bob.lee@deye.com.cn']},
+    {id:'S13',name:'Moon Refrigeration (Sophia)',email:'sophia@moonrefrigeration.com',country:'China',status:'وعد بإرسال العرض',category:'cold_room_manufacturer'},
+    {id:'S14',name:'Damai (Michelle)',email:'sales3@dmllcn.com',country:'China',status:'رد — يطلب معلومات',category:'cold_room_manufacturer'}
+  ];
+  st.suppliers=st.suppliers||[];
+  for(const d of defs){
+    let x=st.suppliers.find(s=>s.id===d.id||String(s.email||'').toLowerCase()===d.email);
+    if(!x){x={id:d.id,name:d.name,email:d.email,country:d.country||'China',status:d.status||'تم الرد',excluded:false,source:'verified_email_thread',category:d.category||'cold_room_manufacturer'};st.suppliers.push(x)}
+    x.alternateEmails=[...new Set([...(x.alternateEmails||[]),...(d.alt||[])])];
+  }
+}
 async function projectMessageCandidates(st){
   let queries=[
     'RFQ-001 newer_than:90d -from:me',
@@ -120,7 +134,7 @@ async function projectMessageCandidates(st){
   return {messages:[...map.values()],queryCount:queries.length}
 }
 async function syncGmail(){
-  let st=load(),found=await projectMessageCandidates(st),list=found.messages;st.gmailReplies=(Array.isArray(st.gmailReplies)?st.gmailReplies:[]).filter(x=>!internalSender(x.from));st.correspondence=(st.correspondence||[]).filter(x=>!internalSender(x.from));
+  let st=load();ensureVerifiedRfqSuppliers(st);let found=await projectMessageCandidates(st),list=found.messages;st.gmailReplies=(Array.isArray(st.gmailReplies)?st.gmailReplies:[]).filter(x=>!internalSender(x.from));st.correspondence=(st.correspondence||[]).filter(x=>!internalSender(x.from));
   let byId=new Map(st.gmailReplies.map(x=>[x.messageId,x])),recovered=0;
   for(let old of st.correspondence||[]){let mid=old.messageId||old.id;if(mid&&!byId.has(mid)){let rec={...old,messageId:mid};delete rec.id;st.gmailReplies.push(rec);byId.set(mid,rec);recovered++}}
   let relinked=0;for(let rec of st.gmailReplies){let sup=supplierForFrom(st,rec.from||'');if(sup&&rec.supplierId!==sup.id){rec.supplierId=sup.id;rec.supplierName=sup.name;relinked++}}
