@@ -105,16 +105,16 @@ jobs:
           grep -F "function openConversation(id)" public/index.html
           grep -F "فتح سجل المراسلات" public/index.html
           grep -F "function openComparisonDetail(id)" public/index.html
-      - name: Verify Gmail supplier-thread synchronization
-        run: |
-          grep -F "supplierEmails=new Map()" server.js
-          grep -F "st.correspondence=records" server.js
-          grep -F "needs_extraction" server.js
       - name: Verify Gmail recent-reply detection
         run: |
           grep -F "newer_than:14d -from:me" server.js
           grep -F "sales@emaarllc.com" data.json
           grep -F "function gmailView()" public/index.html
+      - name: Verify Gmail reply linking and relinking
+        run: |
+          grep -F "st.gmailReplies.unshift(rec)" server.js
+          grep -F "relinked" server.js
+          grep -F "sales@emaarllc.com" data.json
       - name: Static responsive and RTL assertions
         run: |
           grep -q 'dir="rtl"' /tmp/index.html
