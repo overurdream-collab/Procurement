@@ -105,7 +105,7 @@ jobs:
           grep -F "function openConversation(id)" public/index.html
           grep -F "فتح سجل المراسلات" public/index.html
           grep -F "function openComparisonDetail(id)" public/index.html
-          grep -F "رد المورد — يحتاج استخراج" public/index.html
+          grep -F "عرض مستلم — جاهز للاستخراج" public/index.html
       - name: Verify Gmail project sync v2
         run: |
           grep -F "function supplierForMessage" server.js
