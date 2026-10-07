@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SEARCH_TERM = process.argv.slice(2).join(' ') || 'stainless steel water tank 5000L';
-const MAX_RESULTS = 5;
+const MAX_RESULTS = Math.max(1, Math.min(20, Number(process.env.MAX_RESULTS || 5)));
 const NAV_TIMEOUT_MS = 45000;
 const RESULT_WAIT_MS = 30000;
 
@@ -240,8 +240,11 @@ async function main() {
 
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
-    log('browser', 'keeping browser open for 10s for visual check...');
-    await page.waitForTimeout(10000);
+    const keepOpenMs = Math.max(0, Number(process.env.KEEP_OPEN_MS || 10000));
+    if (keepOpenMs) {
+      log('browser', `keeping browser open for ${keepOpenMs}ms for visual check...`);
+      await page.waitForTimeout(keepOpenMs);
+    }
   } catch (err) {
     report.error = err && err.stack ? err.stack : String(err);
     console.error('\n[ERROR]', err);
