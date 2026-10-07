@@ -16,6 +16,8 @@ const RESULT_WAIT_MS = 30000;
 const ARTIFACT_DIR = path.join(__dirname, 'artifacts');
 const PROFILE_DIR = path.join(__dirname, '.profile-real-browser');
 const REQUESTED_BROWSER = (process.env.ALIBABA_BROWSER || 'chrome').toLowerCase();
+const EXISTING_USER_DATA_DIR = process.env.CHROME_USER_DATA_DIR || '';
+const EXISTING_PROFILE_DIR = process.env.CHROME_PROFILE_DIR || '';
 fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
 fs.mkdirSync(PROFILE_DIR, { recursive: true });
 
@@ -47,6 +49,11 @@ async function main() {
 
   let browser;
   try {
+    if (EXISTING_USER_DATA_DIR) {
+      log('browser', 'existing Chrome user-data directory requested');
+      log('browser', 'IMPORTANT: close all Chrome windows before continuing to avoid profile lock/corruption risk');
+    }
+
     const candidates =
       REQUESTED_BROWSER === 'edge' || REQUESTED_BROWSER === 'msedge'
         ? ['msedge', 'chrome', null]
@@ -62,12 +69,18 @@ async function main() {
       try {
         selectedBrowser = channel || 'chromium';
         log('browser', `trying real browser channel: ${selectedBrowser}`);
-        context = await chromium.launchPersistentContext(PROFILE_DIR, {
+        const userDataDir = EXISTING_USER_DATA_DIR || PROFILE_DIR;
+        const launchArgs = [];
+        if (EXISTING_USER_DATA_DIR && EXISTING_PROFILE_DIR) {
+          launchArgs.push('--profile-directory=' + EXISTING_PROFILE_DIR);
+        }
+        context = await chromium.launchPersistentContext(userDataDir, {
           channel: channel || undefined,
           headless: false,
           slowMo: 100,
           locale: 'en-US',
-          viewport: { width: 1366, height: 900 }
+          viewport: { width: 1366, height: 900 },
+          args: launchArgs
         });
         break;
       } catch (e) {
@@ -80,7 +93,9 @@ async function main() {
 
     browser = context.browser();
     report.browserChannel = selectedBrowser;
-    report.profileDir = PROFILE_DIR;
+    report.profileDir = EXISTING_USER_DATA_DIR || PROFILE_DIR;
+    report.profileName = EXISTING_PROFILE_DIR || null;
+    report.usingExistingProfile = !!EXISTING_USER_DATA_DIR;
     report.checks.browserLaunch = true;
     log('browser', `OK — using ${selectedBrowser} with dedicated persistent profile`);
 
