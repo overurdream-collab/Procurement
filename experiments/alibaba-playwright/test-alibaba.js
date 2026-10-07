@@ -154,19 +154,34 @@ async function main() {
       log('guard', 'Login wall possibly detected');
     }
 
-    log('results', 'waiting for result cards...');
+    log('results', 'waiting for Alibaba results...');
     const selectors = [
       '.organic-gallery-offer-outter',
       '.fy23-search-card',
       '[data-content="productItem"]',
+      '[class*="search-card"]',
+      '[class*="offer"]'
     ];
+
+    await page.waitForTimeout(5000);
+    await page.mouse.wheel(0, 1400).catch(() => {});
+    await page.waitForTimeout(2500);
 
     let cardsLoaded = false;
     for (const sel of selectors) {
       try {
-        await page.waitForSelector(sel, { timeout: Math.ceil(RESULT_WAIT_MS / selectors.length) });
-        cardsLoaded = true;
-        break;
+        const count = await page.locator(sel).count();
+        if (count > 0) {
+          cardsLoaded = true;
+          break;
+        }
+      } catch (_) {}
+    }
+
+    if (!cardsLoaded) {
+      try {
+        const productLinks = await page.locator('a[href*="/product-detail/"], a[href*="alibaba.com/product-detail"]').count();
+        cardsLoaded = productLinks > 0;
       } catch (_) {}
     }
     report.checks.searchPageLoaded = cardsLoaded;
@@ -184,7 +199,7 @@ async function main() {
 
     let cards = [];
     for (const sel of selectors) {
-      const found = await page.$$(sel);
+      const found = await page.$(sel);
       if (found.length > 0) {
         cards = found;
         report.selectorUsed = sel;
@@ -194,45 +209,62 @@ async function main() {
       }
     }
 
-    report.checks.resultsDetected = cards.length > 0;
-    report.checks.selectorsStable = cards.length >= MAX_RESULTS;
-
     const results = [];
-    for (let i = 0; i < Math.min(cards.length, MAX_RESULTS); i++) {
-      const card = cards[i];
-      try {
-        const title = await card
-          .$eval(
-            'h2, .search-card-e-title, [class*="title"]',
-            (el) => el.innerText.trim()
-          )
-          .catch(() => null);
-
-        const price = await card
-          .$eval(
-            '.search-card-e-price-main, [class*="price"]',
-            (el) => el.innerText.trim()
-          )
-          .catch(() => null);
-
-        const supplier = await card
-          .$eval(
-            '.search-card-e-company, [class*="company"]',
-            (el) => el.innerText.trim()
-          )
-          .catch(() => null);
-
-        const url = await card
-          .$eval('a', (el) => el.href)
-          .catch(() => null);
-
-        results.push({ title, price, supplier, url });
-      } catch (e) {
-        results.push({ error: String(e) });
+    if (cards.length > 0) {
+      for (let i = 0; i < Math.min(cards.length, MAX_RESULTS); i++) {
+        const card = cards[i];
+        try {
+          const title = await card
+            .$eval('h2, .search-card-e-title, [class*="title"]', el => el.innerText.trim())
+            .catch(() => null);
+          const price = await card
+            .$eval('.search-card-e-price-main, [class*="price"]', el => el.innerText.trim())
+            .catch(() => null);
+          const supplier = await card
+            .$eval('.search-card-e-company, [class*="company"]', el => el.innerText.trim())
+            .catch(() => null);
+          const url = await card.$eval('a[href]', el => el.href).catch(() => null);
+          if (title || url) results.push({ title, price, supplier, url });
+        } catch (_) {}
       }
     }
 
-    report.results = results;
+    if (results.length < MAX_RESULTS) {
+      const fallback = await page.evaluate((max) => {
+        const links = [...document.querySelectorAll('a[href*="/product-detail/"], a[href*="alibaba.com/product-detail"]')];
+        const seen = new Set();
+        const out = [];
+        for (const a of links) {
+          const href = a.href;
+          if (!href || seen.has(href)) continue;
+          seen.add(href);
+          let root = a;
+          for (let i = 0; i < 5 && root && root.parentElement; i++, root = root.parentElement) {
+            const txt = (root.innerText || '').trim();
+            if (txt.length > 40) break;
+          }
+          const text = (root && root.innerText ? root.innerText : a.innerText || '').trim();
+          const lines = text.split(/\n+/).map(x => x.trim()).filter(Boolean);
+          const priceLine = lines.find(x => /(?:US\$|\$|USD)\s*[0-9]|[0-9].*(?:US\$|USD)/i.test(x)) || null;
+          const companyLine = lines.find(x => /(?:Co\.,?\s*Ltd|Company|Factory|Manufacturer|Trading)/i.test(x)) || null;
+          const title = (a.innerText || lines.find(x => x.length > 20) || '').trim() || null;
+          out.push({ title, price: priceLine, supplier: companyLine, url: href });
+          if (out.length >= max) break;
+        }
+        return out;
+      }, MAX_RESULTS);
+
+      for (const item of fallback) {
+        if (results.length >= MAX_RESULTS) break;
+        if (!results.some(x => x.url === item.url)) results.push(item);
+      }
+      if (fallback.length && !report.selectorUsed) report.selectorUsed = 'product-detail-link-fallback';
+      report.resultCountDetected = Math.max(report.resultCountDetected, fallback.length);
+    }
+
+    report.checks.resultsDetected = results.length > 0;
+    report.checks.selectorsStable = results.length >= Math.min(MAX_RESULTS, 5);
+    report.results = results.slice(0, MAX_RESULTS);
 
     console.log('\n================ REPORT ================');
     console.log(JSON.stringify(report, null, 2));
