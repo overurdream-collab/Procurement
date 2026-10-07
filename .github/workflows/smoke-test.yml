@@ -133,6 +133,13 @@ jobs:
           grep -F "function supplierIdForReply(m)" public/index.html
           grep -F "unmatched=allReplies().filter" public/index.html
           grep -F "emaarllc.com" public/index.html
+      - name: Verify verified RFQ repliers and mail filtering
+        run: |
+          grep -F "function ensureVerifiedRfqSuppliers(st)" server.js
+          grep -F "sophia@moonrefrigeration.com" server.js
+          grep -F "sales3@dmllcn.com" server.js
+          grep -F "function projectReply(m)" public/index.html
+          ! grep -F "'newer_than:14d -from:me'" server.js
       - name: Static responsive and RTL assertions
         run: |
           grep -q 'dir="rtl"' /tmp/index.html
