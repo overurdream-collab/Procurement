@@ -72,13 +72,16 @@ async function sendMail(to,subject,text){let raw=['To: '+to,'Subject: =?UTF-8?B?
 function headers(m){return Object.fromEntries((m.payload?.headers||[]).map(h=>[h.name.toLowerCase(),h.value]))}
 function decodePart(p){if(p?.body?.data)return Buffer.from(p.body.data.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8');for(let x of p?.parts||[]){let v=decodePart(x);if(v)return v}return ''}
 function emailDomain(v){let m=String(v||'').toLowerCase().match(/@([a-z0-9.-]+)/);return m?m[1]:''}
+function internalSender(from){let f=String(from||'').toLowerCase();return ['alharirexport@gmail.com','numbersinchina@gmail.com'].some(e=>f.includes(e))}
 function supplierForFrom(st,from){
   let f=String(from||'').toLowerCase(),free=new Set(['gmail.com','outlook.com','hotmail.com','yahoo.com','qq.com','163.com']);
   return (st.suppliers||[]).find(s=>{
     let emails=[s.email,...(s.alternateEmails||[])].filter(Boolean).map(x=>String(x).toLowerCase());
+    let domains=[...(s.emailDomains||[]),s.emailDomain].filter(Boolean).map(x=>String(x).toLowerCase());
+    if(/emaar industries/i.test(String(s.name||'')))domains.push('emaarllc.com');
     if(emails.some(e=>f.includes(e)))return true;
-    let domains=[...new Set(emails.map(emailDomain).filter(d=>d&&!free.has(d)))];
-    return domains.some(d=>f.includes('@'+d));
+    domains.push(...emails.map(emailDomain).filter(d=>d&&!free.has(d)));
+    return [...new Set(domains)].some(d=>f.includes('@'+d));
   })
 }
 function attachmentsFromPayload(p,out=[]){
@@ -118,12 +121,12 @@ async function projectMessageCandidates(st){
   return {messages:[...map.values()],queryCount:queries.length}
 }
 async function syncGmail(){
-  let st=load(),found=await projectMessageCandidates(st),list=found.messages;st.gmailReplies=Array.isArray(st.gmailReplies)?st.gmailReplies:[];
+  let st=load(),found=await projectMessageCandidates(st),list=found.messages;st.gmailReplies=(Array.isArray(st.gmailReplies)?st.gmailReplies:[]).filter(x=>!internalSender(x.from));st.correspondence=(st.correspondence||[]).filter(x=>!internalSender(x.from));
   let byId=new Map(st.gmailReplies.map(x=>[x.messageId,x])),recovered=0;
   for(let old of st.correspondence||[]){let mid=old.messageId||old.id;if(mid&&!byId.has(mid)){let rec={...old,messageId:mid};delete rec.id;st.gmailReplies.push(rec);byId.set(mid,rec);recovered++}}
   let relinked=0;for(let rec of st.gmailReplies){let sup=supplierForFrom(st,rec.from||'');if(sup&&rec.supplierId!==sup.id){rec.supplierId=sup.id;rec.supplierName=sup.name;relinked++}}
   let known=new Set(st.gmailReplies.map(x=>x.messageId)),added=0,matched=0,unmatched=0;
-  for(let it of list){if(known.has(it.id))continue;let m=await gmail('messages/'+it.id+'?format=full'),h=headers(m),from=h.from||'',sub=h.subject||'',txt=decodePart(m.payload)||m.snippet||'',sup=supplierForFrom(st,from);let relevant=/RFQ-001|cold room|cold rooms|cold storage|refrigeration|fresh produce|冷库|报价|询价|solar|hybrid/i.test(sub+' '+txt)||!!sup;if(!relevant)continue;let receivedAt=m.internalDate?new Date(Number(m.internalDate)).toISOString():new Date().toISOString(),attachments=attachmentsFromPayload(m.payload),replyType=classifyReply(sub,txt,attachments),rec={messageId:it.id,threadId:m.threadId||'',supplierId:sup?.id||null,supplierName:sup?.name||null,from,to:h.to||'',cc:h.cc||'',subject:sub,body:txt,snippet:m.snippet||'',summary:cleanReplySummary(txt),receivedAt,attachments,replyType};st.gmailReplies.unshift(rec);known.add(it.id);added++;if(sup){matched++;if(replyType==='quote_received')sup.status='عرض مستلم — يحتاج استخراج';else if(replyType==='quote_promised')sup.status='وعد بإرسال العرض';else if(replyType==='technical_reply')sup.status='رد فني + مرفقات للمراجعة';else if(replyType==='info_request')sup.status='رد — يطلب معلومات';else sup.status='رد غير سعري';sup.lastReply=receivedAt;sup.lastSubject=sub}else unmatched++;st.activity.unshift({id:Date.now()+Math.random(),time:receivedAt,type:'gmail_reply',text:'رد جديد: '+(sup?.name||from),messageId:it.id,supplierId:sup?.id||null,subject:sub})}
+  for(let it of list){if(known.has(it.id))continue;let m=await gmail('messages/'+it.id+'?format=full'),h=headers(m),from=h.from||'';if(internalSender(from))continue;let sub=h.subject||'',txt=decodePart(m.payload)||m.snippet||'',sup=supplierForFrom(st,from);let relevant=/RFQ-001|cold room|cold rooms|cold storage|refrigeration|fresh produce|冷库|报价|询价|solar|hybrid/i.test(sub+' '+txt)||!!sup;if(!relevant)continue;let receivedAt=m.internalDate?new Date(Number(m.internalDate)).toISOString():new Date().toISOString(),attachments=attachmentsFromPayload(m.payload),replyType=classifyReply(sub,txt,attachments),rec={messageId:it.id,threadId:m.threadId||'',supplierId:sup?.id||null,supplierName:sup?.name||null,from,to:h.to||'',cc:h.cc||'',subject:sub,body:txt,snippet:m.snippet||'',summary:cleanReplySummary(txt),receivedAt,attachments,replyType};st.gmailReplies.unshift(rec);known.add(it.id);added++;if(sup){matched++;if(replyType==='quote_received')sup.status='عرض مستلم — يحتاج استخراج';else if(replyType==='quote_promised')sup.status='وعد بإرسال العرض';else if(replyType==='technical_reply')sup.status='رد فني + مرفقات للمراجعة';else if(replyType==='info_request')sup.status='رد — يطلب معلومات';else sup.status='رد غير سعري';sup.lastReply=receivedAt;sup.lastSubject=sub}else unmatched++;st.activity.unshift({id:Date.now()+Math.random(),time:receivedAt,type:'gmail_reply',text:'رد جديد: '+(sup?.name||from),messageId:it.id,supplierId:sup?.id||null,subject:sub})}
   st.gmailReplies=st.gmailReplies.filter((x,i,a)=>x.messageId&&a.findIndex(y=>y.messageId===x.messageId)===i).slice(0,500);
   for(let rec of st.gmailReplies){if(!rec.supplierId)unmatched++}
   st.correspondence=st.gmailReplies.map(x=>({...x,id:x.messageId,requestId:'RFQ-001',extractionStatus:(x.attachments||[]).length?'needs_extraction':'received'}));

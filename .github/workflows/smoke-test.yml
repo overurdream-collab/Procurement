@@ -121,6 +121,12 @@ jobs:
           grep -F "st.correspondence||[]" server.js
           grep -F "gmailSyncStatus" server.js
           grep -F "آخر مزامنة" public/index.html
+      - name: Verify supplier-domain matching and internal-mail filtering
+        run: |
+          grep -F "function internalSender(from)" server.js
+          grep -F "emaarllc.com" server.js
+          grep -F "numbersinchina@gmail.com" server.js
+          grep -F "if(internalSender(from))continue" server.js
       - name: Static responsive and RTL assertions
         run: |
           grep -q 'dir="rtl"' /tmp/index.html
