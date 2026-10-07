@@ -1,0 +1,13 @@
+{
+  "name": "made-in-china-playwright-test",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "node test-made-in-china.js",
+    "api": "node api.js"
+  },
+  "dependencies": {
+    "playwright": "^1.47.0"
+  }
+}
