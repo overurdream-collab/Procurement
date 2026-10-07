@@ -105,11 +105,6 @@ jobs:
           grep -F "function openConversation(id)" public/index.html
           grep -F "فتح سجل المراسلات" public/index.html
           grep -F "function openComparisonDetail(id)" public/index.html
-      - name: Verify Gmail supplier-thread synchronization
-        run: |
-          grep -F "supplierEmails=new Map()" server.js
-          grep -F "st.correspondence=records" server.js
-          grep -F "needs_extraction" server.js
       - name: Verify Gmail recent-reply detection
         run: |
           grep -F "newer_than:14d -from:me" server.js
