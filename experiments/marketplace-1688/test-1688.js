@@ -2,7 +2,8 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-const SEARCH_TERM = process.argv.slice(2).join(' ') || '5000L 不锈钢 水箱';
+const DEFAULT_SEARCH_TERM = '5000L \u4e0d\u9508\u94a2 \u6c34\u7bb1';
+const SEARCH_TERM = process.argv.slice(2).join(' ') || DEFAULT_SEARCH_TERM;
 const MAX_RESULTS = Math.max(1, Math.min(20, Number(process.env.MAX_RESULTS || 10)));
 const NAV_TIMEOUT_MS = 45000;
 const ARTIFACT_DIR = path.join(__dirname, 'artifacts');
@@ -16,6 +17,7 @@ async function main(){
   const report={
     startedAt:new Date().toISOString(),
     searchTerm:SEARCH_TERM,
+    searchTermEscaped:[...SEARCH_TERM].map(ch=>ch.charCodeAt(0)>127?'\\u'+ch.charCodeAt(0).toString(16).padStart(4,'0'):ch).join(''),
     checks:{
       browserLaunch:false,
       navigationSuccess:false,
