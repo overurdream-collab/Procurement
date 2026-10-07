@@ -4,7 +4,8 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "test": "node test-alibaba.js"
+    "test": "node test-alibaba.js",
+    "api": "node api.js"
   },
   "dependencies": {
     "playwright": "^1.47.0"
