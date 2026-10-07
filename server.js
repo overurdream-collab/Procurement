@@ -117,32 +117,10 @@ async function projectMessageCandidates(){
   }
   return [...map.values()]
 }
-async function syncGmail(){
-  let st=load(),list=await projectMessageCandidates();
-  st.gmailReplies=Array.isArray(st.gmailReplies)?st.gmailReplies:[];
-  let known=new Set(st.gmailReplies.map(x=>x.messageId)),added=0,matched=0,unmatched=0;
-  for(let it of list){
-    if(known.has(it.id))continue;
-    let m=await gmail('messages/'+it.id+'?format=full'),h=headers(m),from=h.from||'',sub=h.subject||'',txt=decodePart(m.payload)||m.snippet||'',sup=supplierForFrom(st,from);
-    let relevant=/RFQ-001|cold room|cold rooms|cold storage|refrigeration|冷库|报价|询价|solar|hybrid/i.test(sub+' '+txt)||!!sup;
-    if(!relevant)continue;
-    let receivedAt=m.internalDate?new Date(Number(m.internalDate)).toISOString():new Date().toISOString(),attachments=attachmentsFromPayload(m.payload),replyType=classifyReply(sub,txt,attachments);
-    let rec={messageId:it.id,threadId:m.threadId||'',supplierId:sup?.id||null,supplierName:sup?.name||null,from,to:h.to||'',cc:h.cc||'',subject:sub,body:txt,snippet:m.snippet||'',summary:cleanReplySummary(txt),receivedAt,attachments,replyType};
-    st.gmailReplies.unshift(rec);known.add(it.id);added++;
-    if(sup){
-      matched++;
-      if(replyType==='quote_received')sup.status='عرض مستلم — يحتاج استخراج';
-      else if(replyType==='quote_promised')sup.status='وعد بإرسال العرض';
-      else if(replyType==='technical_reply')sup.status='رد فني + مرفقات للمراجعة';
-      else if(replyType==='info_request')sup.status='رد — يطلب معلومات';
-      else sup.status='رد غير سعري';
-      sup.lastReply=receivedAt;sup.lastSubject=sub;
-    }else unmatched++;
-    st.activity.unshift({id:Date.now()+Math.random(),time:receivedAt,type:'gmail_reply',text:'رد جديد: '+(sup?.name||from),messageId:it.id,supplierId:sup?.id||null,subject:sub});
-  }
-  st.gmailReplies=st.gmailReplies.slice(0,500);
-  save(st);return {added,matched,unmatched,totalReplies:st.gmailReplies.length};
-}
+function payloadAttachments(p,out=[]){if(p?.filename)out.push({filename:p.filename,mimeType:p.mimeType||'',attachmentId:p.body?.attachmentId||null,size:p.body?.size||0});for(const x of p?.parts||[])payloadAttachments(x,out);return out}
+function mailboxList(v){return String(v||'').toLowerCase().match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/g)||[]}
+function supplierForMessage(st,m,h,txt){let participants=[...mailboxList(h.from),...mailboxList(h.to),...mailboxList(h.cc)];for(const x of st.suppliers||[]){let emails=[x.email,...(x.alternateEmails||[])].filter(Boolean).map(v=>String(v).toLowerCase());if(emails.some(e=>participants.includes(e)))return x;if((x.gmailThreadIds||[]).includes(m.threadId))return x}let hay=(String(h.subject||'')+' '+String(txt||'')).toLowerCase();return (st.suppliers||[]).find(x=>String(x.name||'').split(/\s+/).filter(w=>w.length>=5).some(w=>hay.includes(w.toLowerCase())))||null}
+async function syncGmail(){let st=load(),profile=await gmail('profile'),list=await gmail('messages?q='+encodeURIComponent('newer_than:90d')+'&maxResults=100'),known=new Set(st.gmailMessages||[]),records=st.gmailRecords||[],added=0,matched=0;for(let it of list.messages||[]){if(known.has(it.id))continue;let m=await gmail('messages/'+it.id+'?format=full'),h=headers(m),txt=decodePart(m.payload)||m.snippet||'',sup=supplierForMessage(st,m,h,txt),projectHit=/RFQ[- ]?001|cold\s*(room|storage)|fresh\s*produce|quotation|PIR\s*panel/i.test((h.subject||'')+' '+txt);if(!sup&&!projectHit)continue;let from=h.from||'',direction=mailboxList(from).includes(String(profile.emailAddress||'').toLowerCase())?'outbound':'inbound',rec={id:it.id,threadId:m.threadId||null,supplierId:sup?.id||null,supplierName:sup?.name||null,direction,from,to:h.to||'',cc:h.cc||'',subject:h.subject||'',text:txt,date:m.internalDate?new Date(Number(m.internalDate)).toISOString():new Date().toISOString(),attachments:payloadAttachments(m.payload)};records.unshift(rec);known.add(it.id);added++;if(sup){matched++;sup.gmailThreadIds=[...new Set([...(sup.gmailThreadIds||[]),m.threadId].filter(Boolean))];if(direction==='inbound'){sup.status='رد جديد — يحتاج استخراج';sup.lastReply=rec.date;sup.lastSubject=rec.subject}st.activity.unshift({id:'GM-'+it.id,time:rec.date,type:direction==='inbound'?'gmail_reply':'gmail_sent',text:(direction==='inbound'?'رد جديد: ':'رسالة مرسلة: ')+sup.name,messageId:it.id,threadId:m.threadId,subject:rec.subject})}}st.gmailMessages=[...known];st.gmailRecords=records.slice(0,500);save(st);return {added,matched,needsExtraction:records.filter(r=>r.direction==='inbound'&&r.supplierId).length}}
 function ensureWorkspace(x){
   x.workspace=x.workspace||{};
   x.workspace.specifications=x.workspace.specifications||[];
