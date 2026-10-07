@@ -70,7 +70,18 @@ function runNext() {
   let stdout = '';
   let stderr = '';
 
-  child.stdout.on('data', d => { stdout += d.toString(); });
+  child.stdout.on('data', d => {
+    const chunk = d.toString();
+    stdout += chunk;
+    if (chunk.includes('VERIFICATION_REQUIRED')) {
+      job.status = 'verification_required';
+      job.message = 'Alibaba requires manual slider verification in the opened browser.';
+    }
+    if (chunk.includes('VERIFICATION_CLEARED')) {
+      job.status = 'running';
+      job.message = 'Verification cleared; continuing search.';
+    }
+  });
   child.stderr.on('data', d => { stderr += d.toString(); });
 
   child.on('close', code => {
