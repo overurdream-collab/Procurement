@@ -2,7 +2,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-const SEARCH_TERM = process.argv.slice(2).join(' ') || 'stainless steel water tank 5000L';
+const SEARCH_TERM = process.argv.slice(2).join(' ') || '5000L 不锈钢 水箱';
 const MAX_RESULTS = Math.max(1, Math.min(20, Number(process.env.MAX_RESULTS || 10)));
 const NAV_TIMEOUT_MS = 45000;
 const ARTIFACT_DIR = path.join(__dirname, 'artifacts');
@@ -97,15 +97,38 @@ async function main(){
     await page.mouse.wheel(0,1600).catch(()=>{});
     await page.waitForTimeout(2500);
 
+    const diagnostics = await page.evaluate(() => {
+      const all=[...document.querySelectorAll('a[href]')].map(a=>a.href||'');
+      const detail=all.filter(h=>/detail\.1688\.com/i.test(h));
+      const offer=all.filter(h=>/offer/i.test(h));
+      const body=(document.body && document.body.innerText || '').slice(0,12000);
+      return {
+        anchorCount:all.length,
+        detailLinkCount:detail.length,
+        offerLikeCount:offer.length,
+        sampleLinks:[...new Set([...detail.slice(0,8),...offer.slice(0,8)])].slice(0,12),
+        noResultText:/没有找到|暂无相关|无相关商品|没有相关/i.test(body)
+      };
+    });
+    report.diagnostics=diagnostics;
+    log('diag', 'anchors='+diagnostics.anchorCount+' detail='+diagnostics.detailLinkCount+' offerLike='+diagnostics.offerLikeCount+' noResult='+diagnostics.noResultText);
+
     const directResults = await page.evaluate((max) => {
-      const anchors=[...document.querySelectorAll('a[href]')].filter(a=>{
-        const h=a.href||'';
-        return /detail\.1688\.com\/offer\//i.test(h) || /1688\.com\/offer\//i.test(h);
+      const nodes=[...document.querySelectorAll('a[href], [data-href], [data-url]')];
+      const anchors=nodes.map(el=>({
+        el,
+        href:el.href || el.getAttribute('data-href') || el.getAttribute('data-url') || ''
+      })).filter(x=>{
+        const h=x.href||'';
+        return /detail\.1688\.com\/offer\//i.test(h) ||
+               /1688\.com\/offer\//i.test(h) ||
+               /detail\.1688\.com/i.test(h);
       });
 
       const out=[],seen=new Set();
-      for(const a of anchors){
-        const cleanUrl=(a.href||'').split('#')[0].split('?')[0];
+      for(const row of anchors){
+        const a=row.el;
+        const cleanUrl=(row.href||'').split('#')[0].split('?')[0];
         if(!cleanUrl||seen.has(cleanUrl)) continue;
         seen.add(cleanUrl);
 
