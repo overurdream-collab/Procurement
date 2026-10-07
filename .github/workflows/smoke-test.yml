@@ -105,11 +105,12 @@ jobs:
           grep -F "function openConversation(id)" public/index.html
           grep -F "فتح سجل المراسلات" public/index.html
           grep -F "function openComparisonDetail(id)" public/index.html
-      - name: Verify Gmail supplier-thread synchronization
+      - name: Verify Gmail reply linking and relinking
         run: |
-          grep -F "supplierEmails=new Map()" server.js
-          grep -F "st.correspondence=records" server.js
-          grep -F "needs_extraction" server.js
+          grep -F "st.gmailReplies.unshift(rec)" server.js
+          grep -F "relinked" server.js
+          grep -F "sales@emaarllc.com" data.json
+          grep -F "design5@emaarllc.com" data.json
       - name: Static responsive and RTL assertions
         run: |
           grep -q 'dir="rtl"' /tmp/index.html
