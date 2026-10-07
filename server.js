@@ -111,7 +111,6 @@ function classifyReply(subject,body,attachments=[]){
 }
 async function projectMessageCandidates(st){
   let queries=[
-    'newer_than:14d -from:me',
     'RFQ-001 newer_than:90d -from:me',
     '"Fresh Produce Cold Room" newer_than:90d -from:me',
     '{"cold room" "cold rooms" "cold storage" refrigeration 冷库 报价 询价 solar hybrid} newer_than:90d -from:me'
