@@ -199,7 +199,7 @@ async function main() {
 
     let cards = [];
     for (const sel of selectors) {
-      const found = await page.$(sel);
+      const found = await page.locator(sel).elementHandles();
       if (found.length > 0) {
         cards = found;
         report.selectorUsed = sel;
