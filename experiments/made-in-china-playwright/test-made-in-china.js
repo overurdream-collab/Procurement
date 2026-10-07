@@ -138,10 +138,37 @@ async function main(){
       report.resultCountDetected=Math.max(report.resultCountDetected,fallback.length);
     }
 
+    const normalizedMap = new Map();
+    for (const item of results) {
+      if (!item) continue;
+      const url = item.url || '';
+      if (!url) continue;
+      if (/sendInquiry|products\/catlist|listsubcat/i.test(url)) continue;
+      if (!/made-in-china\.com\/product/i.test(url)) continue;
+
+      const cleanUrl = url.split('?')[0];
+      const cleanTitle = String(item.title || '').trim();
+      const looksLikePriceOnly = /^(?:US\$|USD|\$)\s*[0-9,.]+(?:\s*-\s*[0-9,.]+)?$/i.test(cleanTitle);
+      const looksLikeAction = /^(?:send inquiry|contact now|chat now)$/i.test(cleanTitle);
+
+      if (looksLikePriceOnly || looksLikeAction) continue;
+
+      const prev = normalizedMap.get(cleanUrl) || { title:null, price:null, supplier:null, url:cleanUrl };
+      if (cleanTitle && (!prev.title || cleanTitle.length > prev.title.length)) prev.title = cleanTitle;
+      if (item.price && !prev.price) prev.price = String(item.price).trim();
+      if (item.supplier && !prev.supplier) prev.supplier = String(item.supplier).trim();
+      normalizedMap.set(cleanUrl, prev);
+    }
+
+    const normalizedResults = [...normalizedMap.values()]
+      .filter(x => x.title || x.price || x.supplier)
+      .slice(0, MAX_RESULTS);
+
     report.checks.searchPageLoaded=true;
-    report.checks.resultsDetected=results.length>0;
-    report.checks.selectorsStable=results.length>=Math.min(MAX_RESULTS,5);
-    report.results=results.slice(0,MAX_RESULTS);
+    report.checks.resultsDetected=normalizedResults.length>0;
+    report.checks.selectorsStable=normalizedResults.length>=Math.min(MAX_RESULTS,5);
+    report.resultCountDetected = Math.max(report.resultCountDetected, normalizedResults.length);
+    report.results=normalizedResults;
 
     const stamp=Date.now();
     const screenshotPath=path.join(ARTIFACT_DIR,`made-in-china-${stamp}.png`);
