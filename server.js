@@ -117,32 +117,7 @@ async function projectMessageCandidates(){
   }
   return [...map.values()]
 }
-async function syncGmail(){
-  let st=load(),list=await projectMessageCandidates();
-  st.gmailReplies=Array.isArray(st.gmailReplies)?st.gmailReplies:[];
-  let known=new Set(st.gmailReplies.map(x=>x.messageId)),added=0,matched=0,unmatched=0;
-  for(let it of list){
-    if(known.has(it.id))continue;
-    let m=await gmail('messages/'+it.id+'?format=full'),h=headers(m),from=h.from||'',sub=h.subject||'',txt=decodePart(m.payload)||m.snippet||'',sup=supplierForFrom(st,from);
-    let relevant=/RFQ-001|cold room|cold rooms|cold storage|refrigeration|冷库|报价|询价|solar|hybrid/i.test(sub+' '+txt)||!!sup;
-    if(!relevant)continue;
-    let receivedAt=m.internalDate?new Date(Number(m.internalDate)).toISOString():new Date().toISOString(),attachments=attachmentsFromPayload(m.payload),replyType=classifyReply(sub,txt,attachments);
-    let rec={messageId:it.id,threadId:m.threadId||'',supplierId:sup?.id||null,supplierName:sup?.name||null,from,to:h.to||'',cc:h.cc||'',subject:sub,body:txt,snippet:m.snippet||'',summary:cleanReplySummary(txt),receivedAt,attachments,replyType};
-    st.gmailReplies.unshift(rec);known.add(it.id);added++;
-    if(sup){
-      matched++;
-      if(replyType==='quote_received')sup.status='عرض مستلم — يحتاج استخراج';
-      else if(replyType==='quote_promised')sup.status='وعد بإرسال العرض';
-      else if(replyType==='technical_reply')sup.status='رد فني + مرفقات للمراجعة';
-      else if(replyType==='info_request')sup.status='رد — يطلب معلومات';
-      else sup.status='رد غير سعري';
-      sup.lastReply=receivedAt;sup.lastSubject=sub;
-    }else unmatched++;
-    st.activity.unshift({id:Date.now()+Math.random(),time:receivedAt,type:'gmail_reply',text:'رد جديد: '+(sup?.name||from),messageId:it.id,supplierId:sup?.id||null,subject:sub});
-  }
-  st.gmailReplies=st.gmailReplies.slice(0,500);
-  save(st);return {added,matched,unmatched,totalReplies:st.gmailReplies.length};
-}
+async function syncGmail(){let st=load(),known=new Set(st.gmailMessages||[]),records=st.correspondence||[],supplierEmails=new Map();for(const sup of st.suppliers||[]){for(const e of [sup.email,...(sup.alternateEmails||[])].filter(Boolean))supplierEmails.set(String(e).toLowerCase(),sup)}let queries=['newer_than:90d RFQ-001','newer_than:90d "Cold Room"','newer_than:90d "Cold Storage"'];for(const e of supplierEmails.keys())queries.push('newer_than:90d from:'+e);let ids=new Set();for(const q of queries){let list=await gmail('messages?q='+encodeURIComponent(q)+'&maxResults=100');for(const it of list.messages||[])ids.add(it.id)}let added=0,matched=0,unmatched=0;for(const id of ids){if(known.has(id))continue;let m=await gmail('messages/'+id+'?format=full'),h=headers(m),from=h.from||'',sub=h.subject||'',txt=decodePart(m.payload)||m.snippet||'',fromLower=from.toLowerCase(),sup=[...supplierEmails.entries()].find(([email])=>fromLower.includes(email))?.[1];let relevant=!!sup||/RFQ-001|cold\s*(room|storage)|fresh\s*produce/i.test(sub+' '+txt);if(!relevant){unmatched++;continue}let attachments=[];function collect(p){if(p?.filename)attachments.push({filename:p.filename,mimeType:p.mimeType||'',attachmentId:p.body?.attachmentId||null,size:p.body?.size||0});for(const c of p?.parts||[])collect(c)}collect(m.payload);records.push({id,messageId:id,threadId:m.threadId||null,supplierId:sup?.id||null,supplierName:sup?.name||null,from,subject:sub,body:txt,snippet:m.snippet||'',attachments,receivedAt:m.internalDate?new Date(Number(m.internalDate)).toISOString():new Date().toISOString(),requestId:'RFQ-001',extractionStatus:attachments.length?'needs_extraction':'received'});if(sup){sup.status=attachments.length?'رد — يحتاج استخراج':'رد';sup.lastReply=new Date().toISOString();sup.lastSubject=sub}st.activity.unshift({id:'MAIL-'+id,time:new Date().toISOString(),type:'gmail_reply',text:'رد جديد: '+(sup?.name||from),messageId:id,subject:sub,supplierId:sup?.id||null});known.add(id);added++;matched++}st.gmailMessages=[...known];st.correspondence=records;save(st);return {added,matched,unmatched,scanned:ids.size}}
 function ensureWorkspace(x){
   x.workspace=x.workspace||{};
   x.workspace.specifications=x.workspace.specifications||[];
