@@ -129,8 +129,9 @@ async function main() {
     ) {
       report.checks.botOrCaptchaEncountered = true;
       log('guard', 'CAPTCHA / bot wall detected');
-      log('guard', 'Solve the verification manually in the opened real browser. Waiting up to 180 seconds...');
-      const verificationDeadline = Date.now() + 180000;
+      log('guard', 'VERIFICATION_REQUIRED');
+      log('guard', 'Solve the verification manually in the opened browser. Waiting up to 300 seconds...');
+      const verificationDeadline = Date.now() + 300000;
       while (Date.now() < verificationDeadline) {
         await page.waitForTimeout(3000);
         const t = (await page.content()).toLowerCase();
@@ -140,6 +141,7 @@ async function main() {
           t.includes('captcha') ||
           t.includes('unusual traffic');
         if (!stillBlocked) {
+          log('guard', 'VERIFICATION_CLEARED');
           log('guard', 'Verification appears cleared. Continuing with saved session.');
           break;
         }
