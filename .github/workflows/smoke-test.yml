@@ -106,6 +106,12 @@ jobs:
           grep -F "فتح سجل المراسلات" public/index.html
           grep -F "function openComparisonDetail(id)" public/index.html
           grep -F "رد المورد — يحتاج استخراج" public/index.html
+      - name: Verify Gmail recent-reply detection
+        run: |
+          grep -F "newer_than:14d -from:me" server.js
+          grep -F "sales@emaarllc.com" data.json
+          grep -F "function gmailView()" public/index.html
+          grep -F "مزامنة البريد" public/index.html
       - name: Static responsive and RTL assertions
         run: |
           grep -q 'dir="rtl"' /tmp/index.html
