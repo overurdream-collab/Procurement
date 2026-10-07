@@ -105,9 +105,9 @@ jobs:
           grep -F "function openConversation(id)" public/index.html
           grep -F "فتح سجل المراسلات" public/index.html
           grep -F "function openComparisonDetail(id)" public/index.html
-      - name: Verify Gmail recent-reply detection
+      - name: Verify Gmail project-reply detection
         run: |
-          grep -F "newer_than:14d -from:me" server.js
+          grep -F '"Fresh Produce Cold Room" newer_than:90d' server.js
           grep -F "sales@emaarllc.com" data.json
           grep -F "function gmailView()" public/index.html
       - name: Verify Gmail reply linking and relinking
@@ -133,6 +133,13 @@ jobs:
           grep -F "function supplierIdForReply(m)" public/index.html
           grep -F "unmatched=allReplies().filter" public/index.html
           grep -F "emaarllc.com" public/index.html
+      - name: Verify verified RFQ repliers and mail filtering
+        run: |
+          grep -F "function ensureVerifiedRfqSuppliers(st)" server.js
+          grep -F "sophia@moonrefrigeration.com" server.js
+          grep -F "sales3@dmllcn.com" server.js
+          grep -F "function projectReply(m)" public/index.html
+          ! grep -F "'newer_than:14d -from:me'" server.js
       - name: Static responsive and RTL assertions
         run: |
           grep -q 'dir="rtl"' /tmp/index.html
