@@ -103,7 +103,7 @@ async function main(){
       const out = [];
 
       for (const a of anchors) {
-        const cleanUrl = (a.href || '').split('?')[0];
+        const cleanUrl = (a.href || '').split('#')[0].split('?')[0];
         if (!cleanUrl || seen.has(cleanUrl)) continue;
         seen.add(cleanUrl);
 
