@@ -14,7 +14,8 @@ const NAV_TIMEOUT_MS = 45000;
 const RESULT_WAIT_MS = 30000;
 
 const ARTIFACT_DIR = path.join(__dirname, 'artifacts');
-const PROFILE_DIR = path.join(__dirname, '.profile');
+const PROFILE_DIR = path.join(__dirname, '.profile-real-browser');
+const REQUESTED_BROWSER = (process.env.ALIBABA_BROWSER || 'chrome').toLowerCase();
 fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
 fs.mkdirSync(PROFILE_DIR, { recursive: true });
 
@@ -46,19 +47,42 @@ async function main() {
 
   let browser;
   try {
-    log('browser', 'launching persistent Chromium profile (headful)...');
-    const context = await chromium.launchPersistentContext(PROFILE_DIR, {
-      headless: false,
-      slowMo: 100,
-      locale: 'en-US',
-      viewport: { width: 1366, height: 900 },
-      userAgent:
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
-        '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-    });
+    const candidates =
+      REQUESTED_BROWSER === 'edge' || REQUESTED_BROWSER === 'msedge'
+        ? ['msedge', 'chrome', null]
+        : REQUESTED_BROWSER === 'chromium'
+          ? [null]
+          : ['chrome', 'msedge', null];
+
+    let context = null;
+    let selectedBrowser = null;
+    let lastLaunchError = null;
+
+    for (const channel of candidates) {
+      try {
+        selectedBrowser = channel || 'chromium';
+        log('browser', `trying real browser channel: ${selectedBrowser}`);
+        context = await chromium.launchPersistentContext(PROFILE_DIR, {
+          channel: channel || undefined,
+          headless: false,
+          slowMo: 100,
+          locale: 'en-US',
+          viewport: { width: 1366, height: 900 }
+        });
+        break;
+      } catch (e) {
+        lastLaunchError = e;
+        log('browser', `failed with ${selectedBrowser}: ${e.message}`);
+      }
+    }
+
+    if (!context) throw lastLaunchError || new Error('No supported browser channel could be launched');
+
     browser = context.browser();
+    report.browserChannel = selectedBrowser;
+    report.profileDir = PROFILE_DIR;
     report.checks.browserLaunch = true;
-    log('browser', 'OK — persistent profile active');
+    log('browser', `OK — using ${selectedBrowser} with dedicated persistent profile`);
 
     const pages = context.pages();
     const page = pages[0] || await context.newPage();
@@ -90,7 +114,7 @@ async function main() {
     ) {
       report.checks.botOrCaptchaEncountered = true;
       log('guard', 'CAPTCHA / bot wall detected');
-      log('guard', 'Solve the verification manually in the opened browser. Waiting up to 180 seconds...');
+      log('guard', 'Solve the verification manually in the opened real browser. Waiting up to 180 seconds...');
       const verificationDeadline = Date.now() + 180000;
       while (Date.now() < verificationDeadline) {
         await page.waitForTimeout(3000);
