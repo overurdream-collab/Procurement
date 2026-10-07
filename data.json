@@ -165,7 +165,10 @@
       "status": "تم الرد — ننتظر العرض",
       "excluded": false,
       "source": "verified_email_thread",
-      "category": "cold_room_manufacturer"
+      "category": "cold_room_manufacturer",
+      "alternateEmails": [
+        "alan@hengliangcooling.com"
+      ]
     },
     {
       "id": "S5",
@@ -231,7 +234,8 @@
       "name": "Deye",
       "email": "service@deye.com.cn",
       "alternateEmails": [
-        "it@deye.com.cn"
+        "it@deye.com.cn",
+        "bob.lee@deye.com.cn"
       ],
       "status": "بحث نظام Solar Direct-Drive",
       "excluded": false,
@@ -256,6 +260,28 @@
       "source": "project_record",
       "note": "بيانات التواصل تحتاج تحقق قبل الإرسال",
       "category": "cold_room_manufacturer"
+    },
+    {
+      "id": "S13",
+      "name": "Moon Refrigeration (Sophia)",
+      "email": "sophia@moonrefrigeration.com",
+      "country": "China",
+      "status": "وعد بإرسال العرض",
+      "excluded": false,
+      "source": "verified_email_thread",
+      "category": "cold_room_manufacturer",
+      "note": "تم التحقق من المورد من رد Gmail على RFQ-001 بتاريخ 2026-10-02"
+    },
+    {
+      "id": "S14",
+      "name": "Damai (Michelle)",
+      "email": "sales3@dmllcn.com",
+      "country": "China",
+      "status": "رد — يطلب معلومات",
+      "excluded": false,
+      "source": "verified_email_thread",
+      "category": "cold_room_manufacturer",
+      "note": "تم التحقق من المورد من رد Gmail على متابعة RFQ-001 بتاريخ 2026-10-02"
     }
   ],
   "rfqCompliance": {
