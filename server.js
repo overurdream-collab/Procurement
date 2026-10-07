@@ -280,6 +280,18 @@ if(msearch&&req.method==='GET'){
   let x=await r.json().catch(()=>({error:'invalid_alibaba_api_response'}));
   return json(res,r.status,x)
 }
+if(u.pathname==='/api/made-in-china-search'&&req.method==='POST'){
+  let b=await body(req);
+  let r=await fetch('http://localhost:8791/api/market-search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+  let x=await r.json().catch(()=>({error:'invalid_made_in_china_api_response'}));
+  return json(res,r.status,x)
+}
+let micsearch=u.pathname.match(/^\/api\/made-in-china-search\/([^/]+)$/);
+if(micsearch&&req.method==='GET'){
+  let r=await fetch('http://localhost:8791/api/market-search/'+encodeURIComponent(micsearch[1]));
+  let x=await r.json().catch(()=>({error:'invalid_made_in_china_api_response'}));
+  return json(res,r.status,x)
+}
 let wm=u.pathname.match(/^\/api\/requests\/([^/]+)\/workspace$/);
 if(wm&&req.method==='GET'){let st=load(),x=(st.requests||[]).find(x=>x.id===wm[1]);if(!x)return json(res,404,{error:'request_not_found'});return json(res,200,{request:x,workspace:ensureWorkspace(x)})}
 if(wm&&req.method==='PATCH'){let st=load(),b=await body(req),x=(st.requests||[]).find(x=>x.id===wm[1]);if(!x)return json(res,404,{error:'request_not_found'});let w=ensureWorkspace(x),allowed=['specifications','analysisRules','commercialTerms','supplierStrategy','scenarios','facts','aiInstructions'];if(!allowed.includes(b.section))return json(res,400,{error:'invalid_workspace_section'});let item=addWorkspaceItem(x,b.section,b.value,b.status||'Confirmed Decision',b.source||'Manual UI');save(st);return json(res,200,{item,workspace:w})}
