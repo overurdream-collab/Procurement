@@ -84,6 +84,40 @@ function toggleApproval(id){let e=document.getElementById('ad-'+id);if(e)e.style
 function marketCategoryLabel(v){return v==='cold_room_manufacturer'?'غرف تبريد كاملة':v==='panel_door_manufacturer'?'ألواح وأبواب':v==='refrigeration_power_equipment'?'معدات تبريد/طاقة':v==='benchmark_only'?'مرجع سعري':'غير مصنف'}
 function marketStatusLabel(s,q){if(q)return 'عرض منظم';let m=supplierMails(s.id)[0];if(!m)return 'لا يوجد رد';return replyTypeLabel(m.replyType)}
 function marketBar(label,value,max,color){let pct=max?Math.round(value/max*100):0;return '<div class="barrow"><span>'+esc(label)+'</span><div class="bartrack"><div class="barfill" style="--c:'+color+';width:'+Math.min(100,pct)+'%"></div></div><b>'+esc(value)+'</b></div>'}
+function alibabaSearchPanel(){
+  return panel('Alibaba — بحث سوق تجريبي',icon('search'),
+    '<div class="approval-details" style="display:block"><b>القناة التجريبية تعمل عبر المتصفح المحلي المسجل.</b><p class="muted">أدخل أي منتج. هذه المرحلة مستقلة عن RFQ لاختبار قناة Alibaba فقط.</p></div>'+
+    '<div class="actions" style="align-items:center"><input id="aliQuery" placeholder="مثال: stainless steel water tank 5000L" style="min-width:360px;flex:1;padding:11px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:inherit"><button class="btn primary" onclick="runAlibabaSearch()">بحث في Alibaba</button></div>'+
+    '<div id="aliSearchStatus" class="muted" style="margin-top:12px"></div><div id="aliSearchResults" style="margin-top:12px"></div>'
+  )
+}
+async function runAlibabaSearch(){
+  let q=(document.getElementById('aliQuery')?.value||'').trim(),status=document.getElementById('aliSearchStatus'),box=document.getElementById('aliSearchResults');
+  if(!q)return toast('اكتب المنتج المراد البحث عنه');
+  status.textContent='جاري بدء البحث...';box.innerHTML='';
+  let r=await fetch(A+'market-search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q,limit:10})}),x=await r.json();
+  if(!r.ok){status.textContent='تعذر بدء البحث: '+(x.error||r.status);return}
+  status.textContent='البحث يعمل — '+x.id;
+  pollAlibabaSearch(x.id,0)
+}
+async function pollAlibabaSearch(id,n){
+  let status=document.getElementById('aliSearchStatus'),box=document.getElementById('aliSearchResults');
+  if(!status||!box)return;
+  let r=await fetch(A+'market-search/'+encodeURIComponent(id)),x=await r.json();
+  if(!r.ok){status.textContent='خطأ: '+(x.error||r.status);return}
+  if(x.status==='queued'||x.status==='running'){
+    status.textContent='الحالة: '+x.status+' — '+id;
+    if(n<120)setTimeout(()=>pollAlibabaSearch(id,n+1),3000);
+    return
+  }
+  if(x.status==='failed'){
+    status.textContent='فشل البحث: '+(x.error||x.stderr||'غير معروف');
+    return
+  }
+  let rows=(x.results||[]).map((z,i)=>'<tr><td>'+(i+1)+'</td><td><b>'+esc(z.supplier||'—')+'</b></td><td>'+esc(z.title||'—')+'</td><td>'+esc(z.price||'—')+'</td><td>'+(z.url?'<a class="btn" target="_blank" rel="noopener" href="'+esc(z.url)+'">فتح</a>':'—')+'</td></tr>').join('');
+  status.textContent='اكتمل البحث — '+(x.results||[]).length+' نتائج · المصدر: Alibaba';
+  box.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>#</th><th>المورد</th><th>المنتج</th><th>السعر المعروض</th><th>المصدر</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+}
 function market(){
   let m=(st.marketScans||[])[0],sup=st.suppliers||[],qs=st.quotes||[],replies=allReplies(),countries={},cats={},responses=0,withQuote=0,ready=0;
   sup.forEach(s=>{let country=s.country||'غير محدد';countries[country]=(countries[country]||0)+1;let cat=marketCategoryLabel(s.category);cats[cat]=(cats[cat]||0)+1;if(hasReply(s))responses++;if(qs.some(q=>q.supplierId===s.id))withQuote++;if(compliance(s).score===100)ready++});
@@ -100,7 +134,7 @@ function market(){
   if(Object.keys(countries).length>1)insights.push('قاعدة الموردين موزعة على '+Object.keys(countries).length+' دول، ما يسمح بمقارنة جغرافية للتوريد.');
   let summary='<div class="kpis" style="grid-template-columns:repeat(4,minmax(0,1fr))">'+kpi('إجمالي الموردين',sup.length,'Supplier universe','#2563EB','users')+kpi('موردون لديهم رد',responses,'Responses','#06B6D4','reply')+kpi('عروض منظمة',withQuote,'Structured quotes','#22C55E','scale')+kpi('مكتمل فنيًا',ready,'100% compliance','#F59E0B','check')+'</div>';
   let header='<div class="actions"><button class="btn primary" onclick="marketScan()">إعادة تشغيل التحليل</button><button class="btn" onclick="show(\'quotes\')">فتح مقارنة العروض</button><button class="btn" onclick="show(\'suppliers\')">فتح الموردين</button></div>'+(m?'<div class="approval-details" style="display:block"><b>آخر تحليل: '+esc(m.id)+'</b><p>وقت التحليل: '+esc(m.createdAt||'—')+' · المصادر: '+esc(m.sourceCount||0)+' · مستوى الثقة: '+esc(m.confidence||0)+'% · النمط: '+esc(m.mode||'—')+'</p><p class="muted">'+esc(m.disclaimer||'')+'</p></div>':'<div class="approval-details" style="display:block"><b>لم يتم تشغيل تحليل سوق محفوظ بعد.</b><p>يمكنك تشغيل التحليل، ومع ذلك يعرض التقرير الحالي بيانات الموردين والردود والعروض الموجودة في النظام.</p></div>');
-  return header+summary+
+  return header+summary+alibabaSearchPanel()+
     '<div class="grid">'+panel('التوزيع الجغرافي للموردين',icon('chart'),countryChart)+panel('توزيع الموردين حسب الفئة',icon('chart'),catChart)+'</div>'+
     panel('Benchmark الأسعار',icon('scale'),benchHtml)+
     panel('تحليل الموردين والشركات',icon('users'),'<div class="tbl-wrap"><table><thead><tr><th>الشركة</th><th>الدولة</th><th>الفئة</th><th>حالة التواصل</th><th>الدليل</th><th>الاكتمال الفني</th></tr></thead><tbody>'+supplierRows+'</tbody></table></div>')+
