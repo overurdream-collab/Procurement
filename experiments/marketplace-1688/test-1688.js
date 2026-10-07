@@ -121,7 +121,14 @@ async function main(){
         log('guard','LOGIN_TIMEOUT');
       }else{
         await page.waitForLoadState('domcontentloaded').catch(()=>{});
-        await page.waitForTimeout(4000);
+        await page.waitForTimeout(2500);
+
+        if(!/s\.1688\.com\/selloffer\/offer_search\.htm/i.test(page.url())){
+          log('guard','returning to 1688 search after login');
+          await page.goto(searchUrl,{waitUntil:'domcontentloaded',timeout:NAV_TIMEOUT_MS}).catch(()=>{});
+          await page.waitForTimeout(5000);
+        }
+
         report.finalUrl=page.url();
         report.pageTitle=await page.title().catch(()=>report.pageTitle);
       }
