@@ -199,12 +199,16 @@
     {
       "id": "S8",
       "name": "Emaar Industries LLC",
-      "email": null,
+      "email": "sales@emaarllc.com",
       "status": "رد — عرض ألواح PIR مستلم",
       "excluded": false,
       "source": "project_record",
       "note": "لا يتم الإرسال حتى ربط البريد من سلسلة المراسلات الفعلية",
-      "category": "panel_door_manufacturer"
+      "category": "panel_door_manufacturer",
+      "alternateEmails": [
+        "info@emaarllc.com",
+        "design5@emaarllc.com"
+      ]
     },
     {
       "id": "S9",
