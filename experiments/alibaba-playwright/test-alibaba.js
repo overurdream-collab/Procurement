@@ -14,7 +14,9 @@ const NAV_TIMEOUT_MS = 45000;
 const RESULT_WAIT_MS = 30000;
 
 const ARTIFACT_DIR = path.join(__dirname, 'artifacts');
+const PROFILE_DIR = path.join(__dirname, '.profile');
 fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
+fs.mkdirSync(PROFILE_DIR, { recursive: true });
 
 function log(section, msg) {
   console.log(`[${section}] ${msg}`);
@@ -44,23 +46,22 @@ async function main() {
 
   let browser;
   try {
-    log('browser', 'launching chromium (headful for first run)...');
-    browser = await chromium.launch({
+    log('browser', 'launching persistent Chromium profile (headful)...');
+    const context = await chromium.launchPersistentContext(PROFILE_DIR, {
       headless: false,
       slowMo: 100,
-    });
-    report.checks.browserLaunch = true;
-    log('browser', 'OK');
-
-    const context = await browser.newContext({
+      locale: 'en-US',
+      viewport: { width: 1366, height: 900 },
       userAgent:
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
         '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-      locale: 'en-US',
-      viewport: { width: 1366, height: 900 },
     });
+    browser = context.browser();
+    report.checks.browserLaunch = true;
+    log('browser', 'OK — persistent profile active');
 
-    const page = await context.newPage();
+    const pages = context.pages();
+    const page = pages[0] || await context.newPage();
 
     const searchUrl =
       'https://www.alibaba.com/trade/search?SearchText=' +
@@ -84,10 +85,26 @@ async function main() {
       bodyText.includes('captcha') ||
       bodyText.includes('unusual traffic') ||
       bodyText.includes('verify you are human') ||
+      bodyText.includes('please drag the slider to verify') ||
       bodyText.includes('punish')
     ) {
       report.checks.botOrCaptchaEncountered = true;
       log('guard', 'CAPTCHA / bot wall detected');
+      log('guard', 'Solve the verification manually in the opened browser. Waiting up to 180 seconds...');
+      const verificationDeadline = Date.now() + 180000;
+      while (Date.now() < verificationDeadline) {
+        await page.waitForTimeout(3000);
+        const t = (await page.content()).toLowerCase();
+        const stillBlocked =
+          t.includes('please drag the slider to verify') ||
+          t.includes('verify to ensure normal access') ||
+          t.includes('captcha') ||
+          t.includes('unusual traffic');
+        if (!stillBlocked) {
+          log('guard', 'Verification appears cleared. Continuing with saved session.');
+          break;
+        }
+      }
     }
 
     if (
