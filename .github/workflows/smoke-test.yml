@@ -127,6 +127,12 @@ jobs:
           grep -F "emaarllc.com" server.js
           grep -F "numbersinchina@gmail.com" server.js
           grep -F "if(internalSender(from))continue" server.js
+      - name: Verify UI reply normalization
+        run: |
+          grep -F "function internalReplySender(from)" public/index.html
+          grep -F "function supplierIdForReply(m)" public/index.html
+          grep -F "unmatched=allReplies().filter" public/index.html
+          grep -F "emaarllc.com" public/index.html
       - name: Static responsive and RTL assertions
         run: |
           grep -q 'dir="rtl"' /tmp/index.html
