@@ -93,77 +93,71 @@ async function main(){
       }
     }
 
-    const results=[];
-    if(cards.length){
-      for(let i=0;i<Math.min(cards.length,MAX_RESULTS);i++){
-        const card=cards[i];
-        const title=await card.$eval('a[href], h2, h3, [class*="title"]',el=>(el.innerText||el.textContent||'').trim()).catch(()=>null);
-        const price=await card.$eval('[class*="price"], [class*="Price"]',el=>(el.innerText||el.textContent||'').trim()).catch(()=>null);
-        const supplier=await card.$eval('[class*="company"], [class*="supplier"], [class*="factory"]',el=>(el.innerText||el.textContent||'').trim()).catch(()=>null);
-        const url=await card.$eval('a[href]',el=>el.href).catch(()=>null);
-        if(title||url) results.push({title,price,supplier,url});
-      }
-    }
+    const directResults = await page.evaluate((max) => {
+      const anchors = [...document.querySelectorAll('a[href]')].filter(a => {
+        const h = a.href || '';
+        return /\.en\.made-in-china\.com\/product\//i.test(h) || /made-in-china\.com\/product\//i.test(h);
+      });
 
-    if(results.length<MAX_RESULTS){
-      const fallback=await page.evaluate((max)=>{
-        const anchors=[...document.querySelectorAll('a[href]')].filter(a=>{
-          const h=a.href||'';
-          return /made-in-china\.com\/showroom\//i.test(h) || /made-in-china\.com\/product/i.test(h) || /made-in-china\.com\/.*\.html/i.test(h);
-        });
-        const out=[],seen=new Set();
-        for(const a of anchors){
-          if(!a.href||seen.has(a.href)) continue;
-          seen.add(a.href);
-          let root=a;
-          for(let i=0;i<5&&root&&root.parentElement;i++,root=root.parentElement){
-            const txt=(root.innerText||'').trim();
-            if(txt.length>80) break;
-          }
-          const text=(root&&root.innerText?root.innerText:a.innerText||'').trim();
-          const lines=text.split(/\n+/).map(x=>x.trim()).filter(Boolean);
-          const title=(a.innerText||lines.find(x=>x.length>20)||'').trim()||null;
-          const price=lines.find(x=>/(?:US\$|USD|\$)\s*[0-9]|[0-9].*(?:US\$|USD)/i.test(x))||null;
-          const supplier=lines.find(x=>/(?:Co\.,?\s*Ltd|Company|Factory|Manufacturer)/i.test(x))||null;
-          if(title||a.href) out.push({title,price,supplier,url:a.href});
-          if(out.length>=max) break;
+      const seen = new Set();
+      const out = [];
+
+      for (const a of anchors) {
+        const cleanUrl = (a.href || '').split('?')[0];
+        if (!cleanUrl || seen.has(cleanUrl)) continue;
+        seen.add(cleanUrl);
+
+        let root = a;
+        let best = a;
+        for (let i = 0; i < 7 && root && root.parentElement; i++, root = root.parentElement) {
+          const txt = (root.innerText || '').trim();
+          if (txt.length >= 80 && txt.length <= 1800) best = root;
         }
-        return out;
-      },MAX_RESULTS);
-      for(const item of fallback){
-        if(results.length>=MAX_RESULTS) break;
-        if(!results.some(x=>x.url===item.url)) results.push(item);
+
+        const text = (best.innerText || a.innerText || '').trim();
+        const lines = text.split(/\n+/).map(x => x.trim()).filter(Boolean);
+
+        const linkText = (a.innerText || '').trim();
+        const title =
+          (linkText.length > 20 && !/^(?:US\$|USD|\$)/i.test(linkText) ? linkText : null) ||
+          lines.find(x =>
+            x.length > 30 &&
+            !/^(?:US\$|USD|\$)/i.test(x) &&
+            !/^(?:send inquiry|contact now|chat now)$/i.test(x)
+          ) ||
+          null;
+
+        const price =
+          lines.find(x => /(?:US\$|USD|\$)\s*[0-9][0-9,]*(?:\.\d+)?(?:\s*[-–]\s*[0-9][0-9,]*(?:\.\d+)?)?/i.test(x)) ||
+          null;
+
+        const supplier =
+          lines.find(x => /(?:Co\.,?\s*Ltd\.?|Company|Factory|Manufacturer)/i.test(x)) ||
+          null;
+
+        if (title || price || supplier) out.push({ title, price, supplier, url: cleanUrl });
+        if (out.length >= max * 4) break;
       }
-      if(fallback.length && !report.selectorUsed) report.selectorUsed='link-fallback';
-      report.resultCountDetected=Math.max(report.resultCountDetected,fallback.length);
-    }
+
+      return out;
+    }, MAX_RESULTS);
 
     const normalizedMap = new Map();
-    for (const item of results) {
-      if (!item) continue;
-      const url = item.url || '';
-      if (!url) continue;
-      if (/sendInquiry|products\/catlist|listsubcat/i.test(url)) continue;
-      if (!/made-in-china\.com\/product/i.test(url)) continue;
-
-      const cleanUrl = url.split('?')[0];
-      const cleanTitle = String(item.title || '').trim();
-      const looksLikePriceOnly = /^(?:US\$|USD|\$)\s*[0-9,.]+(?:\s*-\s*[0-9,.]+)?$/i.test(cleanTitle);
-      const looksLikeAction = /^(?:send inquiry|contact now|chat now)$/i.test(cleanTitle);
-
-      if (looksLikePriceOnly || looksLikeAction) continue;
-
-      const prev = normalizedMap.get(cleanUrl) || { title:null, price:null, supplier:null, url:cleanUrl };
-      if (cleanTitle && (!prev.title || cleanTitle.length > prev.title.length)) prev.title = cleanTitle;
+    for (const item of directResults) {
+      if (!item || !item.url) continue;
+      const prev = normalizedMap.get(item.url) || { title:null, price:null, supplier:null, url:item.url };
+      if (item.title && (!prev.title || item.title.length > prev.title.length)) prev.title = String(item.title).trim();
       if (item.price && !prev.price) prev.price = String(item.price).trim();
       if (item.supplier && !prev.supplier) prev.supplier = String(item.supplier).trim();
-      normalizedMap.set(cleanUrl, prev);
+      normalizedMap.set(item.url, prev);
     }
 
     const normalizedResults = [...normalizedMap.values()]
       .filter(x => x.title || x.price || x.supplier)
       .slice(0, MAX_RESULTS);
 
+    report.selectorUsed = 'unique-product-links';
+    report.resultCountDetected = normalizedMap.size;
     report.checks.searchPageLoaded=true;
     report.checks.resultsDetected=normalizedResults.length>0;
     report.checks.selectorsStable=normalizedResults.length>=Math.min(MAX_RESULTS,5);
