@@ -64,8 +64,27 @@ function ensureRecentSuppliers(st){
 const load=()=>{let st=JSON.parse(fs.readFileSync(DATA,'utf8'));if(ensureRecentSuppliers(st))fs.writeFileSync(DATA,JSON.stringify(st,null,2));return st},save=x=>fs.writeFileSync(DATA,JSON.stringify(x,null,2));
 const oauth=()=>fs.existsSync(OAUTH)?JSON.parse(fs.readFileSync(OAUTH,'utf8')):{},saveOauth=x=>fs.writeFileSync(OAUTH,JSON.stringify(x,null,2),{mode:0o600});
 const json=(r,s,x)=>{r.writeHead(s,{'Content-Type':'application/json; charset=utf-8'});r.end(JSON.stringify(x))},body=req=>new Promise((ok,no)=>{let d='';req.on('data',c=>d+=c);req.on('end',()=>{try{ok(d?JSON.parse(d):{})}catch(e){no(e)}})});
-async function formPost(url,obj){let r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(obj)}),t=await r.json();if(!r.ok)throw Error(t.error_description||t.error||'oauth_error');return t}
-async function accessToken(){let o=oauth();if(o.access_token&&o.expires_at>Date.now()+60000)return o.access_token;if(!o.refresh_token)throw Error('gmail_not_connected');let t=await formPost('https://oauth2.googleapis.com/token',{client_id:GCLIENT,client_secret:GSECRET,refresh_token:o.refresh_token,grant_type:'refresh_token'});o={...o,...t,expires_at:Date.now()+t.expires_in*1000};saveOauth(o);return o.access_token}
+async function formPost(url,obj){let r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(obj)}),t=await r.json();if(!r.ok){let e=Error(t.error_description||t.error||'oauth_error');e.oauthError=t.error||null;e.oauthDescription=t.error_description||null;throw e}return t}
+async function accessToken(){
+  let o=oauth();
+  if(o.access_token&&o.expires_at>Date.now()+60000)return o.access_token;
+  if(!o.refresh_token)throw Error('gmail_not_connected');
+  try{
+    let t=await formPost('https://oauth2.googleapis.com/token',{client_id:GCLIENT,client_secret:GSECRET,refresh_token:o.refresh_token,grant_type:'refresh_token'});
+    o={...o,...t,expires_at:Date.now()+t.expires_in*1000};
+    saveOauth(o);
+    return o.access_token
+  }catch(e){
+    let msg=(String(e.message||'')+' '+String(e.oauthError||'')+' '+String(e.oauthDescription||'')).toLowerCase();
+    if(msg.includes('invalid_grant')||msg.includes('expired or revoked')||msg.includes('token has been expired or revoked')){
+      if(fs.existsSync(OAUTH))fs.unlinkSync(OAUTH);
+      let x=Error('gmail_token_expired_or_revoked');
+      x.code='gmail_token_expired_or_revoked';
+      throw x
+    }
+    throw e
+  }
+}
 async function gmail(endpoint,opt={}){let token=await accessToken(),r=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/'+endpoint,{...opt,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',...(opt.headers||{})}}),t=await r.json();if(!r.ok)throw Error(t.error?.message||'gmail_error');return t}
 const b64url=s=>Buffer.from(s).toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 async function sendMail(to,subject,text){let raw=['To: '+to,'Subject: =?UTF-8?B?'+Buffer.from(subject).toString('base64')+'?=','MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','',''+text].join('\r\n');return gmail('messages/send',{method:'POST',body:JSON.stringify({raw:b64url(raw)})})}
@@ -305,4 +324,8 @@ if(u.pathname==='/api/agent/run'&&req.method==='POST'){let st=load(),b=await bod
 let rw=u.pathname.match(/^\/requests\/([^/]+)$/);if(rw&&req.method==='GET'){res.writeHead(302,{Location:'/workspace.html?id='+encodeURIComponent(rw[1])});return res.end()}
 let file=u.pathname==='/'?'index.html':u.pathname.replace(/^\//,'');
 if(file.includes('..')||file.includes('\\')||path.isAbsolute(file))return json(res,400,{error:'invalid_path'});let fp=path.join(PUB,file);if(fp.startsWith(PUB)&&fs.existsSync(fp)){let ext=path.extname(fp);res.writeHead(200,{'Content-Type':ext==='.html'?'text/html; charset=utf-8':ext==='.js'?'text/javascript':'text/plain'});return fs.createReadStream(fp).pipe(res)}res.writeHead(404);res.end('Not found')
-}catch(e){json(res,500,{error:e.message})}});server.listen(process.env.PORT||8787,()=>console.log('Procurement V2: http://localhost:'+(process.env.PORT||8787)));
+}catch(e){
+  if(e&&e.message==='gmail_token_expired_or_revoked')return json(res,401,{error:'gmail_token_expired_or_revoked',message:'انتهت أو أُلغيت صلاحية Gmail. أعد ربط Gmail من صفحة الوكيل مرة واحدة لإنشاء Refresh Token جديد.'});
+  if(e&&e.message==='gmail_not_connected')return json(res,401,{error:'gmail_not_connected',message:'Gmail غير مرتبط حاليًا. استخدم زر ربط Gmail ثم أعد المحاولة.'});
+  json(res,500,{error:e.message})
+}});server.listen(process.env.PORT||8787,()=>console.log('Procurement V2: http://localhost:'+(process.env.PORT||8787)));
