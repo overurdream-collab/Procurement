@@ -142,6 +142,12 @@
       'use strict';
       document.getElementById('year').textContent = new Date().getFullYear();
       const form = document.getElementById('leadForm');
+      const presetService = new URLSearchParams(location.search).get('service');
+      const serviceNames = {inspection:'فحص البضاعة قبل الشحن',factory:'زيارة المصنع ميدانيًا',supplier:'التحقق من المورد',shipping:'الشحن والخدمات اللوجستية',quote:'مراجعة عروض الشراء'};
+      if (presetService && Object.prototype.hasOwnProperty.call(serviceNames,presetService)) {
+        const selectedOption = Array.from(document.querySelectorAll('input[name="service"]')).find(el => el.value === serviceNames[presetService]);
+        if (selectedOption) selectedOption.checked = true;
+      }
       const err = document.getElementById('formError');
       const dialog = document.getElementById('summaryDialog');
       const summary = document.getElementById('summaryText');
