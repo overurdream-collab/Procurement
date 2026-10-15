@@ -56,3 +56,21 @@ test('single indexed listing cannot establish a reliable market range',()=>{
  const p=parsePrices('US $19.50 / Square Meter');
  assert.equal(summarizePublishedPrices([{type:'Published Market Source',url:'https://example.com/p',priceEvidence:p}]),null);
 });
+
+test('rejects mismatched size and refrigerant while retaining public evidence',()=>{
+ const {matchesRequestedProduct}=require('../market-price-core');
+ const request={product:'100mm PU cold room insulated sandwich panel'};
+ assert.equal(matchesRequestedProduct({title:'75mm PU cold room insulated panel',snippet:'USD 5/sqm'},request),false);
+ assert.equal(matchesRequestedProduct({title:'100 mm PU cold room insulated sandwich panel',snippet:'USD 11/sqm'},request),true);
+ assert.equal(matchesRequestedProduct({title:'industrial laser printer',snippet:'USD 11/sqm'},request),false);
+ assert.equal(matchesRequestedProduct({title:'R404A 2HP compressor',snippet:''},{product:'2HP R410A rotary compressor'}),false);
+ assert.equal(matchesRequestedProduct({title:'R410A 2HP rotary compressor',snippet:''},{product:'2HP R410A rotary compressor'}),true);
+});
+test('never benchmark a different product even with USD per unit evidence',()=>{
+ const req={product:'100mm PU cold room insulated sandwich panel'};
+ const sources=[
+  {type:'Published Market Source',url:'https://a.test/75',title:'75mm PU cold room insulated sandwich panel',snippet:'USD 7/sqm',priceEvidence:parsePrices('USD 7/sqm')},
+  {type:'Published Market Source',url:'https://b.test/80',title:'80mm PU cold room insulated sandwich panel',snippet:'USD 14/sqm',priceEvidence:parsePrices('USD 14/sqm')}
+ ];
+ assert.equal(summarizePublishedPrices(sources,req),null);
+});
