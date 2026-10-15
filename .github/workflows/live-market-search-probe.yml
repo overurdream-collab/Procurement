@@ -8,6 +8,14 @@ on:
       - 'market-index-search.js'
       - 'market-scan.js'
       - '.github/workflows/live-market-search-probe.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'ops/searxng/settings.yml'
+      - 'scripts/market-searxng-probe.js'
+      - 'market-index-search.js'
+      - 'market-scan.js'
+      - '.github/workflows/live-market-search-probe.yml'
   workflow_dispatch:
 permissions:
   contents: read
