@@ -60,7 +60,7 @@ async function searchIndexedWeb(query,{env=process.env,fetcher=fetch,limit=8}={}
   const entries=provider==='searxng'?(data.results||[]):
     provider==='brave'?(data.web?.results||[]):
     provider==='tavily'?(data.results||[]):provider==='serper'?(data.organic||[]):(data.items||[]);
-  return {configured:true,provider,items:entries.map(x=>({
+  return {configured:true,provider,items:entries.slice(0,count).map(x=>({
     title:x.title||'',url:x.url||x.link||'',snippet:x.content||x.description||x.snippet||''
   }))};
 }
