@@ -1,0 +1,50 @@
+name: UI visual acceptance (desktop and iPhone)
+on:
+  push:
+    branches: [alharir-free-hosting-poc]
+    paths:
+      - 'public/index.html'
+      - 'public/executive-home.js'
+      - 'public/executive-home.css'
+      - 'public/ux-overhaul.css'
+      - 'public/agent-native-pilot.js'
+      - 'public/ops-dashboard.js'
+      - 'test/ux-visual-audit.cjs'
+      - '.github/workflows/ux-visual-acceptance.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/index.html'
+      - 'public/executive-home.js'
+      - 'public/executive-home.css'
+      - 'public/ux-overhaul.css'
+      - 'public/agent-native-pilot.js'
+      - 'public/ops-dashboard.js'
+      - 'test/ux-visual-audit.cjs'
+      - '.github/workflows/ux-visual-acceptance.yml'
+permissions:
+  contents: read
+jobs:
+  visual-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Locate Chrome
+        run: |
+          which google-chrome || which chromium || which chromium-browser
+      - name: Prepare screenshot driver (free, no repo dependency change)
+        run: npm install --no-save --no-package-lock --ignore-scripts playwright-core@1.56.1
+      - name: Real browser and authenticated API UI acceptance
+        run: node test/ux-visual-audit.cjs
+      - name: Save visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alharir-ui-desktop-mobile
+          path: /tmp/alharir-ui-evidence/*.png
+          if-no-files-found: warn
+          retention-days: 3
