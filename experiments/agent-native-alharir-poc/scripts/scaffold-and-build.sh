@@ -14,4 +14,7 @@ cp "$HERE/app/routes/procurement.tsx" app/routes/procurement.tsx
 corepack enable
 pnpm install --no-frozen-lockfile
 pnpm build
+# Execute real Agent-Native Shared Actions without any LLM or email credentials.
+pnpm action compare-quotations '{"rfqId":"RFQ-POC-001"}'
+pnpm action daily-report '{"rfqId":"RFQ-POC-001"}'
 echo "Native framework build complete. No LLM/API credentials or Gmail were supplied."
