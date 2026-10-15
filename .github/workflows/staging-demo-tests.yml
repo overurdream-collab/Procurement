@@ -22,6 +22,10 @@ on:
       - 'test/daily-dashboard-http.test.js'
       - 'test/navigation-report.contract.test.js'
       - 'test/agent-native-dashboard-pilot.test.js'
+      - 'test/home-monthly-integration.test.js'
+      - 'monthly-report.js'
+      - 'public/executive-home.css'
+      - 'public/executive-home.js'
       - 'public/agent-native-layout.js'
       - 'public/agent-native-pilot.js'
       - 'public/agent-native-pilot.html'
@@ -47,6 +51,10 @@ on:
       - 'test/daily-dashboard-http.test.js'
       - 'test/navigation-report.contract.test.js'
       - 'test/agent-native-dashboard-pilot.test.js'
+      - 'test/home-monthly-integration.test.js'
+      - 'monthly-report.js'
+      - 'public/executive-home.css'
+      - 'public/executive-home.js'
       - 'public/agent-native-layout.js'
       - 'public/agent-native-pilot.js'
       - 'public/agent-native-pilot.html'
@@ -74,5 +82,7 @@ jobs:
           node --check public/ops-dashboard.js
           node --check public/agent-native-layout.js
           node --check public/agent-native-pilot.js
+          node --check public/executive-home.js
+          node --check monthly-report.js
       - name: Test real HTTP authentication and synthetic-only sample
-        run: node --test --test-concurrency=1 test/staging-auth.test.js test/unified-market-search.test.js test/market-lead-pipeline.test.js test/market-rfq-http.integration.test.js test/procurement-reports.test.js test/daily-dashboard-http.test.js test/navigation-report.contract.test.js test/agent-native-dashboard-pilot.test.js
+        run: node --test --test-concurrency=1 test/staging-auth.test.js test/unified-market-search.test.js test/market-lead-pipeline.test.js test/market-rfq-http.integration.test.js test/procurement-reports.test.js test/daily-dashboard-http.test.js test/navigation-report.contract.test.js test/agent-native-dashboard-pilot.test.js test/home-monthly-integration.test.js
