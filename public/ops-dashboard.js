@@ -1,6 +1,32 @@
 'use strict';
 let dailySnapshot=null,comparisonSnapshot=null,dailyAudience='management';
 
+
+function agentStatusView(){
+ const demo=/DEMO/i.test(st.project?.name||'');
+ const settings=Object.entries(st.settings||{}).map(([k,v])=>
+ '<div class="log"><b>'+dEsc(k)+'</b> : '+(v?'مفعّل':'معطّل')+'</div>').join('');
+ return '<section class="page-intro"><h2>الوكيل والسياسات</h2>'+
+  '<p>أعمال التحليل والمسودات تخضع لمراجعة بشرية. لا توجد رسائل جماعية تلقائية.</p></section>'+
+  '<div class="data-warning">'+(demo?'الوضع التجريبي: ربط البريد والإرسال متوقفان، ويمكن مراجعة المسودات فقط.':
+  'يحتاج ربط البريد وصلاحيات اعتماد منفصلة قبل الإرسال.')+'</div>'+
+  '<p><a class="btn primary" href="/workspace.html?id='+encodeURIComponent(activeMarketRequestId())+
+  '">فتح مساعد مساحة الطلب</a></p>'+
+  '<section class="panel"><div class="ph"><h2>إعدادات الأمان الحالية (للقراءة)</h2></div>'+
+  '<div class="pb">'+settings+'</div></section>';
+}
+function gmailStatusView(){
+ const demo=/DEMO/i.test(st.project?.name||'');
+ const count=(st.gmailReplies||[]).length;
+ return '<section class="page-intro"><h2>البريد ومراسلات الموردين</h2>'+
+ '<p>المراسلات المرتبطة بالطلبات، حالة الاتصال ومصادر العروض المستلمة.</p></section>'+
+ '<div class="data-warning"><b>'+(demo?'غير متاح على استضافة التجربة':'يتطلب التحقق من اتصال Gmail')+
+ '</b><p>لا يمكن مزامنة البريد أو إرسال الرسائل من هذه النسخة التجريبية. استخدم قائمة ردود الموردين والمسودات للمراجعة.</p></div>'+
+ '<div class="mini-stats">'+statCard('الردود المحفوظة',count)+statCard('ربط Gmail',demo?'معطل':'يحتاج تحقق')+'</div>'+
+ '<p><button class="btn" onclick="show(\'responses\')">فتح ردود الموردين</button> '+
+ '<button class="btn" onclick="show(\'market\')">فتح مسودات RFQ</button></p>';
+}
+
 function diagnosticsShell(){
  return '<details class="service-status no-print"><summary>حالة الخدمات والتكاملات — ما يعمل وما يحتاج إعدادًا</summary>'+
   '<div id="serviceStatusTable" class="muted">جارٍ فحص حالة الخدمات...</div></details>';
