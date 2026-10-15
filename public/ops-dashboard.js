@@ -55,17 +55,19 @@ function reportOptions(){
    '<option value="'+dEsc(x.id)+'">'+dEsc(x.title||x.product||x.id)+' — '+dEsc(x.id)+'</option>').join('');
 }
 function dailyView(){
- return '<section class="page-intro"><div><span class="eyebrow">DAILY PROCUREMENT BRIEF</span>'+
-  '<h2>التقرير اليومي والإنجاز</h2><p>ملخص تنفيذي من سجل المشتريات الفعلي، جاهز للمراجعة والمشاركة مع المشتري أو الإدارة.</p></div></section>'+
+ return '<section class="page-intro"><div><span class="eyebrow">ALHARIR REPORTS</span>'+
+  '<h2>مركز التقارير التنفيذية</h2><p>تقارير الإدارة والمشتري، اليومية والشهرية، بملفات للمشاركة وملخص WeChat.</p></div></section>'+
   '<div class="report-toolbar no-print">'+
   '<label>النطاق <select id="dailyScope" onchange="loadDailyReport()">'+reportOptions()+'</select></label>'+
   '<label>نوع التقرير <select id="dailyAudience" onchange="loadDailyReport()"><option value="management">للإدارة — داخلي</option><option value="buyer">للمشتري — دون التفاصيل الداخلية</option></select></label>'+
-  '<label>تاريخ التقرير <input type="date" id="dailyDate" onchange="loadDailyReport()"></label>'+
+   '<label>الفترة <select id="reportPeriod" onchange="updateReportPeriod()"><option value="daily">يومي</option><option value="monthly">شهري</option></select></label>'+
+   '<label id="dailyDateLabel">تاريخ التقرير <input type="date" id="dailyDate" onchange="loadDailyReport()"></label>'+
+   '<label id="monthlyDateLabel" style="display:none">شهر التقرير <input type="month" id="monthlyDate" onchange="loadDailyReport()"></label>'+
   '<button class="btn primary" onclick="loadDailyReport()">تحديث الآن</button>'+
   '<button class="btn" onclick="downloadDailyHtml()">تنزيل تقرير HTML</button>'+
   '<button class="btn" onclick="printDailyReport()">طباعة / PDF</button>'+
   '<button class="btn" onclick="shareDailyReport()">مشاركة الملف / WeChat</button>'+
-  '<button class="btn" onclick="copyWeChatDailyText()">نسخ الملخص اليومي لـ WeChat</button></div>'+
+  '<button class="btn" onclick="copyWeChatDailyText()">نسخ ملخص WeChat</button></div>'+
   '<div id="dailyReportOutput" aria-live="polite"><p class="muted">جارٍ تحميل نتائج اليوم...</p></div>'+diagnosticsShell();
 }
 function comparisonView(){
@@ -180,14 +182,16 @@ function dailyMarkup(r){
  const activities=(r.activities||[]).map(x=>'<li>'+dEsc(x.time)+' — '+dEsc(x.description)+'</li>').join('');
  return '<article id="dailyPrintable" class="daily-printable" dir="rtl">'+
   '<header class="daily-heading"><div><div class="eyebrow">ALHARIR / EXECUTIVE PROCUREMENT REPORT</div>'+
-   '<h2>تقرير المشتريات اليومي</h2><p>التاريخ: '+dEsc(r.date)+' · نوع النسخة: '+
+   '<h2>'+(r.period==='monthly'?'تقرير المشتريات الشهري':'تقرير المشتريات اليومي')+
+    '</h2><p>'+(r.period==='monthly'?'الشهر: ':'التاريخ: ')+dEsc(r.date)+' · نوع النسخة: '+
    (management?'إدارة — سري':'مشتري — نسخة مراجعة')+'</p></div>'+
    '<strong>ALHARIR</strong></header>'+
    (r.mode==='synthetic-demo'?'<p class="data-warning"><b>نسخة تجريبية ببيانات غير تشغيلية.</b> لا تعتمد لاتخاذ قرار شراء فعلي.</p>':'')+
    '<div class="mini-stats">'+statCard('طلبات الشراء',k.requests)+statCard('الموردون',k.suppliers)+
     statCard('عروض مسجلة',k.quoteRecords)+statCard('عروض متحقق منها',k.verifiedQuotes)+
-    statCard('مقارنات متكافئة',k.comparableGroups)+statCard('نشاط اليوم',k.actionsToday)+
-    statCard('ردود اليوم',k.repliesToday)+
+    statCard('مقارنات متكافئة',k.comparableGroups)+
+    statCard(r.period==='monthly'?'نشاط الشهر':'نشاط اليوم',k.actionsToday)+
+    statCard(r.period==='monthly'?'ردود الشهر':'ردود اليوم',k.repliesToday)+
     (management?statCard('اعتمادات معلقة',k.pendingApprovals):'')+'</div>'+
    '<h3>متابعة الطلبات</h3><div class="table-scroll"><table><thead><tr>'+
    '<th>رقم الطلب</th><th>المنتج أو المشروع</th><th>الحالة</th><th>موردون</th><th>عروض</th><th>مقارنات</th>'+
@@ -203,16 +207,25 @@ function dailyMarkup(r){
    (priorities?'<ul>'+priorities+'</ul>':'<p>لا توجد أولويات إضافية مسجلة.</p>')+'</section></div>'+
    (risks?'<section><h3>المخاطر والفجوات الرئيسية</h3><ul>'+risks+'</ul></section>':'')+
    (gaps?'<section><h3>نواقص العروض</h3><ul>'+gaps+'</ul></section>':'')+
-   (management&&activities?'<section><h3>سجل نشاط اليوم</h3><ul>'+activities+'</ul></section>':'')+
+   (management&&activities?'<section><h3>'+(r.period==='monthly'?'سجل نشاط الشهر':'سجل نشاط اليوم')+'</h3><ul>'+activities+'</ul></section>':'')+
    '<footer><p>'+dEsc(r.disclaimer)+'</p><p>'+dEsc(r.privacyNotice)+'</p>'+
     '<p>المصدر: سجل المشتريات لدى ALHARIR · توليد: '+dEsc(r.generatedAt)+'</p></footer></article>';
 }
+function updateReportPeriod(){
+ const monthly=document.getElementById('reportPeriod')?.value==='monthly';
+ const d=document.getElementById('dailyDateLabel'),m=document.getElementById('monthlyDateLabel');
+ if(d)d.style.display=monthly?'none':'';
+ if(m)m.style.display=monthly?'':'none';
+ loadDailyReport();
+}
 async function loadDailyReport(){
  const output=document.getElementById('dailyReportOutput');if(!output)return;
- const scope=field('dailyScope'),audience=field('dailyAudience')||'management',date=field('dailyDate');
+ const scope=field('dailyScope'),audience=field('dailyAudience')||'management',
+ monthly=field('reportPeriod')==='monthly',date=monthly?field('monthlyDate'):field('dailyDate');
  dailyAudience=audience;output.textContent='جارٍ إعداد التقرير من البيانات المسجلة...';
- const u='/api/daily-report?audience='+encodeURIComponent(audience)+
-  (scope?'&requestId='+encodeURIComponent(scope):'')+(date?'&date='+encodeURIComponent(date):'');
+ const u=(monthly?'/api/monthly-report':'/api/daily-report')+'?audience='+encodeURIComponent(audience)+
+   (scope?'&requestId='+encodeURIComponent(scope):'')+
+   (date?(monthly?'&month=':'&date=')+encodeURIComponent(date):'');
  try{
   const r=await fetch(u),j=await r.json();
   if(!r.ok){output.textContent=j.error||'تعذر إعداد التقرير';return}
@@ -227,14 +240,14 @@ function formatWeChatDailyText(r){
  const clean=s=>String(s??'').replace(/[\r\n\t]+/g,' ').trim();
  const safeList=(list,max=5)=>Array.isArray(list)?list.slice(0,max).map(x=>'• '+clean(x)):[];
  const lines=[
-  'ALHARIR | تقرير إنجاز المشتريات',
-  'التاريخ: '+clean(r.date)+' | '+(management?'للإدارة':'للمشتري'),
+  'ALHARIR | تقرير إنجاز المشتريات '+(r.period==='monthly'?'الشهري':'اليومي'),
+  (r.period==='monthly'?'الشهر: ':'التاريخ: ')+clean(r.date)+' | '+(management?'للإدارة':'للمشتري'),
   r.mode==='synthetic-demo'?'⚠️ بيانات تجريبية، ليست نتائج تشغيل فعلية.':'',
   '',
   'الطلبات: '+(k.requests??0)+' | الموردون: '+(k.suppliers??0)+
     ' | العروض: '+(k.quoteRecords??0)+' | الموثقة: '+(k.verifiedQuotes??0),
   'مقارنات FOB متكافئة: '+(k.comparableGroups??0)+
-    ' | نشاط اليوم: '+(k.actionsToday??0)+' | ردود اليوم: '+(k.repliesToday??0),
+    ' | نشاط '+(r.period==='monthly'?'الشهر':'اليوم')+': '+(k.actionsToday??0)+' | ردود '+(r.period==='monthly'?'الشهر':'اليوم')+': '+(k.repliesToday??0),
   '',
   'الإنجاز:',
   ...(safeList(r.achievements).length?safeList(r.achievements):['• لا توجد إنجازات جديدة مسجلة لهذا التاريخ']),
@@ -278,8 +291,8 @@ const reportDoc=(data)=>'<!doctype html><html lang="ar" dir="rtl"><head><meta ch
 function dailyFile(){
  if(!dailySnapshot)return null;
  const content=reportDoc(dailySnapshot);
- return {content,name:'ALHARIR-Daily-'+dailySnapshot.audience+'-'+dailySnapshot.date+'.html',
-  file:new File([content],'ALHARIR-Daily-'+dailySnapshot.audience+'-'+dailySnapshot.date+'.html',{type:'text/html'})};
+ return {content,name:'ALHARIR-'+(dailySnapshot.period==='monthly'?'Monthly':'Daily')+'-'+dailySnapshot.audience+'-'+dailySnapshot.date+'.html',
+  file:new File([content],'ALHARIR-'+(dailySnapshot.period==='monthly'?'Monthly':'Daily')+'-'+dailySnapshot.audience+'-'+dailySnapshot.date+'.html',{type:'text/html'})};
 }
 function downloadDailyHtml(){
  const d=dailyFile();if(!d)return alert('حمّل التقرير أولاً');
@@ -293,7 +306,7 @@ function printDailyReport(){
 }
 async function shareDailyReport(){
  const d=dailyFile();if(!d)return alert('حمّل التقرير أولاً');
- const title='ALHARIR Daily Procurement Report — '+dailySnapshot.date;
+ const title='ALHARIR '+(dailySnapshot.period==='monthly'?'Monthly':'Daily')+' Procurement Report — '+dailySnapshot.date;
  if(navigator.canShare&&navigator.canShare({files:[d.file]})&&navigator.share){
   try{await navigator.share({title,files:[d.file]});return}catch(e){if(e.name==='AbortError')return}
  }
