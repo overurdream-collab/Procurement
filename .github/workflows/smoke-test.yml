@@ -81,7 +81,7 @@ jobs:
           node -e "let x=JSON.parse(process.argv[1]);if(x.intent!=='act'||!x.executed.length||x.executed[0].status!=='Confirmed Decision')process.exit(1)" "$act"
       - name: Verify Market Intelligence and Approvals UI wiring
         run: |
-          grep -F "if(v==='market')el.innerHTML=market()" public/index.html
+          grep -F 'dashboard:dailyView,rfq:rfqView,suppliers,responses' public/index.html
           grep -F "show('approvals');toast" public/index.html
           curl -fsS -X POST -H "Content-Type: application/json" -d '{}' http://127.0.0.1:8787/api/requests/RFQ-001/market-scan | grep -q '"requestId":"RFQ-001"'
           curl -fsS -X PATCH -H "Content-Type: application/json" -d '{"status":"approved"}' http://127.0.0.1:8787/api/approvals/A1 | grep -q '"status":"approved"'
@@ -90,7 +90,7 @@ jobs:
         run: |
           grep -F "window.addEventListener('hashchange'" public/index.html
           grep -F "function render(v)" public/index.html
-          grep -F "function quotes()" public/index.html
+          grep -F 'function comparisonView()' public/ops-dashboard.js
       - name: Verify shared UI escape helper exists
         run: |
           grep -F "function esc(v)" public/index.html
@@ -98,13 +98,13 @@ jobs:
         run: |
           curl -fsS http://127.0.0.1:8787/api/state | grep -q '"Q-Emaar-001"'
           curl -fsS http://127.0.0.1:8787/api/state | grep -q '"panel_door_manufacturer"'
-          grep -F "مصنّعو غرف التبريد الكاملة" public/index.html
-          grep -F "مصنّعو الألواح والأبواب" public/index.html
+          curl -fsS http://127.0.0.1:8787/api/price-comparison | grep -q '"comparisons"'
+          curl -fsS http://127.0.0.1:8787/api/daily-report | grep -q '"kpis"'
       - name: Verify conversation and comparison detail flows
         run: |
           grep -F "function openConversation(id)" public/index.html
           grep -F "فتح سجل المراسلات" public/index.html
-          grep -F "function openComparisonDetail(id)" public/index.html
+          grep -F "function loadComparisons()" public/ops-dashboard.js
       - name: Verify Gmail project-reply detection
         run: |
           grep -F '"Fresh Produce Cold Room" newer_than:90d' server.js
@@ -147,7 +147,7 @@ jobs:
           grep -q '@media(max-width:520px)' /tmp/index.html
           grep -q 'viewport-fit=cover' /tmp/index.html
           grep -q "localStorage.setItem('procurement-theme'" /tmp/index.html
-          grep -q 'class="mobile"' /tmp/index.html
+          grep -q 'class="side-nav"' /tmp/index.html
       - name: Stop application
         if: always()
         run: |
