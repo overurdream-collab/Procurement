@@ -49,6 +49,13 @@ async function freePort(){
    });
    const page=await context.newPage();
    const scriptErrors=[];page.on('pageerror',e=>scriptErrors.push(e.message));
+   // Verify browser actually receives stylesheets, not text/plain (previous root cause).
+   for(const sheet of ['/executive-home.css','/ux-overhaul.css']){
+    const css=await page.request.get(root+sheet);
+    if(css.status()!==200||!/^text\/css/i.test(css.headers()['content-type']||'')){
+     throw Error(screen.name+': stylesheet rejected by browser due MIME: '+sheet+' '+css.status()+' '+css.headers()['content-type']);
+    }
+   }
    await page.goto(root+'/#dashboard',{waitUntil:'networkidle',timeout:30000});
    await page.locator('#pilotStats .stat').first().waitFor({timeout:12000});
    await page.waitForFunction(()=>document.querySelectorAll('#pilotStats .stat').length===8,{timeout:12000});
@@ -72,9 +79,13 @@ async function freePort(){
    }
    const box=await page.evaluate(()=>({
     width:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,
-    home:!!document.querySelector('.executive-head .head-aside')
+    home:!!document.querySelector('.executive-head .head-aside'),
+    heroBackground:getComputedStyle(document.querySelector('.executive-head')).backgroundImage,
+    cardsLayout:getComputedStyle(document.querySelector('#pilotStats')).display,
+    heroFont:parseInt(getComputedStyle(document.querySelector('.executive-head h2')).fontSize,10)
    }));
-   if(box.width>screen.width+5||!box.home)throw Error(screen.name+': clipped home or missing premium hero: '+JSON.stringify(box));
+   if(box.width>screen.width+5||!box.home||box.cardsLayout!=='grid'||!box.heroBackground.includes('gradient')||box.heroFont<24)
+    throw Error(screen.name+': unstyled, clipped home or missing premium hero: '+JSON.stringify(box));
    await page.screenshot({path:path.join(dir,screen.name+'-dashboard.png'),fullPage:true,animations:'disabled'});
    await page.goto(root+'/#reports',{waitUntil:'networkidle'});
    await page.locator('#dailyPrintable').waitFor({timeout:12000});
