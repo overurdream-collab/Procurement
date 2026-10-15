@@ -113,7 +113,7 @@ function unifiedMarketLinks(links){
 }
 function unifiedMarketResultsView(data){
  let items=Array.isArray(data.results)?data.results:[];
- if(!items.length)return '<div class="approval-details" style="display:block"><b>لا توجد نتائج مفهرسة يمكن عرضها حاليًا.</b><p class="muted">لم يتم إنشاء أي سعر افتراضي. يمكنك تجربة الروابط البديلة أدناه.</p></div>'+unifiedMarketLinks(data.manualSearchLinks);
+ if(!items.length)return '<div class="approval-details" style="display:block"><b>لا توجد نتائج مفهرسة يمكن عرضها حاليًا.</b><p class="muted">لم يتم إنشاء أي سعر افتراضي. يمكنك تجربة الروابط البديلة أدناه.</p></div>'+unifiedMarketLinks(data.manualSearchLinks)+manualMarketInput();
  let html='<div class="approval-details" style="display:block"><b>'+esc(items.length)+' صفحة/منتج من مصادر عامة</b><p class="muted">'+esc(data.warning||'هذه الأسعار ليست عروض شراء مؤكدة')+'</p></div>';
  html+='<div style="display:grid;gap:12px;margin-top:12px">';
  for(const r of items){
