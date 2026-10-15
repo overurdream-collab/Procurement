@@ -55,7 +55,7 @@ function reportOptions(){
    '<option value="'+dEsc(x.id)+'">'+dEsc(x.title||x.product||x.id)+' — '+dEsc(x.id)+'</option>').join('');
 }
 function dailyView(){
- return '<section class="page-intro"><div><span class="eyebrow">ALHARIR REPORTS</span>'+
+ return '<div class="reports-page"><section class="page-intro"><div><span class="eyebrow">ALHARIR REPORTS</span>'+
   '<h2>مركز التقارير التنفيذية</h2><p>تقارير الإدارة والمشتري، اليومية والشهرية، بملفات للمشاركة وملخص WeChat.</p></div></section>'+
   '<div class="report-toolbar no-print">'+
   '<label>النطاق <select id="dailyScope" onchange="loadDailyReport()">'+reportOptions()+'</select></label>'+
@@ -68,7 +68,7 @@ function dailyView(){
   '<button class="btn" onclick="printDailyReport()">طباعة / PDF</button>'+
   '<button class="btn" onclick="shareDailyReport()">مشاركة الملف / WeChat</button>'+
   '<button class="btn" onclick="copyWeChatDailyText()">نسخ ملخص WeChat</button></div>'+
-  '<div id="dailyReportOutput" aria-live="polite"><p class="muted">جارٍ تحميل نتائج اليوم...</p></div>'+diagnosticsShell();
+  '<div id="dailyReportOutput" aria-live="polite"><p class="muted">جارٍ تحميل نتائج اليوم...</p></div>'+diagnosticsShell()+'</div>';
 }
 function comparisonView(){
  return '<section class="page-intro"><div><span class="eyebrow">EVIDENCE BASED BID LEVELING</span>'+
@@ -285,8 +285,8 @@ async function copyWeChatDailyText(){
 
 const reportDoc=(data)=>'<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">'+
   '<meta name="viewport" content="width=device-width,initial-scale=1"><title>ALHARIR Daily Procurement '+dEsc(data.date)+'</title>'+
-  '<style>body{font-family:Tahoma,Arial,sans-serif;margin:24px;color:#17233e;line-height:1.7}'+
-  'h2,h3{color:#102550}.eyebrow{color:#3c668b;font-size:11px;letter-spacing:1px}.daily-heading{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #183772;padding-bottom:12px}.mini-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:18px 0}.mini-stat{border:1px solid #d9e2ed;border-radius:9px;padding:12px}.mini-stat span,.mini-stat small{display:block;color:#60748b}.mini-stat strong{display:block;font-size:25px;color:#153d7b}.table-scroll{overflow:auto}table{border-collapse:collapse;width:100%;font-size:12px}th,td{padding:9px;border:1px solid #dae4ee;text-align:right}th{background:#edf3f9}.report-columns{display:grid;grid-template-columns:1fr 1fr;gap:24px}.data-warning{background:#fff6e3;padding:12px}.daily-printable footer{border-top:1px solid #b9c7da;margin-top:24px;font-size:11px;color:#50657b}li{margin-bottom:5px} @page{size:A4;margin:14mm}@media print{body{margin:0}}</style></head><body>'+
+  '<style>body{font-family:Tahoma,Arial,sans-serif;margin:25px;background:#fff;color:#182f49;line-height:1.8;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
+  'h2,h3{color:#102550}.eyebrow{color:#3c668b;font-size:11px;letter-spacing:1px}.daily-heading{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #183772;padding-bottom:12px}.mini-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:18px 0}.mini-stat{border:1px solid #d9e2ed;border-radius:9px;padding:12px}.mini-stat span,.mini-stat small{display:block;color:#60748b}.mini-stat strong{display:block;font-size:25px;color:#153d7b}.table-scroll{overflow:auto}table{border-collapse:collapse;width:100%;font-size:12px}th,td{padding:9px;border:1px solid #dae4ee;text-align:right}th{background:#edf3f9}.report-columns{display:grid;grid-template-columns:1fr 1fr;gap:24px}.data-warning{background:#fff6e3;padding:12px}.daily-printable footer{border-top:1px solid #b9c7da;margin-top:24px;font-size:11px;color:#50657b}li{margin-bottom:5px} .daily-heading{background:#102c4c;color:white;border-radius:14px;padding:22px 25px;border:0;border-bottom:4px solid #d5ad5e}.daily-heading h2,.daily-heading strong{color:white}.daily-heading .eyebrow{color:#f0d293}.daily-heading p{color:#dce8f5}.mini-stat{background:#f8fafc;border-top:3px solid #d2a657;border-radius:10px}.mini-stat strong{color:#193c5c}.report-columns section{background:#f8fbfe;padding:16px;border:1px solid #e1eaf2;border-radius:10px}h3{border-right:3px solid #d8aa53;padding-right:11px;margin-top:24px}.data-warning{background:#fff7e7;border-right:4px solid #d7ad59}.daily-printable footer{line-height:1.9} @page{size:A4;margin:14mm}@media print{body{margin:0}}</style></head><body>'+
   dailyMarkup(data)+'</body></html>';
 function dailyFile(){
  if(!dailySnapshot)return null;
