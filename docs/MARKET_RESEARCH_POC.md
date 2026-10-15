@@ -13,15 +13,15 @@ Status: **offline tests passed; live provider not yet accepted**. This is not a 
 ## Current implementation
 - market-price-core.js: explicit currency/unit extraction, URL-domain checks, conservative benchmark, generic product queries.
 - market-index-search.js: provider adapter prioritizing Tavily, then Serper, then Brave, then legacy Google CSE, but only if the live-search opt-in is set. No keys or an unset MARKET_ENABLE_LIVE_SEARCH flag means honest search-not-configured, not simulated "live".
-- server.js: POST /api/requests/:requestId/market-scan; labels indicative results for review, uses max 3 provider requests per scan by default, caches each provider query in memory for 30 minutes (until process restart). The 1688 source is included among the first three targets. Provider errors and query-count information are returned.
+- market-scan.js: testable indexed source collection and conservative benchmark rules; server.js exposes POST /api/requests/:requestId/market-scan; labels indicative results for review, uses max 3 provider requests per scan by default, caches each provider query in memory for 30 minutes (until process restart). The 1688 source is included among the first three targets. Provider errors and query-count information are returned.
 - Existing localhost:8790 and localhost:8791 specialty proxy endpoints are untouched and must be tested independently. They are not guaranteed to be running.
 
 ## Zero-spend verification
 Run using Node.js >=18:
 
-    node --test test/market-price-core.test.js test/market-index-search.test.js
+    node --test test/market-price-core.test.js test/market-index-search.test.js test/market-scan.integration.test.js
 
-No API key, credit card, paid subscription or external web access is needed for these offline tests.
+No API key, credit card, paid subscription or external web access is needed for these offline tests. The integration test injects *simulated search-index responses*; it does not claim live marketplace access.
 
 ## Optional live search (requires separate user action)
 Live search is **disabled by default even if credentials are present**. Activation needs MARKET_ENABLE_LIVE_SEARCH=true in the server environment and explicit owner approval. Do not enable until provider-side spend controls are set.
