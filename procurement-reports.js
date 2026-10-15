@@ -154,6 +154,14 @@ function dailyReport(st,{requestId=null,date=null,audience='management'}={}){
   ...(pending.length?['مراجعة الموافقات المعلقة قبل أي مراسلة أو قرار شراء']:[]),
   ...(!allRequests.length?['إنشاء طلب شراء وتحديد المواصفات والكميات']:[])
  ];
+ const achievements=[
+   ...(acts.length?['تم تسجيل '+acts.length+' أنشطة متابعة في التاريخ المحدد']:[]),
+   ...(received.length?['وصل '+received.length+' رد من مورد خلال اليوم']:[]),
+   ...(allRequests.filter(r=>day(r.createdAt)===dateLabel).length?[
+      'تم تسجيل '+allRequests.filter(r=>day(r.createdAt)===dateLabel).length+' طلب شراء جديد خلال اليوم']:[]),
+   ...(q.quotes.filter(x=>day(x.receivedAt)===dateLabel).length?[
+      'تم تسجيل '+q.quotes.filter(x=>day(x.receivedAt)===dateLabel).length+' عروض مستلمة اليوم (قد تحتاج مراجعة)']:[])
+ ];
  const publicBuyer=audience==='buyer';
  return {type:'ALHARIR_DAILY_PROCUREMENT_REPORT',date:dateLabel,generatedAt:new Date().toISOString(),
   audience:publicBuyer?'buyer':'management',requestId:requestId||null,
@@ -164,7 +172,7 @@ function dailyReport(st,{requestId=null,date=null,audience='management'}={}){
    pendingApprovals:publicBuyer?null:pending.length},
   requests:byRequest,priceComparisons:q.comparisons,
   quotationGaps:publicBuyer?gaps.map(x=>({quoteId:x.quoteId,issues:x.issues})):gaps,
-  priorities,risks,
+  priorities,risks,achievements,
   activities:publicBuyer?[]:acts.slice(0,15).map(x=>({time:x.time,type:x.type,description:clean(x.text)})),
   evidence:{verifiedQuotes:q.verifiedQuotes,nonComparableLines:q.excludedQuoteLines},
   disclaimer:q.disclaimer,
