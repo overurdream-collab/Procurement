@@ -59,3 +59,29 @@ test('non-successful external provider is not silently considered success',async
   /tavily search HTTP 429/
  );
 });
+
+test('self-hosted SearXNG reads JSON results from loopback only',async()=>{
+ const env={MARKET_ENABLE_LIVE_SEARCH:'true',SEARXNG_URL:'http://127.0.0.1:8888/'};
+ const r=await searchIndexedWeb('100mm PU sandwich panels price',{env,fetcher:async(u,o)=>{
+   const url=new URL(u);
+   assert.equal(url.hostname,'127.0.0.1');
+   assert.equal(url.pathname,'/search');
+   assert.equal(url.searchParams.get('format'),'json');
+   assert.match(url.searchParams.get('q'),/sandwich panels/);
+   return {ok:true,json:async()=>({results:[{
+     title:'Panel',url:'https://www.alibaba.com/p',content:'US$19.50/sqm'
+   }]})};
+ }});
+ assert.equal(r.provider,'searxng');
+ assert.equal(r.items[0].url,'https://www.alibaba.com/p');
+});
+test('rejects non-local self-hosted search endpoint to prevent query exfiltration',async()=>{
+ await assert.rejects(
+   ()=>searchIndexedWeb('secret internal procurement',{env:{MARKET_ENABLE_LIVE_SEARCH:'true',SEARXNG_URL:'https://untrusted-search.example/secret'}}),
+   /SEARXNG_URL/
+ );
+ await assert.rejects(
+   ()=>searchIndexedWeb('secret',{env:{MARKET_ENABLE_LIVE_SEARCH:'true',SEARXNG_URL:'http://localhost.evil.test/'}}),
+   /SEARXNG_URL/
+ );
+});
