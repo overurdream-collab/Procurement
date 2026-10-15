@@ -223,6 +223,7 @@ function copilotPlan(message){
 function gate(st,action){let map={followup:'autoFollowup',send:'autoSend',exclude:'autoExclude',award:'autoAward'},key=map[action];if(key&&st.settings?.[key])return true;return st.approvals.some(a=>a.type===action&&a.status==='approved')}
 
 const {marketScan}=require('./market-scan');
+const {priceAnalysis,dailyReport}=require('./procurement-reports');
 const {unifiedMarketSearch,validateSearchInput}=require('./market-unified');
 const {registerSearch,researchContact,prepareConversion,outreachDrafts,publicUrl}=require('./market-leads');
 const {configuredProvider}=require('./market-index-search');
@@ -366,6 +367,81 @@ if(cm&&req.method==='POST'){let st=load(),b=await body(req),base=(st.requests||[
 let sm=u.pathname.match(/^\/api\/suppliers\/([^/]+)$/);if(sm&&req.method==='PATCH'){let st=load(),b=await body(req),x=st.suppliers.find(x=>x.id===sm[1]);if(!x)return json(res,404,{error:'not_found'});Object.assign(x,b);save(st);return json(res,200,x)}
 let am=u.pathname.match(/^\/api\/approvals\/([^/]+)$/);if(am&&req.method==='PATCH'){let st=load(),b=await body(req),x=st.approvals.find(x=>x.id===am[1]);if(!x)return json(res,404,{error:'not_found'});x.status=b.status||x.status;x.updatedAt=new Date().toISOString();save(st);return json(res,200,x)}
 if(u.pathname==='/api/settings'&&req.method==='PATCH'){let st=load(),b=await body(req);st.settings={...st.settings,...b};save(st);return json(res,200,st.settings)}
+
+if(u.pathname==='/api/price-comparison'&&req.method==='GET'){
+  const st=load(),requestId=u.searchParams.get('requestId')||null;
+  if(requestId&&!(st.requests||[]).some(x=>x.id===requestId))return json(res,404,{error:'request_not_found'});
+  return json(res,200,priceAnalysis(st,{requestId}));
+}
+if(u.pathname==='/api/daily-report'&&req.method==='GET'){
+  const st=load(),requestId=u.searchParams.get('requestId')||null,
+    audience=u.searchParams.get('audience')||'management',
+    requestedDay=u.searchParams.get('date')||null;
+  if(requestId&&!(st.requests||[]).some(x=>x.id===requestId))return json(res,404,{error:'request_not_found'});
+  if(!['buyer','management'].includes(audience))return json(res,422,{error:'audience_not_supported'});
+  if(requestedDay&&!/^\d{4}-\d{2}-\d{2}$/.test(requestedDay))
+    return json(res,422,{error:'date_invalid'});
+  return json(res,200,dailyReport(st,{requestId,date:requestedDay,audience}));
+}
+// Quote registration is deliberately "received/unverified". Staff must review real evidence
+// and explicitly verify each line before it can affect the benchmark.
+if(u.pathname==='/api/quotes/structured'&&req.method==='POST'){
+  const b=await body(req),st=load(),supplier=(st.suppliers||[]).find(x=>x.id===b.supplierId),
+    request=(st.requests||[]).find(x=>x.id===b.requestId);
+  if(!supplier||!request)return json(res,422,{error:'known_request_and_supplier_required'});
+  if(supplier.associatedRequestId&&supplier.associatedRequestId!==b.requestId)
+    return json(res,422,{error:'supplier_not_assigned_to_request'});
+  if(!['USD','CNY','EUR','YER'].includes(String(b.currency||'')))
+    return json(res,422,{error:'unsupported_currency'});
+  if(typeof b.basis!=='string'||b.basis.trim().length<3||b.basis.length>160)
+    return json(res,422,{error:'quote_basis_required'});
+  if(!Array.isArray(b.items)||!b.items.length||b.items.length>30)
+    return json(res,422,{error:'quote_items_required'});
+  const items=[];
+  for(const item of b.items){
+    if(typeof item.description!=='string'||item.description.trim().length<3||item.description.length>260||
+      !['m²','sqm','piece','set','kg','unit'].includes(item.unit)||
+      !Number.isFinite(Number(item.unitPrice))||Number(item.unitPrice)<=0||
+      !Number.isFinite(Number(item.quantity))||Number(item.quantity)<=0)
+      return json(res,422,{error:'invalid_quotation_line'});
+    items.push({description:item.description.trim(),unit:item.unit,unitPrice:Number(item.unitPrice),
+      quantity:Number(item.quantity),comparisonKey:String(item.comparisonKey||'').trim().slice(0,140),
+      specifications:String(item.specifications||'').trim().slice(0,400)});
+  }
+  const evidenceRef=String(b.evidenceRef||'').trim().slice(0,500);
+  if(evidenceRef.length<6)return json(res,422,{error:'evidence_reference_required'});
+  const quote={id:'Q-'+crypto.randomBytes(8).toString('hex'),supplierId:supplier.id,requestId:request.id,
+    category:supplier.category||'unclassified',evidenceClass:'Received Quote — Pending Review',status:'awaiting_review',
+    basis:b.basis.trim(),currency:b.currency,items,evidenceRef,
+    technical:typeof b.technical==='object'&&b.technical&&!Array.isArray(b.technical)?b.technical:{},
+    commercial:typeof b.commercial==='object'&&b.commercial&&!Array.isArray(b.commercial)?b.commercial:{},
+    missing:Array.isArray(b.missing)?b.missing.map(x=>String(x).slice(0,130)).slice(0,30):[],
+    receivedAt:new Date().toISOString()};
+  st.quotes=st.quotes||[];st.quotes.unshift(quote);
+  st.activity=st.activity||[];st.activity.unshift({type:'quote_received',time:quote.receivedAt,
+    requestId:quote.requestId,text:'عرض جديد '+quote.id+' — يحتاج فحص المستند والتحقق'});
+  save(st);return json(res,201,quote);
+}
+let verifyQuote=u.pathname.match(/^\/api\/quotes\/([^/]+)\/verify$/);
+if(verifyQuote&&req.method==='POST'){
+  const st=load(),q=(st.quotes||[]).find(x=>x.id===verifyQuote[1]),
+    b=await body(req);
+  if(!q)return json(res,404,{error:'quote_not_found'});
+  if(q.evidenceClass==='Verified Quote')return json(res,409,{error:'already_verified'});
+  if(String(q.evidenceRef||'').trim().length<6||
+    !Array.isArray(q.items)||q.items.some(i=>!(i.unitPrice>0&&i.quantity>0)))
+    return json(res,422,{error:'complete_document_and_line_check_required'});
+  if(b.confirmVerified!==true||String(b.reviewNote||'').trim().length<12)
+    return json(res,422,{error:'explicit_review_confirmation_and_note_required'});
+  // The hosted shared-admin demo is not an employee-scoped signature.
+  q.evidenceClass='Verified Quote';q.status='reviewed';q.reviewNote=b.reviewNote.trim().slice(0,500);
+  q.verifiedAt=new Date().toISOString();q.verifiedBy=HOSTED_DEMO?'demo-admin-review':'authorized-operator';
+  st.activity=st.activity||[];st.activity.unshift({type:'quote_verified',time:q.verifiedAt,
+    requestId:q.requestId,text:'تم توثيق '+q.id+' بعد مراجعة بشرية: '+q.reviewNote});
+  save(st);return json(res,200,{id:q.id,evidenceClass:q.evidenceClass,
+    comparison:priceAnalysis(st,{requestId:q.requestId})});
+}
+
 if(u.pathname==='/api/quotes'&&req.method==='POST'){let st=load(),b=await body(req),x={id:'Q-'+Date.now(),...b,createdAt:new Date().toISOString()};st.quotes.unshift(x);save(st);return json(res,201,x)}
 if(u.pathname==='/api/agent/run'&&req.method==='POST'){let st=load(),b=await body(req);if(b.action==='followup'&&st.settings?.dryRun)return json(res,409,{error:'dry_run_enabled',message:'وضع الحماية مفعل: لا يسمح بإرسال متابعة جماعية فعلية.'});if(b.action==='followup'&&st.settings?.requirePerMessageApproval)return json(res,409,{error:'per_message_approval_required',message:'يلزم اعتماد كل رسالة ومستلم بشكل منفصل قبل الإرسال.'});if(b.action==='followup'&&!gate(st,'followup'))return json(res,409,{error:'approval_required',message:'تحتاج موافقة قبل الإرسال'});if(b.action==='followup'){let targets=st.suppliers.filter(s=>!['رد','تم الرد — ننتظر العرض'].includes(s.status)&&!s.excluded&&s.email);let sent=[];for(let s of targets){await sendMail(s.email,'Follow-up: RFQ-001 – Cold Storage Project, Sana’a','Dear '+s.name+',\n\nThis is a follow-up regarding RFQ-001 for our cold storage project in Sana’a, Yemen. Please send your technical and commercial quotation, including cooling load, equipment brands/models, daily pull-down capacity, 24h power consumption, panel specifications, FOB price/port, CBM/gross weight, lead time, warranty and payment terms.\n\nBest regards,\nAlharir shipping and export');sent.push(s.name)}st.activity.unshift({time:new Date().toISOString(),type:'agent',text:'تم إرسال متابعة إلى '+sent.length+' مورد'});save(st);return json(res,200,{ok:true,sent})}st.activity.unshift({time:new Date().toISOString(),type:'agent',text:'تشغيل الوكيل: '+(b.action||'analyze')});save(st);return json(res,200,{ok:true,action:b.action||'analyze'})}
 let rw=u.pathname.match(/^\/requests\/([^/]+)$/);if(rw&&req.method==='GET'){res.writeHead(302,{Location:'/workspace.html?id='+encodeURIComponent(rw[1])});return res.end()}
