@@ -94,7 +94,14 @@ async function freePort(){
    await page.locator('#dailyPrintable').waitFor({timeout:12000});
    if(!((await page.locator('#dailyPrintable').innerText()).includes('الشهري')))throw Error(screen.name+': monthly report not rendered');
    const reportOverflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
-   if(reportOverflow>5)throw Error(screen.name+': report horizontal overflow '+reportOverflow);
+   if(reportOverflow>5){
+    const offenders=await page.evaluate(()=>Array.from(document.querySelectorAll('*')).filter(e=>{
+     if(e.closest('.side-nav'))return false;
+     const r=e.getBoundingClientRect();return r.width>0&&r.right>innerWidth+5;
+    }).slice(0,14).map(e=>({tag:e.tagName,id:e.id,cls:String(e.className).slice(0,45),
+      right:Math.round(e.getBoundingClientRect().right),width:Math.round(e.getBoundingClientRect().width)})));
+    throw Error(screen.name+': report horizontal overflow '+reportOverflow+' / '+JSON.stringify(offenders));
+   }
    await page.screenshot({path:path.join(dir,screen.name+'-reports.png'),fullPage:true,animations:'disabled'});
    if(scriptErrors.length)throw Error(screen.name+': JS page errors: '+scriptErrors.join(' | '));
    console.log('UI_PASS',screen.name,JSON.stringify({kpis,charts,report:'monthly',width:screen.width}));
