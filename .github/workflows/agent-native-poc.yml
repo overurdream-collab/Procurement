@@ -1,0 +1,35 @@
+name: ALHARIR Agent-Native isolated POC
+on:
+  push:
+    branches: [experiment/agent-native-alharir-poc]
+    paths:
+      - "experiments/agent-native-alharir-poc/**"
+      - ".github/workflows/agent-native-poc.yml"
+  pull_request:
+    paths:
+      - "experiments/agent-native-alharir-poc/**"
+      - ".github/workflows/agent-native-poc.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Financial and approval tests — synthetic data
+        run: node --test experiments/agent-native-alharir-poc/tests/engine.test.mjs
+  upstream-framework:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Bootstrap upstream Agent-Native and build isolated app
+        run: bash experiments/agent-native-alharir-poc/scripts/scaffold-and-build.sh
