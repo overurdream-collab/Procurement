@@ -32,10 +32,143 @@ body:before{content:"";position:fixed;width:520px;height:520px;border-radius:50%
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @media(max-width:1050px){.hero-in{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}.rfq{max-width:600px}}
 @media(max-width:760px){.hero-in{padding:22px 16px}.brand{gap:12px}.logo{width:58px;height:58px;border-radius:16px;font-size:22px}.hero h1{font-size:23px}.rfq b{font-size:42px}.controls-in{padding:8px 12px}.chart-grid{grid-template-columns:1fr}.k-tag,.k-go{display:none}.kpi{padding:12px}}
-.hero-art-wrap{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}.hero-art{position:absolute;inset:0;width:100%;height:100%}.hs-streaks path:nth-child(2n+1){animation:hsPulse 7s ease-in-out infinite}@keyframes hsPulse{0%,100%{opacity:.35}50%{opacity:.7}}.hs-dia path{filter:drop-shadow(0 0 6px rgba(249,115,22,.9));animation:hsDia 3.4s ease-in-out infinite}@keyframes hsDia{0%,100%{opacity:.65}50%{opacity:1}}</style></head><body>
-<header class="hero"><div class="hero-art-wrap" aria-hidden="true"><svg class="hero-art" viewBox="0 0 1440 460" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="hsO" x1="0" x2="1"><stop offset="0" stop-color="#F97316" stop-opacity="0"/><stop offset=".45" stop-color="#FDBA74"/><stop offset="1" stop-color="#F97316" stop-opacity="0"/></linearGradient><linearGradient id="hsB" x1="0" x2="1"><stop offset="0" stop-color="#3B82F6" stop-opacity="0"/><stop offset=".5" stop-color="#60A5FA"/><stop offset="1" stop-color="#22D3EE" stop-opacity="0"/></linearGradient></defs><g class="hs-streaks" fill="none" stroke-linecap="round"><path d="M-60 175 C120 95 270 30 540 -30" stroke="url(#hsO)" stroke-width="12" opacity=".55"/><path d="M-60 175 C120 95 270 30 540 -30" stroke="url(#hsO)" stroke-width="1.8"/><path d="M-20 440 C380 370 900 470 1480 370" stroke="url(#hsB)" stroke-width="9" opacity=".4"/><path d="M-20 440 C380 370 900 470 1480 370" stroke="url(#hsB)" stroke-width="1.4"/></g><g transform="translate(720 28) skewY(-4)" opacity=".76"><g stroke="#60A5FA" stroke-opacity=".22" stroke-dasharray="3 6"><path d="M150 50V330M360 40V330M540 30V330M720 20V330"/></g><g fill="#94A3B8" fill-opacity=".6" font-size="14" font-weight="600" font-family="Segoe UI,Arial,sans-serif"><text x="175" y="66">RFQ</text><text x="385" y="56">Suppliers</text><text x="565" y="46">Evaluation</text><text x="745" y="36">Award</text></g><g fill="#2563EB"><rect x="30" y="110" width="80" height="16" rx="4" opacity=".28"/><rect x="130" y="138" width="100" height="16" rx="4" opacity=".4"/><rect x="200" y="176" width="130" height="18" rx="4" opacity=".5"/><rect x="300" y="210" width="90" height="18" rx="4" fill="#4F46E5" opacity=".45"/></g><g fill="none" stroke="#60A5FA" stroke-opacity=".45" stroke-width="1.4"><path d="M110 118H128V146M230 146H250V180M330 185H348V214"/></g><g class="hs-dia" fill="#F97316"><path d="M300 92l9 9-9 9-9-9z"/><path d="M600 64l10 10-10 10-10-10z"/></g></g></svg></div><div class="hero-in"><div class="brand"><div class="logo">P</div><div><h1>PROCUREMENT COMMAND CENTER</h1><div class="sub">Alharir shipping and export · مركز قيادة المشتريات</div></div></div><div class="rfq" onclick="show('rfq')" role="button" tabindex="0"><small>ACTIVE PROCUREMENT</small><b>RFQ-001</b><div class="sub">Cold Storage Project</div></div></div></header>
-<nav class="controls"><div class="controls-in"><a class="btn" href="/request.html">＋ طلب جديد</a><a class="btn ai" href="/#market">Market Intelligence</a><a class="btn primary" href="/workspace.html?id=RFQ-001">🧠 Workspace</a><button class="btn primary" onclick="show('dashboard')"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>لوحة التحكم</button><button class="btn navwide" onclick="show('suppliers')"><svg class="ic" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>الموردون</button><button class="btn navwide" onclick="show('quotes')"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M7 7l-4 7h8L7 7Zm10 0-4 7h8l-4-7Z"/></svg>مقارنة العروض</button><button class="btn navwide" onclick="show('approvals')"><svg class="ic" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></svg>الموافقات</button><button class="btn navwide" onclick="show('reports')"><svg class="ic" viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6"/></svg>التقارير</button><button class="btn navwide" onclick="show('gmail')">✉ مزامنة البريد</button><div class="grow"></div><button class="btn ai" onclick="show('agent')"><svg class="ic" viewBox="0 0 24 24"><path d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6Z"/></svg>AI Assistant</button><button class="btn" onclick="theme()"><svg class="ic" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg></button></div></nav>
-<main><div id="view"></div></main><nav class="mobile"><button onclick="show('dashboard')"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg><span>الرئيسية</span></button><button onclick="show('suppliers')"><svg class="ic" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg><span>الموردون</span></button><button onclick="show('responses')"><svg class="ic" viewBox="0 0 24 24"><path d="M9 17 4 12l5-5"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg><span>الردود</span></button><button onclick="show('agent')"><svg class="ic" viewBox="0 0 24 24"><path d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6Z"/></svg><span>AI</span></button></nav><div class="toast" id="toast"></div>
+.hero-art-wrap{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}.hero-art{position:absolute;inset:0;width:100%;height:100%}.hs-streaks path:nth-child(2n+1){animation:hsPulse 7s ease-in-out infinite}@keyframes hsPulse{0%,100%{opacity:.35}50%{opacity:.7}}.hs-dia path{filter:drop-shadow(0 0 6px rgba(249,115,22,.9));animation:hsDia 3.4s ease-in-out infinite}@keyframes hsDia{0%,100%{opacity:.65}50%{opacity:1}}
+/* Rebuilt single sidebar; no duplicate top/bottom service lists */
+body{background-color:var(--bg)}
+.hero{box-shadow:none}.hero-in{max-width:none;padding:17px 26px;display:flex;gap:24px;justify-content:space-between}
+.logo{width:48px;height:48px;font-size:19px;border-radius:13px}.brand{gap:12px}
+.hero h1{font-size:clamp(19px,2vw,26px)}.hero .sub{font-size:12px}
+.hero-meta{display:grid;gap:4px;text-align:left}.hero-meta span{font-size:10px;color:#7dd3fc;letter-spacing:.12em}.hero-meta b{font-size:12px}
+.app-shell{display:flex;align-items:stretch;min-height:calc(100vh - 90px);direction:rtl}
+.side-nav{flex:0 0 245px;width:245px;background:#0b1934;color:#dce9f8;min-height:calc(100vh - 90px);
+ border-left:1px solid #1e3657;padding:20px 12px;position:sticky;top:0;height:100vh;overflow:auto;z-index:45}
+.sidebar-brand{display:flex;gap:10px;align-items:center;padding:6px 9px 20px;border-bottom:1px solid #28405c}
+.sidebar-brand b,.sidebar-brand small{display:block}.sidebar-brand b{font-size:15px;letter-spacing:.06em}.sidebar-brand small{font-size:10px;color:#8fadc8}
+.sidebar-mark{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#2563eb,#a855f7);font-weight:900;color:#fff}
+.sidebar-label{font-size:10px;font-weight:800;color:#819bb8;margin:20px 12px 9px}
+.side-links{display:grid;gap:4px}.side-links a{display:flex;align-items:center;gap:10px;border-radius:10px;
+ padding:11px 13px;color:#dbe8f8;text-decoration:none;font-size:13px;min-height:44px}
+.side-links a:hover,.side-links a:focus-visible{background:#1b3556;outline:0}
+.side-links a.is-active{background:#1f4676;color:#fff;border-right:3px solid #facc15}
+.side-links a span{font-size:20px;display:inline-grid;place-items:center;min-width:23px;color:#88c0ea}
+.sidebar-footer{margin-top:25px;padding:15px 10px;border-top:1px solid #2d445f;font-size:11px;color:#b6cae2}
+.sidebar-footer small{font-size:10px;color:#8096b2}
+.app-content{min-width:0;flex:1;padding:0 24px 48px}
+.app-content main{max-width:1340px;padding:0 0 50px;margin:auto}
+.work-toolbar{display:flex;align-items:center;gap:13px;justify-content:flex-end;min-height:64px;
+ border-bottom:1px solid var(--line);margin-bottom:16px}
+.work-toolbar .toolbar-title{margin-inline-end:auto;display:grid}
+.toolbar-title b{font-size:15px}.toolbar-title small{font-size:11px;color:var(--muted)}
+.sidebar-toggle,.sidebar-backdrop{display:none}
+.page-intro{padding:12px 1px 3px}.page-intro h2{margin:2px 0 5px;font-size:clamp(21px,2.7vw,29px);font-weight:900}
+.page-intro p{color:var(--muted);margin:0;font-size:13px}
+.eyebrow{font-size:10px;color:var(--blue);font-weight:800;letter-spacing:.13em}
+.report-toolbar{display:flex;gap:9px;align-items:end;flex-wrap:wrap;margin:17px 0}
+.report-toolbar label{display:grid;gap:5px;color:var(--muted);font-size:11px;font-weight:700}
+.report-toolbar select,.report-toolbar input,.form-grid input,.form-grid select,
+.form-grid textarea,#quoteEntryForm textarea{background:var(--card);border:1px solid var(--line);padding:10px;
+ border-radius:9px;color:var(--text);max-width:100%;min-height:40px}
+.report-toolbar .btn{min-height:40px}
+.mini-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:20px 0}
+.mini-stat{padding:13px 15px;border-radius:14px;background:var(--card);border:1px solid var(--line);
+ border-top:3px solid #2e73ba;min-width:0}
+.mini-stat span,.mini-stat small{display:block;color:var(--muted);font-size:11px}
+.mini-stat strong{display:block;font-size:27px;font-weight:900;line-height:1.4;color:var(--text)}
+.daily-printable{margin-top:15px}.daily-heading{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--blue);padding:12px 0}
+.daily-heading h2{margin:6px 0}.daily-heading p{color:var(--muted);font-size:12px}.daily-heading strong{color:var(--blue);font-size:23px}
+.daily-printable h3{font-size:16px;margin:23px 0 10px}
+.daily-printable footer{color:var(--muted);font-size:11px;margin-top:20px;border-top:1px solid var(--line)}
+.report-columns{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.report-columns section{background:var(--card);border-radius:12px;padding:10px 20px;border:1px solid var(--line)}
+.data-warning{background:color-mix(in srgb,var(--amber) 11%,var(--card));border:1px solid color-mix(in srgb,var(--amber) 35%,var(--line));
+ border-radius:11px;padding:14px 16px;margin:12px 0}
+.data-warning p{margin:7px 0}.table-scroll{overflow:auto;border:1px solid var(--line);border-radius:12px}
+.table-scroll table{min-width:620px;background:var(--card)}
+.compare-group,.quote-record,.request-card{background:var(--card);padding:18px;border:1px solid var(--line);border-radius:14px;margin:11px 0}
+.compare-group h3{margin:0}.compare-group p{font-size:12px}
+.quote-record{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.quote-record small{display:block;font-size:11px;color:var(--muted);margin-top:4px}
+.missing-list{display:flex;gap:5px;flex-wrap:wrap}
+.missing-list span{color:var(--red);background:color-mix(in srgb,var(--red) 9%,var(--card));padding:5px 7px;border-radius:7px;font-size:11px}
+.missing-list .tag-ok{color:var(--green);background:color-mix(in srgb,var(--green) 9%,var(--card))}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:14px 0}
+.form-grid label{display:grid;gap:4px;color:var(--muted);font-size:12px}
+#quoteEntryForm[hidden]{display:none}
+.request-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:13px}
+.request-card h3{font-size:16px;margin:8px 0}.request-card p{color:var(--muted);font-size:12px}
+.request-id{font-size:11px;font-weight:800;color:var(--blue)}
+.ml-field{display:block;background:var(--card);color:var(--text);width:100%;min-width:0;max-width:100%;
+ padding:11px;margin:9px 0;border-radius:8px;border:1px solid var(--line)}
+@media(max-width:920px){
+ .side-nav{position:fixed;inset:0 0 0 auto;transform:translateX(110%);
+   width:min(310px,84vw);height:100dvh;min-height:0;transition:transform .2s ease}
+ body.nav-open .side-nav{transform:translateX(0)}
+ .sidebar-backdrop{display:none}
+ body.nav-open .sidebar-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.48);
+    z-index:41;border:0;width:100%}
+ .sidebar-toggle{display:inline-flex}
+ .app-content{padding:0 15px 24px;width:100%}
+ .work-toolbar{justify-content:flex-start}
+ .hero-in{padding:16px 20px}
+ .hero-meta{display:none}
+ .mini-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .report-columns{grid-template-columns:1fr}
+ .form-grid{grid-template-columns:1fr}
+ .table-scroll{max-width:calc(100vw - 45px)}
+ .report-toolbar select{max-width:100%}
+ .mobile,.controls{display:none!important}
+}
+@media(max-width:520px){
+ .mini-stats{gap:7px}.mini-stat{padding:10px}.mini-stat strong{font-size:23px}
+ .toolbar-title b{font-size:13px}
+ .report-toolbar label{flex:1 1 140px}
+ .report-toolbar .btn{flex:1 1 130px}
+ .side-nav{z-index:100}.sidebar-backdrop{z-index:99}
+}
+@media print{
+ .hero,.side-nav,.work-toolbar,.sidebar-backdrop,.report-toolbar,.no-print,.toast{display:none!important}
+ .app-shell,.app-content,main{display:block!important;width:100%!important;padding:0!important}
+ .daily-printable{margin:0!important}.mini-stats{grid-template-columns:repeat(4,1fr)}
+ .daily-printable .table-scroll{overflow:visible!important}
+ table{min-width:0!important;font-size:10px!important}
+ .daily-printable article,.daily-printable section{break-inside:avoid}
+ @page{size:A4;margin:14mm}
+}
+</style></head><body>
+<header class="hero"><div class="hero-art-wrap" aria-hidden="true"><svg class="hero-art" viewBox="0 0 1440 460" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="hsO" x1="0" x2="1"><stop offset="0" stop-color="#F97316" stop-opacity="0"/><stop offset=".45" stop-color="#FDBA74"/><stop offset="1" stop-color="#F97316" stop-opacity="0"/></linearGradient><linearGradient id="hsB" x1="0" x2="1"><stop offset="0" stop-color="#3B82F6" stop-opacity="0"/><stop offset=".5" stop-color="#60A5FA"/><stop offset="1" stop-color="#22D3EE" stop-opacity="0"/></linearGradient></defs><g class="hs-streaks" fill="none" stroke-linecap="round"><path d="M-60 175 C120 95 270 30 540 -30" stroke="url(#hsO)" stroke-width="12" opacity=".55"/><path d="M-60 175 C120 95 270 30 540 -30" stroke="url(#hsO)" stroke-width="1.8"/><path d="M-20 440 C380 370 900 470 1480 370" stroke="url(#hsB)" stroke-width="9" opacity=".4"/><path d="M-20 440 C380 370 900 470 1480 370" stroke="url(#hsB)" stroke-width="1.4"/></g><g transform="translate(720 28) skewY(-4)" opacity=".76"><g stroke="#60A5FA" stroke-opacity=".22" stroke-dasharray="3 6"><path d="M150 50V330M360 40V330M540 30V330M720 20V330"/></g><g fill="#94A3B8" fill-opacity=".6" font-size="14" font-weight="600" font-family="Segoe UI,Arial,sans-serif"><text x="175" y="66">RFQ</text><text x="385" y="56">Suppliers</text><text x="565" y="46">Evaluation</text><text x="745" y="36">Award</text></g><g fill="#2563EB"><rect x="30" y="110" width="80" height="16" rx="4" opacity=".28"/><rect x="130" y="138" width="100" height="16" rx="4" opacity=".4"/><rect x="200" y="176" width="130" height="18" rx="4" opacity=".5"/><rect x="300" y="210" width="90" height="18" rx="4" fill="#4F46E5" opacity=".45"/></g><g fill="none" stroke="#60A5FA" stroke-opacity=".45" stroke-width="1.4"><path d="M110 118H128V146M230 146H250V180M330 185H348V214"/></g><g class="hs-dia" fill="#F97316"><path d="M300 92l9 9-9 9-9-9z"/><path d="M600 64l10 10-10 10-10-10z"/></g></g></svg></div><div class="hero-in"><div class="brand"><div class="logo">P</div><div><h1>PROCUREMENT COMMAND CENTER</h1><div class="sub">Alharir shipping and export · مركز قيادة المشتريات</div></div></div><div class="hero-meta"><span>PRIVATE WORKSPACE</span><b>Evidence · Decisions · Results</b></div></div></header>
+<div class="app-shell">
+  <aside class="side-nav" id="mainSidebar" aria-label="القائمة الرئيسية">
+    <div class="sidebar-brand"><span class="sidebar-mark">A</span><div><b>ALHARIR</b><small>Procurement OS</small></div></div>
+    <div class="sidebar-label">الإدارة والمراجعة</div>
+    <nav class="side-links" aria-label="الخدمات">
+      <a href="#dashboard" data-view="dashboard"><span>◫</span> لوحة اليوم والتقارير</a>
+      <a href="#rfq" data-view="rfq"><span>▤</span> طلبات المشتريات</a>
+      <a href="#market" data-view="market"><span>⌕</span> Market Intelligence</a>
+      <a href="#suppliers" data-view="suppliers"><span>▦</span> الشركات والموردون</a>
+      <a href="#responses" data-view="responses"><span>✉</span> ردود الموردين</a>
+      <a href="#quotes" data-view="quotes"><span>⚖</span> مقارنة الأسعار</a>
+      <a href="#approvals" data-view="approvals"><span>✓</span> الموافقات</a>
+      <a href="#agent" data-view="agent"><span>✦</span> الوكيل وإعداداته</a>
+      <a href="#gmail" data-view="gmail"><span>↻</span> اتصال البريد</a>
+    </nav>
+    <div class="sidebar-label">إجراءات الطلب</div>
+    <div class="side-links">
+      <a href="/request.html"><span>＋</span> إنشاء طلب جديد</a>
+      <a id="sidebarWorkspace" href="/workspace.html?id=RFQ-001"><span>◇</span> مساحة الطلب</a>
+    </div>
+    <div class="sidebar-footer"><span>🔒</span> نسخة داخلية تجريبية<br><small>لا إرسال آلي · الأسعار تحتاج تحقق</small></div>
+  </aside>
+  <button id="sidebarBackdrop" class="sidebar-backdrop" onclick="closeSideNav()" aria-label="إغلاق القائمة"></button>
+  <div class="app-content">
+    <div class="work-toolbar">
+      <button id="sidebarToggle" class="btn sidebar-toggle" onclick="toggleSideNav()" aria-label="فتح القائمة الجانبية" aria-expanded="false">☰ القائمة</button>
+      <div class="toolbar-title"><b>مركز قيادة المشتريات</b><small>متابعة الموردين والنتائج والمقارنات</small></div>
+      <button class="btn" onclick="theme()" aria-label="تغيير المظهر">☾</button>
+    </div>
+    <main><div id="view"></div></main>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
 <script>
 function icon(n){const p={home:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>',users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',reply:'<path d="M9 17 4 12l5-5"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>',check:'<path d="m4 12 5 5L20 6"/>',report:'<path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h8"/>',spark:'<path d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6Z"/>',moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/>',chart:'<path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/>',scale:'<path d="M12 3v18M5 7h14M7 7l-4 7h8L7 7Zm10 0-4 7h8l-4-7Z"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>'};return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">'+(p[n]||p.report)+'</svg>'}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -46,7 +179,35 @@ function activeMarketRequestId(){
  return selectedMarketRequestId;
 }
 function setMarketRequest(id){selectedMarketRequestId=id;show('market')}
-const A='/api/';async function load(){let saved=localStorage.getItem('procurement-theme');if(saved)document.documentElement.dataset.theme=saved;st=await fetch(A+'state').then(r=>r.json());render(location.hash.slice(1)||'dashboard')};window.addEventListener('hashchange',()=>render(location.hash.slice(1)||'dashboard'));function toast(t){let x=document.getElementById('toast');x.textContent=t;x.style.display='block';setTimeout(()=>x.style.display='none',2200)}function theme(){let h=document.documentElement;h.dataset.theme=h.dataset.theme==='dark'?'light':'dark';localStorage.setItem('procurement-theme',h.dataset.theme)}function show(v){if(location.hash!=='#'+v)location.hash=v;else render(v)}function render(v){let el=document.getElementById('view');if(v==='dashboard')el.innerHTML=dashboard();if(v==='rfq')el.innerHTML=rfqView();if(v==='suppliers')el.innerHTML=suppliers();if(v==='responses')el.innerHTML=responses();if(v==='quotes')el.innerHTML=quotes();if(v==='approvals')el.innerHTML=approvals();if(v==='agent')el.innerHTML=agent();if(v==='reports')el.innerHTML=reports();if(v==='market')el.innerHTML=market();window.scrollTo({top:0,behavior:'smooth'})}
+const A='/api/';async function load(){let saved=localStorage.getItem('procurement-theme');if(saved)document.documentElement.dataset.theme=saved;st=await fetch(A+'state').then(r=>r.json());render(location.hash.slice(1)||'dashboard')};window.addEventListener('hashchange',()=>render(location.hash.slice(1)||'dashboard'));function toast(t){let x=document.getElementById('toast');x.textContent=t;x.style.display='block';setTimeout(()=>x.style.display='none',2200)}function theme(){let h=document.documentElement;h.dataset.theme=h.dataset.theme==='dark'?'light':'dark';localStorage.setItem('procurement-theme',h.dataset.theme)}function show(v){if(location.hash!=='#'+v)location.hash=v;else render(v)}function render(v){
+ const view=v==='reports'?'dashboard':v;
+ const views={
+  dashboard:dailyView,rfq:rfqView,suppliers,responses,
+  quotes:comparisonView,approvals,agent,gmail:gmailView,market
+ };
+ const destination=document.getElementById('view');
+ if(!destination)return;
+ destination.innerHTML=(views[view]||views.dashboard)();
+ document.querySelectorAll('.side-links [data-view]').forEach(a=>{
+   const active=a.dataset.view===view;
+   a.classList.toggle('is-active',active);
+   if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');
+ });
+ const workspace=document.getElementById('sidebarWorkspace');
+ if(workspace)workspace.href='/workspace.html?id='+encodeURIComponent(activeMarketRequestId()||'RFQ-001');
+ closeSideNav();
+ if(view==='dashboard')loadDailyReport();
+ if(view==='quotes')loadComparisons();
+ window.scrollTo({top:0,behavior:'instant'});
+}
+function toggleSideNav(){
+ document.body.classList.toggle('nav-open');
+ document.getElementById('sidebarToggle')?.setAttribute('aria-expanded',document.body.classList.contains('nav-open')?'true':'false');
+}
+function closeSideNav(){
+ document.body.classList.remove('nav-open');
+ document.getElementById('sidebarToggle')?.setAttribute('aria-expanded','false');
+}
 function kpi(label,val,desc,color,ico,target){let a=target?' clickable':'';let attrs=target?' role="button" tabindex="0" onclick="show(\''+target+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();show(\''+target+'\')}"':'';return '<div class="kpi'+a+'" style="--k:'+color+'"'+attrs+'><div class="k-top"><div class="k-icon">'+icon(ico)+'</div><div class="k-label">'+label+'</div></div><div class="k-tag">'+desc+'</div><div class="k-sep"></div><div class="k-val">'+val+'</div><div class="k-desc">'+desc+'</div><div class="k-go">فتح التفاصيل ←</div></div>'}
 function panel(title,icon,body){return '<section class="panel"><div class="ph"><div class="pi">'+icon+'</div><h2>'+title+'</h2></div><div class="pb">'+body+'</div></section>'}
 function internalReplySender(from){let f=String(from||'').toLowerCase();return f.includes('alharirexport@gmail.com')||f.includes('numbersinchina@gmail.com')}
@@ -69,7 +230,19 @@ function supplierMails(id){return allReplies().filter(m=>m.supplierId===id)}
 function hasReply(x){return supplierMails(x.id).length>0}function compliance(s){let m=st.rfqCompliance?.requiredMetrics||[],q=st.quotes.filter(x=>x.supplierId===s.id),filled=0;if(q.length){let z=q[0];filled=m.filter(x=>z[x.key]!==undefined&&z[x.key]!==null&&z[x.key]!=='').length}return {score:m.length?Math.round(filled/m.length*100):0,missing:m.filter(x=>!q.length||q[0][x.key]===undefined||q[0][x.key]===null||q[0][x.key]==='')}}function pipelineChart(){let total=st.suppliers.length||1,replied=st.suppliers.filter(hasReply).length,replyEmails=replyCount(),mail=st.suppliers.filter(s=>s.email).length,ready=st.suppliers.filter(s=>compliance(s).score===100).length,pending=st.approvals.filter(a=>a.status==='pending').length,c=2*Math.PI*78,vals=[replied,mail,ready],cols=['#2563EB','#06B6D4','#EF4444'],labs=['موردون لديهم ردود','بريد مؤكد','مكتمل فنيًا'],off=0;let segs=vals.map((v,i)=>{let len=c*(v/total),z='<circle cx="110" cy="110" r="78" stroke="'+cols[i]+'" stroke-dasharray="'+len+' '+(c-len)+'" stroke-dashoffset="'+(-off)+'"/>';off+=len;return z}).join('');return '<div class="chart-grid"><div class="donut-wrap"><svg class="donut" viewBox="0 0 220 220"><circle class="track" cx="110" cy="110" r="78"/>'+segs+'</svg><div class="donut-center"><b>'+total+'</b><span>إجمالي الموردين</span></div></div><div><div class="chart-legend">'+labs.map((l,i)=>'<div class="leg"><span class="dot" style="background:'+cols[i]+'"></span><span>'+l+'</span><b>'+vals[i]+'</b></div>').join('')+'</div><div class="barset"><div class="barrow"><span>رسائل واردة</span><div class="bartrack"><div class="barfill" style="--c:#2563EB;width:'+Math.min(100,replyEmails/Math.max(1,replyEmails)*100)+'%"></div></div><b>'+replyEmails+'</b></div><div class="barrow"><span>موافقات معلقة</span><div class="bartrack"><div class="barfill" style="--c:#F59E0B;width:'+Math.min(100,pending/Math.max(1,st.approvals.length)*100)+'%"></div></div><b>'+pending+'</b></div><div class="barrow"><span>مكتمل فنيًا</span><div class="bartrack"><div class="barfill" style="--c:#22C55E;width:'+Math.min(100,ready/total*100)+'%"></div></div><b>'+ready+'</b></div></div></div></div>'}
 function dashboard(){let replied=replyCount(),pending=st.approvals.filter(x=>x.status==='pending').length;return '<div class="kpis">'+kpi('RFQ نشطة','1','طلبات الشراء النشطة','#2563EB','report','rfq')+kpi('الموردون',st.suppliers.length,'Supplier Pipeline','#06B6D4','users','suppliers')+kpi('الردود',replied,'رسائل واردة محفوظة','#EF4444','reply','responses')+kpi('موافقات معلقة',pending,'Approval Center','#F59E0B','clock','approvals')+'</div><div class="grid">'+panel('Supplier Pipeline Overview',icon('chart'),pipelineChart())+panel('Agent Activity',icon('spark'),st.activity.slice(0,8).map(x=>'<div class="log"><b>'+x.text+'</b><br><small class="muted">'+x.time+'</small></div>').join(''))+'</div>'+panel('Supplier Pipeline — RFQ-001',icon('users'),supplierTable())}
 function supplierTable(){let labels={coolingLoadKw:'Cooling kW',storageTons:'Storage tons',dailyLoadingTpd:'tons/day',pullDown:'Pull-down',energyKwh24h:'kWh/24h'};return '<div style="overflow:auto"><table><thead><tr><th>المورد</th><th>البلد</th><th>الحالة</th><th>Compliance</th><th>البيانات الناقصة</th><th>الإجراء المطلوب</th></tr></thead><tbody>'+st.suppliers.map(s=>{let c=compliance(s),cl=c.score>=80?'high':c.score>=40?'mid':'low',mail=s.email||'البريد غير مؤكد',action=!s.email?'تحقق من بيانات التواصل':c.score<100?(hasReply(s)?'استخراج البيانات الفنية':'انتظار/متابعة الرد'):'جاهز للمقارنة';return '<tr><td><b>'+esc(s.name)+'</b><br><small class="muted">'+esc(mail)+'</small></td><td>'+esc(s.country||'غير محدد')+'</td><td><span class="status">'+esc(s.status)+'</span></td><td><span class="score '+cl+'">'+c.score+'%</span></td><td><div class="missing">'+(c.missing.length?c.missing.map(x=>'<span class="chip">'+labels[x.key]+'</span>').join(''):'<span class="safe">✓ مكتمل</span>')+'</div></td><td><b>'+action+'</b><br><button class="btn" style="margin-top:6px" onclick="exclude(\''+s.id+'\','+!s.excluded+')">'+(s.excluded?'إلغاء الاستبعاد':'استبعاد')+'</button></td></tr>'}).join('')+'</tbody></table></div>'}
-function rfqView(){let r=st.requests?.find(x=>x.id===st.project?.activeRfq)||st.requests?.[0]||{};let d=r.designBasis||{};return panel('تفاصيل طلب الشراء — '+(r.id||'RFQ'),icon('report'),'<div class="grid" style="grid-template-columns:1fr 1fr"><div><p><b>المشروع:</b> '+(r.title||st.project?.name||'-')+'</p><p><b>الحالة:</b> <span class="status">'+(r.status||'-')+'</span></p><p><b>تاريخ الإنشاء:</b> '+(r.createdAt||'-')+'</p></div><div><p><b>الاستخدام:</b> '+(d.application||'-')+'</p><p><b>درجة الحرارة:</b> '+(d.temperature||'-')+'</p><p><b>المقاسات:</b> '+((d.roomSizes||[]).join(' — ')||'-')+'</p></div></div><div class="actions" style="margin-top:12px"><button class="btn primary" onclick="show(\'suppliers\')">عرض الموردين</button><button class="btn" onclick="show(\'quotes\')">مقارنة العروض</button></div>')}
+function rfqView(){
+ const selected=activeMarketRequestId();
+ return '<section class="page-intro"><div><span class="eyebrow">PURCHASE REQUESTS</span><h2>طلبات المشتريات</h2>'+
+ '<p>كل طلب بمواصفاته ومورديه ومسودات مراسلاته، دون خلط طلب بآخر.</p></div></section>'+
+ '<div class="report-toolbar"><a href="/request.html" class="btn primary">＋ طلب جديد</a></div>'+
+ '<div class="request-cards">'+(st.requests||[]).map(r=>
+  '<article class="request-card"><div class="request-id">'+esc(r.id)+'</div><h3>'+esc(r.title||r.product||r.id)+'</h3>'+
+  '<p>'+esc(r.product||'')+' · '+esc(r.quantity||'الكمية غير محددة')+'</p>'+
+  '<small>'+esc(r.status||'')+'</small><div class="actions">'+
+  '<a class="btn" href="/workspace.html?id='+encodeURIComponent(r.id)+'">تفاصيل ومساحة الطلب</a>'+
+  '<button class="btn" onclick="setMarketRequest('+JSON.stringify(r.id).replace(/"/g,'&quot;')+')">بحث مصادر المنتج</button></div></article>'
+ ).join('')+'</div>';
+}
 function responses(){let replied=st.suppliers.filter(hasReply),unmatched=allReplies().filter(x=>!x.supplierId);let body=replied.length?'<div style="overflow:auto"><table><thead><tr><th>المورد</th><th>البلد</th><th>الحالة</th><th>البريد</th><th>الإجراء</th></tr></thead><tbody>'+replied.map(x=>'<tr><td><b>'+esc(x.name)+'</b></td><td>'+esc(x.country||'غير محدد')+'</td><td><span class="status">'+esc(x.status)+'</span></td><td>'+esc(x.email||'غير مؤكد')+'</td><td><button class="btn" onclick="openConversation(\''+x.id+'\')">فتح سجل المراسلات</button></td></tr>').join('')+'</tbody></table></div>':'<div class="muted">لا توجد ردود مرتبطة بمورد حتى الآن.</div>';if(unmatched.length)body+='<h3>ردود واردة غير مرتبطة بمورد</h3>'+unmatched.map(m=>'<div class="log"><b>'+esc(m.subject||'بدون عنوان')+'</b><br><small class="muted">'+esc(m.from||'')+' · '+esc(m.receivedAt||'')+'</small><p>'+esc((m.snippet||m.body||'').slice(0,300))+'</p></div>').join('');return panel('ردود الموردين',icon('reply'),body)}
 function mailAttachmentHtml(m){let aa=m.attachments||[];if(!aa.length)return '';return '<div class="actions" style="margin-top:8px">'+aa.map(a=>'<a class="btn" target="_blank" rel="noopener" href="'+A+'gmail/attachment?messageId='+encodeURIComponent(m.messageId)+'&attachmentId='+encodeURIComponent(a.attachmentId)+'">مراجعة المرفق — '+esc(a.filename||'ملف')+'</a>').join('')+'</div>'}
 function replyTypeLabel(t){return t==='quote_received'?'عرض/سعر مستلم':t==='quote_promised'?'وعد بإرسال العرض':t==='technical_reply'?'رد فني + كتالوج/مرفقات':t==='info_request'?'استفسار/طلب معلومات':'رد غير سعري'}
@@ -160,32 +333,18 @@ async function runUnifiedMarketSearch(){
 }
 
 function market(){
-  let marketId=activeMarketRequestId(),m=(st.marketScans||[]).find(x=>x.requestId===marketId)||null,sup=st.suppliers||[],qs=st.quotes||[],replies=allReplies(),countries={},cats={},responses=0,withQuote=0,ready=0;
-  sup.forEach(s=>{let country=s.country||'غير محدد';countries[country]=(countries[country]||0)+1;let cat=marketCategoryLabel(s.category);cats[cat]=(cats[cat]||0)+1;if(hasReply(s))responses++;if(qs.some(q=>q.supplierId===s.id))withQuote++;if(compliance(s).score===100)ready++});
-  let maxCountry=Math.max(1,...Object.values(countries)),maxCat=Math.max(1,...Object.values(cats));
-  let countryChart='<div class="barset">'+Object.entries(countries).sort((a,b)=>b[1]-a[1]).map(([k,v])=>marketBar(k,v,maxCountry,'#2563EB')).join('')+'</div>';
-  let catChart='<div class="barset">'+Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>marketBar(k,v,maxCat,'#14B8A6')).join('')+'</div>';
-  let benchmark=m&&m.benchmark||null,benchHtml=benchmark?'<div class="kpis" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-top:0">'+kpi('أقل سعر',benchmark.low??'—','Market Low','#22C55E','chart')+kpi('الوسيط',benchmark.median??'—','Median','#2563EB','chart')+kpi('أعلى سعر',benchmark.high??'—','Market High','#F97316','chart')+kpi('عدد المصادر السعرية',benchmark.count??0,benchmark.currency+' / '+benchmark.unit,'#8B5CF6','chart')+'</div>':'<div class="approval-details" style="display:block"><b>لا يوجد Benchmark سعري كافٍ بعد.</b><p class="muted">سيظهر النطاق السعري عندما تتوفر أسعار موثقة/مصادر سوقية كافية.</p></div>';
-  let supplierRows=sup.map(s=>{let q=qs.find(x=>x.supplierId===s.id),comp=compliance(s),mail=supplierMails(s.id)[0];return '<tr><td><b>'+esc(s.name)+'</b></td><td>'+esc(s.country||'غير محدد')+'</td><td>'+esc(marketCategoryLabel(s.category))+'</td><td><span class="status">'+esc(marketStatusLabel(s,q))+'</span></td><td>'+esc(q?(q.evidenceClass||q.status||'عرض'):(mail?'بريد وارد':'—'))+'</td><td><span class="score '+(comp.score>=80?'high':comp.score>=40?'mid':'low')+'">'+comp.score+'%</span></td></tr>'}).join('');
-  let sourceRows=m?(m.sources||[]).map(x=>{
-    let mentions=(x.priceEvidence||[]).map(p=>p.currency+' '+p.amount+(p.rangeMax?'–'+p.rangeMax:'')+(p.unit?'/'+p.unit:' (وحدة غير محددة)')).join('، ');
-    let safeLink=/^https?:\/\/[^<>"\s]+$/i.test(x.url||'')?x.url:null;
-    return '<tr><td>'+esc(x.type||'—')+'</td><td>'+esc(x.title||'—')+'</td><td>'+esc(mentions||'لم يظهر سعر صريح')+'</td><td>'+(safeLink?'<a href="'+esc(safeLink)+'" target="_blank" rel="noopener noreferrer">فتح المصدر</a>':'—')+'</td></tr>'
-  }).join(''):'';
-  let insights=[];
-  if(!withQuote)insights.push('لا توجد عروض أسعار منظمة كافية للمقارنة التجارية النهائية.');
-  if(responses<sup.length)insights.push((sup.length-responses)+' مورد/موردين لم يتم تسجيل رد وارد منهم بعد.');
-  if(ready<sup.length)insights.push((sup.length-ready)+' مورد/موردين لم يستكملوا المؤشرات الفنية المطلوبة للمقارنة.');
-  if(Object.keys(countries).length>1)insights.push('قاعدة الموردين موزعة على '+Object.keys(countries).length+' دول، ما يسمح بمقارنة جغرافية للتوريد.');
-  let summary='<div class="kpis" style="grid-template-columns:repeat(4,minmax(0,1fr))">'+kpi('إجمالي الموردين',sup.length,'Supplier universe','#2563EB','users')+kpi('موردون لديهم رد',responses,'Responses','#06B6D4','reply')+kpi('عروض منظمة',withQuote,'Structured quotes','#22C55E','scale')+kpi('مكتمل فنيًا',ready,'100% compliance','#F59E0B','check')+'</div>';
-  let choices=(st.requests||[]).map(r=>'<option value="'+esc(r.id)+'"'+(marketId===r.id?' selected':'')+'>'+esc(r.title||r.product||r.id)+' — '+esc(r.id)+'</option>').join('');
-  let header='<div class="approval-details" style="display:block"><label>الطلب المطلوب بحث أسعاره: <select onchange="setMarketRequest(this.value)">'+choices+'</select></label></div><div class="actions"><button class="btn primary" onclick="marketScan()">إعادة تشغيل التحليل</button><button class="btn" onclick="show(\'quotes\')">فتح مقارنة العروض</button><button class="btn" onclick="show(\'suppliers\')">فتح الموردين</button><button class="btn" onclick="viewSelectedRfqDrafts()">عرض مسودات المراسلات</button></div>'+(m?'<div class="approval-details" style="display:block"><b>آخر تحليل: '+esc(m.id)+'</b><p>وقت التحليل: '+esc(m.createdAt||'—')+' · المصادر: '+esc(m.sourceCount||0)+' · الحالة: '+esc(m.resultStatus||'قديم')+' · المزود: '+esc((m.searchStatus||{}).provider||'غير متاح')+'</p><p class="muted">'+esc(m.disclaimer||'')+'</p></div>':'<div class="approval-details" style="display:block"><b>لم يتم تشغيل تحليل سوق محفوظ بعد.</b><p>يمكنك تشغيل التحليل، ومع ذلك يعرض التقرير الحالي بيانات الموردين والردود والعروض الموجودة في النظام.</p></div>');
-  return unifiedSearchPanel()+header+'<div id="marketExistingRfqDrafts"></div>'+summary+
-    '<div class="grid">'+panel('التوزيع الجغرافي للموردين',icon('chart'),countryChart)+panel('توزيع الموردين حسب الفئة',icon('chart'),catChart)+'</div>'+
-    panel('Benchmark الأسعار',icon('scale'),benchHtml)+
-    panel('تحليل الموردين والشركات',icon('users'),'<div class="tbl-wrap"><table><thead><tr><th>الشركة</th><th>الدولة</th><th>الفئة</th><th>حالة التواصل</th><th>الدليل</th><th>الاكتمال الفني</th></tr></thead><tbody>'+supplierRows+'</tbody></table></div>')+
-    panel('الاستنتاجات التنفيذية',icon('spark'),insights.length?insights.map(x=>'<div class="log"><b>• '+esc(x)+'</b></div>').join(''):'<div class="safe">لا توجد فجوات رئيسية ظاهرة في البيانات الحالية.</div>')+
-    panel('مصادر التحليل السعري',icon('report'),sourceRows?'<div class="tbl-wrap"><table><thead><tr><th>نوع المصدر</th><th>المصدر</th><th>الأسعار المستخرجة</th><th>مرجع</th></tr></thead><tbody>'+sourceRows+'</tbody></table></div>':'<p class="muted">لا توجد مصادر سعرية محفوظة في آخر تحليل.</p>')
+ return '<section class="page-intro"><div><span class="eyebrow">RESEARCH & SOURCING</span>'+
+ '<h2>Market Intelligence — بحث الشركات والأسعار</h2>'+
+ '<p>بحث موحد، تحديد هوية المورد، مراجعة التواصل، اختيار المرشحين، ثم إنشاء RFQ. هذه الخدمة لا تحل محل مقارنة العروض الموثقة.</p></div></section>'+
+ unifiedSearchPanel()+
+ panel('الطلب المرجعي للبحث التفصيلي',icon('report'),
+ '<div class="actions"><label>الطلب: <select onchange="setMarketRequest(this.value)">'+
+ (st.requests||[]).map(r=>'<option value="'+esc(r.id)+'"'+(activeMarketRequestId()===r.id?' selected':'')+'>'+
+ esc(r.id)+' — '+esc(r.product||r.title||'')+'</option>').join('')+
+ '</select></label><button class="btn" onclick="marketScan()">تحليل المصادر لهذا الطلب</button>'+
+ '<button class="btn" onclick="viewSelectedRfqDrafts()">عرض مسودات الموردين المحددين</button></div>'+
+ '<div id="marketExistingRfqDrafts"></div>'+
+ '<p class="muted">البحث التفصيلي يعرض مصادر عامة فقط إذا كان مزود البحث مفعلًا، ولا يُنشئ عروض أسعار موثقة من نتائج الإنترنت.</p>');
 }
 async function marketScan(){
  const id=activeMarketRequestId();if(!id)return toast('أنشئ طلب مشتريات أولاً');
@@ -200,4 +359,4 @@ async function marketScan(){
 function gmailView(){let g=st.gmail||{},rr=st.gmailReplies||[],unmatched=rr.filter(x=>!x.supplierId).length,z=st.gmailSyncStatus||null;let diag=z?'<div class="approval-details" style="display:block;margin-top:14px"><b>آخر مزامنة: '+esc(z.time||'—')+'</b><p>استعلامات Gmail: <b>'+esc(z.queries??'—')+'</b> · مرشحون: <b>'+esc(z.candidates??'—')+'</b> · أضيفت: <b>'+esc(z.added??'—')+'</b></p><p>أعيد ربطها: <b>'+esc(z.relinked??0)+'</b> · استعيدت من السجل السابق: <b>'+esc(z.recovered??0)+'</b> · إجمالي الردود: <b>'+esc(z.totalReplies??rr.length)+'</b> · غير مرتبطة: <b>'+esc(z.unmatched??unmatched)+'</b></p></div>':'';return panel('Gmail — مزامنة مراسلات الموردين',icon('reply'),'<div class="approval-details" style="display:block"><h3>الحالة: '+esc(g.connected?'متصل':g.configured?'جاهز للربط':'يحتاج إعداد OAuth')+'</h3><p>الردود المحفوظة: <b>'+rr.length+'</b> · غير مرتبطة: <b>'+unmatched+'</b></p><p class="muted">تتم مطابقة عناوين المشروع وكل عناوين الموردين المعروفة، ثم إعادة ربط السجل القديم قبل حساب الردود.</p></div><div class="actions"><button class="btn primary" onclick="connectGmail()">ربط / إعادة ربط Gmail</button><button class="btn ai" onclick="sync()">مزامنة الآن</button><button class="btn" onclick="show(\'responses\')">عرض ردود الموردين</button></div>'+diag)}
 function agent(){let g=st.gmail||{},safe=st.settings?.dryRun||st.settings?.requirePerMessageApproval;return '<div class="grid">'+panel('Procurement AI Assistant',icon('spark'),'<div class="safe">🛡 '+(safe?'وضع الحماية مفعل — لا يوجد إرسال جماعي':'تحذير: راجع إعدادات الإرسال')+'</div><div style="margin-top:12px">Gmail: <b>'+(g.connected?'متصل':g.configured?'جاهز للربط':'يحتاج إعداد OAuth')+'</b></div><div class="actions" style="margin-top:14px"><button class="btn primary" onclick="connectGmail()">ربط Gmail</button><button class="btn" onclick="sync()">مزامنة RFQ-001</button><button class="btn" onclick="followup()">متابعة الموردين</button></div>')+panel('صلاحيات الوكيل',icon('shield'),Object.entries(st.settings).map(([k,v])=>'<label style="display:flex;justify-content:space-between;padding:9px 0"><span>'+k+'</span><input type="checkbox" '+(v?'checked':'')+' onchange="setting(\''+k+'\',this.checked)"></label>').join(''))+'</div>'}function reports(){let ready=st.suppliers.filter(x=>compliance(x).score===100).length;return panel('التقارير',icon('report'),'<p>RFQ-001 — الموردون: '+st.suppliers.length+' — الردود/العروض: '+st.suppliers.filter(hasReply).length+' — العروض المدخلة: '+st.quotes.length+' — مكتملو المؤشرات الخمسة: '+ready+'</p><p class="muted">قاعدة القرار: '+(st.rfqCompliance?.rule||'')+'</p>')}
 async function approve(id,status){let r=await fetch(A+'approvals/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});if(!r.ok)return toast('تعذر تحديث الموافقة');await load();show('approvals');toast(status==='approved'?'تمت الموافقة':'تم الرفض')}async function exclude(id,excluded){await fetch(A+'suppliers/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({excluded})});await load()}async function setting(k,v){await fetch(A+'settings',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({[k]:v})});await load()}function connectGmail(){location.href=A+'gmail/connect'}async function sync(){let r=await fetch(A+'gmail/sync',{method:'POST'}),x=await r.json();if(!r.ok)return toast(x.message||x.error||'فشل المزامنة');await load();show('gmail');toast('ردود جديدة: '+x.added+' · مرتبطة: '+x.matched+' · غير مرتبطة: '+x.unmatched)}async function followup(){let r=await fetch(A+'agent/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'followup'})}),x=await r.json();if(!r.ok)return toast(x.message||x.error);await load();toast('تمت المتابعة: '+x.sent.length)}load();
-</script><script src="/market-outreach.js" defer></script></body></html>
+</script><script src="/ops-dashboard.js" defer></script><script src="/market-outreach.js" defer></script></body></html>
