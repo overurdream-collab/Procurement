@@ -64,7 +64,8 @@ function dailyView(){
   '<button class="btn primary" onclick="loadDailyReport()">تحديث الآن</button>'+
   '<button class="btn" onclick="downloadDailyHtml()">تنزيل تقرير HTML</button>'+
   '<button class="btn" onclick="printDailyReport()">طباعة / PDF</button>'+
-  '<button class="btn" onclick="shareDailyReport()">مشاركة / WeChat</button></div>'+
+  '<button class="btn" onclick="shareDailyReport()">مشاركة الملف / WeChat</button>'+
+  '<button class="btn" onclick="copyWeChatDailyText()">نسخ الملخص اليومي لـ WeChat</button></div>'+
   '<div id="dailyReportOutput" aria-live="polite"><p class="muted">جارٍ تحميل نتائج اليوم...</p></div>'+diagnosticsShell();
 }
 function comparisonView(){
@@ -219,6 +220,56 @@ async function loadDailyReport(){
   loadDiagnostics();
  }catch(e){output.textContent='تعذر الاتصال بالخادم.'}
 }
+
+function formatWeChatDailyText(r){
+ if(!r)return '';
+ const k=r.kpis||{},management=r.audience==='management';
+ const clean=s=>String(s??'').replace(/[\r\n\t]+/g,' ').trim();
+ const safeList=(list,max=5)=>Array.isArray(list)?list.slice(0,max).map(x=>'• '+clean(x)):[];
+ const lines=[
+  'ALHARIR | تقرير إنجاز المشتريات',
+  'التاريخ: '+clean(r.date)+' | '+(management?'للإدارة':'للمشتري'),
+  r.mode==='synthetic-demo'?'⚠️ بيانات تجريبية، ليست نتائج تشغيل فعلية.':'',
+  '',
+  'الطلبات: '+(k.requests??0)+' | الموردون: '+(k.suppliers??0)+
+    ' | العروض: '+(k.quoteRecords??0)+' | الموثقة: '+(k.verifiedQuotes??0),
+  'مقارنات FOB متكافئة: '+(k.comparableGroups??0)+
+    ' | نشاط اليوم: '+(k.actionsToday??0)+' | ردود اليوم: '+(k.repliesToday??0),
+  '',
+  'الإنجاز:',
+  ...(safeList(r.achievements).length?safeList(r.achievements):['• لا توجد إنجازات جديدة مسجلة لهذا التاريخ']),
+  '',
+  'مقارنة الأسعار:',
+  ...(Array.isArray(r.priceComparisons)&&r.priceComparisons.length?
+    r.priceComparisons.slice(0,4).map(g=>'• '+clean(g.product)+': '+
+      clean(g.lowestPrice)+' '+clean(g.currency)+'/'+clean(g.unit)+
+      ' | فرق العرض الأعلى والأقل: '+clean(g.spreadForQuantity)+' '+clean(g.currency)+
+      ' (ليس توفيرًا محققًا)'):
+    ['• لا توجد عروض متكافئة كافية لإصدار مقارنة سعرية موثوقة']),
+  '',
+  'المهام القادمة:',
+  ...(safeList(r.priorities).length?safeList(r.priorities):['• لا توجد مهام إضافية مسجلة']),
+  '',
+  'ملاحظة: الأسعار الاسترشادية لا تعادل عروض FOB موثقة. يتطلب أي اعتماد مراجعة المستندات والمواصفات.'
+ ];
+ return lines.filter((line,i)=>line!==''||i===3||i===8).join('\n').trim();
+}
+async function copyWeChatDailyText(){
+ if(!dailySnapshot){alert('حمّل التقرير اليومي أولاً');return}
+ const message=formatWeChatDailyText(dailySnapshot);
+ try{
+   if(!navigator.clipboard?.writeText)throw Error('clipboard_not_supported');
+   await navigator.clipboard.writeText(message);
+   alert('نُسخ ملخص التقرير. يمكنك لصقه في محادثة WeChat بعد مراجعته.');
+ }catch(e){
+   const blob=new Blob([message],{type:'text/plain;charset=utf-8'});
+   const url=URL.createObjectURL(blob),a=document.createElement('a');
+   a.href=url;a.download='ALHARIR-WeChat-Brief-'+dailySnapshot.date+'.txt';
+   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);
+   alert('لم يسمح المتصفح بالنسخ؛ نُزّل الملخص كملف نصي للمشاركة.');
+ }
+}
+
 const reportDoc=(data)=>'<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">'+
   '<meta name="viewport" content="width=device-width,initial-scale=1"><title>ALHARIR Daily Procurement '+dEsc(data.date)+'</title>'+
   '<style>body{font-family:Tahoma,Arial,sans-serif;margin:24px;color:#17233e;line-height:1.7}'+
