@@ -88,6 +88,14 @@ test('real protected HTTP: indexed search -> company research -> select one -> R
   assert.equal(after.requests.length,before.requests.length+1);
   assert.equal(after.suppliers.length,before.suppliers.length+1);
   assert.equal(after.requests[0].selectedSupplierIds.length,1);
+  r=await fetch(base+'/',{headers});assert.equal(r.status,200);
+  assert.match(await r.text(),/market-outreach\.js/);
+  r=await fetch(base+'/market-outreach.js',{headers});assert.equal(r.status,200);
+  const client=await r.text();
+  assert.match(client,/function marketLeadPanel/);
+  assert.match(client,/function convertMarketLeads/);
+  assert.match(client,/function downloadMarketRFQ/);
+
   r=await post('/api/agent/run',{action:'followup'});
   assert.equal(r.status,403);
  }finally{
