@@ -27,5 +27,6 @@ jobs:
           node --check server.js
           node --check market-price-core.js
           node --check market-index-search.js
+          node --check market-scan.js
       - name: Run standalone no-credentials tests
-        run: node --test test/market-price-core.test.js test/market-index-search.test.js
+        run: node --test test/market-price-core.test.js test/market-index-search.test.js test/market-scan.integration.test.js
