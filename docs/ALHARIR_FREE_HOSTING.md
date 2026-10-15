@@ -33,3 +33,19 @@ Only when the website renders, the staff login blocks anonymous access, and no c
 The existing GitHub Pages site remains unchanged. Note that GitHub Pages isn't licensed as free hosting for websites primarily conducting commercial transactions; move the public page to the Render static service when deployment is confirmed.
 
 This branch is deliberately isolated from `main`. Neither public reports nor automatic syncing into the public website are enabled.
+
+
+## Market Intelligence -> supplier shortlist -> RFQ (trial, 15 Oct 2026)
+
+This is an integrated test workflow in the protected Procurement interface:
+1. Open **Market Intelligence** and enter any product name. Real indexed listing discovery requires an explicitly enabled free search provider. Without one, no price or supplier result is invented.
+2. Each source link is a **listing lead**, not proof of supplier company identity. Open the listing, identify the company yourself, and type its actual name.
+3. Use **Search company website/email** on a selected lead. The backend searches indexed public contact pages when an API provider is configured. It returns candidate pages and emails with evidence URLs, always marked *not independently verified*. With no provider configured it offers manual search links instead.
+4. Check only the suppliers you want to target (1–12 per draft); optionally enter a company email and its public evidence URL. Supplier contact data is not trusted until reviewed by a human.
+5. Provide product details, technical specifications and quantity, then click **Create RFQ without sending**. This creates a request record and one supplier record for each selected company, preserving its source listing, official-site candidate, and contact-evidence link.
+6. Open individual draft emails for manual review in the user's email client. The system never automatically sends messages or uses Gmail credentials in hosted demonstration mode.
+7. Download a local JSON backup of the request, supplier shortlist, and drafts. The free staging instance uses **temporary demo storage**, reset on instance restart; do not use it as a permanent business database.
+
+**Strict status semantics:** Search index metadata ≠ verified manufacturer, extracted email ≠ verified sales address, draft creation ≠ email sent, synthetic staging app ≠ durable operating system. We do not perform bulk unsolicited email sending or bypass CAPTCHA / login restrictions.
+
+The new back-end endpoints are protected by the existing Basic authentication: POST /api/market-intelligence/search, POST /api/market-intelligence/contacts, POST /api/market-intelligence/convert, GET /api/requests/:id/outreach-drafts. Company research makes at most one additional search per selected candidate and obeys the free-search trial quota. Production rollout requires individual employee identities/roles, durable storage, and reviewed per-recipient outbound-mail approval.
