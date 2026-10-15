@@ -24,10 +24,8 @@ function guardHostedRequest(req,res,env=process.env){
  const ip=String(req.socket?.remoteAddress||'unknown');
  const now=Date.now();
  const record=recentFailures.get(ip)||{failures:0,until:0};
- if(record.until>now){
-   res.writeHead(429,{'Content-Type':'text/plain','Cache-Control':'no-store','Retry-After':'60'});
-   res.end('Too many login attempts. Try again later.');return false;
- }
+ // Decode credentials before checking lockout so a legitimate user can recover.
+ // Render's reverse proxy may share req.socket.remoteAddress across browsers.
  let username='',password='';
  try{
    const h=String(req.headers.authorization||'');
@@ -45,6 +43,16 @@ function guardHostedRequest(req,res,env=process.env){
      res.end(JSON.stringify({error:'demo_integrations_disabled'}));return false;
    }
    return true;
+ }
+ // Rate-limit bad credentials only. A correct password must never be rejected
+ // because another browser/IP behind the same reverse proxy failed earlier.
+ if(record.until>now){
+   res.writeHead(429,{
+     'Content-Type':'text/plain; charset=utf-8',
+     'Cache-Control':'no-store','Retry-After':String(Math.max(1,Math.ceil((record.until-now)/1000))),
+     'X-Content-Type-Options':'nosniff'
+   });
+   res.end('Too many failed sign-in attempts. Wait briefly and retry.');return false;
  }
  record.failures=(now-(record.last||0)>15*60e3)?1:record.failures+1;
  record.last=now;
