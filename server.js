@@ -223,6 +223,21 @@ function copilotPlan(message){
 function gate(st,action){let map={followup:'autoFollowup',send:'autoSend',exclude:'autoExclude',award:'autoAward'},key=map[action];if(key&&st.settings?.[key])return true;return st.approvals.some(a=>a.type===action&&a.status==='approved')}
 
 const {marketScan}=require('./market-scan');
+const {unifiedMarketSearch,validateSearchInput}=require('./market-unified');
+const {configuredProvider}=require('./market-index-search');
+const marketTrialBudget={day:'',count:0};
+function rateLimitUnifiedSearch(res){
+  // A modest in-process ceiling for free-API experiments, not a provider billing guarantee.
+  if(configuredProvider()==='none')return false;
+  const day=new Date().toISOString().slice(0,10);
+  if(marketTrialBudget.day!==day){marketTrialBudget.day=day;marketTrialBudget.count=0;}
+  if(marketTrialBudget.count>=8){
+    json(res,429,{error:'trial_daily_search_limit',message:'تم الوصول إلى حد البحث التجريبي اليومي (8 عمليات). حاول غدًا.'});
+    return true;
+  }
+  marketTrialBudget.count++;return false;
+}
+
 
 const server=http.createServer(async(req,res)=>{try{if(!guardHostedRequest(req,res))return;
 res.setHeader('X-Content-Type-Options','nosniff');
@@ -246,6 +261,17 @@ if(u.pathname==='/api/gmail/attachment'&&req.method==='GET'){
 if(u.pathname==='/api/requests'&&req.method==='POST'){let st=load(),b=await body(req),x={id:'REQ-'+String(Date.now()).slice(-6),title:b.title||'طلب مشتريات جديد',product:b.product||'',specifications:b.specifications||'',quantity:b.quantity||'',deliveryCountry:b.deliveryCountry||'',targetMarkets:b.targetMarkets||'',currency:b.currency||'USD',incoterm:b.incoterm||'FOB',neededBy:b.neededBy||'',notes:b.notes||'',status:'جديد',createdAt:new Date().toISOString()};st.requests=st.requests||[];st.marketScans=st.marketScans||[];st.requests.unshift(x);st.activity.unshift({time:new Date().toISOString(),type:'request',text:'إنشاء '+x.id});save(st);return json(res,201,x)}
 let mm=u.pathname.match(new RegExp('^/api/requests/([^/]+)/market-scan$'));if(mm&&req.method==='POST'){let st=load(),b=await body(req),x=(st.requests||[]).find(x=>x.id===mm[1]);if(!x)return json(res,404,{error:'request_not_found'});let scan=await marketScan(st,{...x,sourceObservations:b.sourceObservations||[]});st.marketScans=st.marketScans||[];st.marketScans.unshift(scan);x.marketScanId=scan.id;x.marketStatus=scan.resultStatus;st.activity.unshift({time:new Date().toISOString(),type:'market_scan',text:'Market Intelligence '+x.id+' — '+scan.sourceCount+' sources'});save(st);return json(res,200,scan)}
 if(u.pathname==='/api/market-scans'&&req.method==='GET'){let st=load();return json(res,200,st.marketScans||[])}
+
+if(u.pathname==='/api/market-intelligence/search'&&req.method==='POST'){
+  const input=await body(req);
+  if(!validateSearchInput(input?.query))
+    return json(res,422,{error:'invalid_product_query',message:'اسم المنتج يجب أن يكون من 2 إلى 160 حرفًا.'});
+  if(rateLimitUnifiedSearch(res))return;
+  const result=await unifiedMarketSearch(input);
+  // Do not log or persist a commercial query in the synthetic shared demo.
+  return json(res,result.status,result);
+}
+
 if(u.pathname==='/api/market-search'&&req.method==='POST'){
   let b=await body(req);
   let r=await fetch('http://localhost:8790/api/market-search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
