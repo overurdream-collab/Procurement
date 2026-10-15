@@ -23,3 +23,26 @@ test('exclude mixed units and historical prices from benchmark',()=>{
  assert.deepEqual([s.low,s.median,s.high,s.count,s.unit],[18.5,19.65,20.8,2,'sqm']);
 });
 test('empty benchmark when all unit prices unspecified',()=>assert.equal(summarizePublishedPrices([{type:'Published Market Source',url:'https://a.test',priceEvidence:parsePrices('USD 20000')}]),null));
+
+
+test('accepts publicly indexed US $ prices and whitespace in unit',()=>{
+ const a=parsePrices('FOB Price: US $19.5 / Square Meter');
+ assert.equal(a[0].amount,19.5);
+ assert.equal(a[0].currency,'USD');
+ assert.equal(a[0].unit,'sqm');
+});
+test('keeps ranges as uncertain bounds, not precise benchmark data',()=>{
+ const a=parsePrices('Price US$20.00-50.00 / sqm');
+ assert.equal(a[0].amount,20);
+ assert.equal(a[0].rangeMax,50);
+ assert.equal(a[0].unit,'sqm');
+ const s=summarizePublishedPrices([{type:'Published Market Source',url:'https://a.test/range',priceEvidence:a}]);
+ assert.equal(s,null);
+});
+test('does not benchmark currency values without matched units',()=>{
+ const a=parsePrices('USD 19000 total including service; US $11.25 / piece');
+ const s=summarizePublishedPrices([{type:'Published Market Source',url:'https://a.test/x',priceEvidence:a}]);
+ assert.equal(s.count,1);
+ assert.equal(s.unit,'piece');
+ assert.equal(s.low,11.25);
+});
