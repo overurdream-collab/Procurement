@@ -184,7 +184,7 @@ const A='/api/';async function load(){let saved=localStorage.getItem('procuremen
  const view=v==='reports'?'dashboard':v;
  const views={
   dashboard:dailyView,rfq:rfqView,suppliers,responses,
-  quotes:comparisonView,approvals,agent,gmail:gmailView,market
+  quotes:comparisonView,approvals,agent:agentStatusView,gmail:gmailStatusView,market
  };
  const destination=document.getElementById('view');
  if(!destination)return;
