@@ -1,5 +1,5 @@
 'use strict';
-const {parsePrices,buildMarketQuery,sourceMatchesDomain,summarizePublishedPrices}=require('./market-price-core');
+const {parsePrices,buildMarketQuery,sourceMatchesDomain,summarizePublishedPrices,matchesRequestedProduct}=require('./market-price-core');
 const {configuredProvider,searchIndexedWeb}=require('./market-index-search');
 const MARKET_TARGETS=[
   {platform:'Alibaba',domain:'alibaba.com',region:'China / International',query:'site:alibaba.com'},
@@ -71,8 +71,9 @@ async function marketScan(st,req,options={}){
       prices:prices.filter(p=>p.currency==='USD'&&p.unit).map(p=>p.amount),verification:'user-supplied-unverified'});
   }
   const published=sources.filter(x=>x.type==='Published Market Source');
+  for(const x of published)x.productMatch=matchesRequestedProduct(x,req);
   const platforms=[...new Set(published.map(x=>x.platform))],domains=[...new Set(published.map(x=>x.domain))];
-  const benchmark=summarizePublishedPrices(published);
+  const benchmark=summarizePublishedPrices(published,req);
   const resultStatus=!query?'input-required':!searchStatus.configured?'search-not-configured':
     !published.length?'no-published-sources':!benchmark?'sources-need-price-review':'indicative-needs-review';
   return {
