@@ -5,6 +5,36 @@ let marketLeadResult=null, marketLeadContacts={},lastCreatedRfqExport=null;
 function mEsc(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function leadField(i,key){return document.getElementById('ml-'+key+'-'+i)}
 function fieldVal(i,key){return leadField(i,key)?.value.trim()||''}
+
+function manualMarketInput(){
+ return '<div class="approval-details" style="display:block;margin-top:12px"><b>بديل مجاني: إضافة روابط الموردين التي وجدتها بنفسك</b>'+
+ '<p class="muted">عندما لا يعمل محرك البحث الآلي، افتح روابط البحث اليدوي وانسخ روابط صفحات المنتجات أو الشركات. رابط واحد في كل سطر، حتى 12 رابطًا.</p>'+
+ '<textarea id="marketManualUrls" class="ml-field" rows="3" placeholder="https://supplier.example/product-a\nhttps://other-supplier.example/product-b"></textarea>'+
+ '<button type="button" class="btn primary" onclick="registerManualMarketLinks()">إضافة الروابط إلى قائمة الشركات المرشحة</button>'+
+ '<div id="marketManualFeedback" aria-live="polite" class="muted"></div></div>';
+}
+async function registerManualMarketLinks(){
+ const raw=document.getElementById('marketManualUrls')?.value||'';
+ const urls=raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ const feedback=document.getElementById('marketManualFeedback'),
+  query=document.getElementById('unifiedMarketQuery')?.value.trim()||'';
+ if(!feedback)return;
+ if(urls.length<1||urls.length>12){feedback.textContent='أدخل من رابط واحد إلى 12 رابطًا، كل واحد في سطر.';return}
+ if(query.length<2){feedback.textContent='اكتب المنتج في خانة البحث الموحد أولًا.';return}
+ feedback.textContent='جارٍ تجهيز قائمة الشركات من الروابط المدخلة...';
+ try{
+  const r=await fetch('/api/market-intelligence/manual-leads',{
+   method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({query,urls})});
+  const x=await r.json();if(!r.ok){feedback.textContent=x.message||x.error;return}
+  lastMarketDiscovery=x;
+  const results=document.getElementById('unifiedMarketResults');
+  const status=document.getElementById('unifiedMarketStatus');
+  status.textContent='تم إدراج '+x.count+' روابط أدخلتها بنفسك. لا توجد أسعار بحث آلي مؤكدة.';
+  results.innerHTML=unifiedMarketResultsView(x)+marketLeadPanel(x);
+ }catch(e){feedback.textContent='تعذر إدراج الروابط. تأكد من صحة الرابط.'}
+}
+
 function marketLeadPanel(data){
  marketLeadResult=data;marketLeadContacts={};
  if(!data.searchId||!data.results?.length)return '';
