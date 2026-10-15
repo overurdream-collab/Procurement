@@ -65,6 +65,25 @@ test('hosted integration serves real home, month report, protected assets and bu
   assert.match(h,/data-view="dashboard"/);assert.match(h,/data-view="reports"/);
   assert.match(h,/dashboard:executiveHomeView,reports:dailyView/);
   assert.match(h,/executive-home\.css/);
+  // User-facing main route must expose one sidebar and the actual KPI/charts.
+  const navLinks=[...h.matchAll(/data-view="([^"]+)"/g)].map(x=>x[1]);
+  assert.deepEqual(navLinks,['dashboard','reports','rfq','market','suppliers',
+    'responses','quotes','approvals','agent','gmail']);
+  assert.equal(new Set(navLinks).size,navLinks.length);
+  assert.match(h,/id="sidebarToggle"/);
+  assert.match(h,/toggleSideNav\(\)/);
+  assert.match(h,/ALHARIRDashboardPilot\.init\(\)/);
+  r=await fetch(base+'/executive-home.js',{headers});
+  assert.equal(r.status,200);
+  const homeScript=await r.text();
+  assert.match(homeScript,/id="pilotStats"/);
+  assert.match(homeScript,/id="pilotPanels"/);
+  assert.match(homeScript,/href="#reports"/);
+  r=await fetch(base+'/agent-native-pilot.html',{headers});
+  assert.equal(r.status,200);
+  const retired=await r.text();
+  assert.match(retired,/location\.replace\("\/#dashboard"\)/);
+
   r=await fetch(base+'/api/monthly-report?audience=management&month=2026-10',{headers});
   assert.equal(r.status,200);const manager=await r.json();
   assert.equal(manager.period,'monthly');assert.equal(manager.mode,'synthetic-demo');
