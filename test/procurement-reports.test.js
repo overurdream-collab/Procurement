@@ -78,3 +78,13 @@ test('buyer view excludes management activity and approval internals',()=>{
  assert.ok(!JSON.stringify(buyer).includes('private@factory.example'));
  assert.ok(!JSON.stringify(buyer).includes('Internal margin 50%'));
 });
+
+test('daily report converts UTC activity into Sana’a calendar date, not the UTC day',()=>{
+ const st=mk();
+ st.activity=[{type:'review',time:'2026-10-15T23:30:00Z',text:'Reviewed supplier documentation'}];
+ const oct16=dailyReport(st,{date:'2026-10-16'});
+ const oct15=dailyReport(st,{date:'2026-10-15'});
+ assert.equal(oct16.kpis.actionsToday,1);
+ assert.equal(oct15.kpis.actionsToday,0);
+ assert.ok(oct16.achievements.some(s=>s.includes('1')));
+});
