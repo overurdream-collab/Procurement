@@ -31,10 +31,30 @@ function sourceMatchesDomain(link,domain) {
     return ['https:','http:'].includes(u.protocol)&&(!domain||host===domain||host.endsWith('.'+domain));
   } catch {return false;}
 }
-function summarizePublishedPrices(sources) {
+// A price source must match the product's distinguishing description before it
+// may contribute to an indicative benchmark. A search hit alone is NOT enough.
+function matchesRequestedProduct(source,request) {
+  if(!request||!request.product)return true;
+  const input=String(request.product).toLowerCase();
+  const text=(String(source.title||'')+' '+String(source.snippet||'')).toLowerCase();
+  // Preserve numeric product distinctions such as 100 mm / 2 HP and R410A.
+  const sizes=(input.match(/\b\d+(?:\.\d+)?\s*(?:mm|cm|hp|kw|inch|inches)\b/g)||[])
+    .map(s=>s.replace(/\s+/g,''));
+  const models=(input.match(/\br\d{3,4}[a-z]?\b/g)||[]);
+  const simplified=text.replace(/\s+/g,'');
+  if(sizes.some(s=>!simplified.includes(s)))return false;
+  if(models.some(s=>!simplified.includes(s)))return false;
+  const tokens=[...new Set(input.match(/[a-z]{4,}/g)||[])]
+    .filter(s=>!['with','from','price','wholesale','unit','part','parts','general','original'].includes(s));
+  const matched=tokens.filter(t=>new RegExp('\\b'+t+'\\b').test(text)).length;
+  if(tokens.length===0)return sizes.length>0||models.length>0;
+  return matched>=Math.min(2,tokens.length);
+}
+
+function summarizePublishedPrices(sources,request) {
   const groups=new Map();
   for(const s of sources){
-    if(s.type!=='Published Market Source'||!s.url)continue;
+    if(s.type!=='Published Market Source'||!s.url||!matchesRequestedProduct(s,request))continue;
     for(const p of s.priceEvidence||[]){
       if(p.currency!=='USD'||!p.unit||p.rangeMax)continue;
       if(!groups.has(p.unit))groups.set(p.unit,new Map());
@@ -48,4 +68,4 @@ function summarizePublishedPrices(sources) {
     high:values[values.length-1],count:values.length,currency:'USD',unit,
     evidence:'unverified-public-search-snippets',comparableSpecVerified:false};
 }
-module.exports={parsePrices,buildMarketQuery,sourceMatchesDomain,summarizePublishedPrices};
+module.exports={parsePrices,buildMarketQuery,sourceMatchesDomain,summarizePublishedPrices,matchesRequestedProduct};
