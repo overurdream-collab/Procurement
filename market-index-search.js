@@ -1,6 +1,8 @@
 'use strict';
 // A search adapter, not a scraper. It never accesses protected marketplace pages.
 function configuredProvider(env=process.env){
+  // Financial safety: keys alone never authorize live API calls.
+  if(env.MARKET_ENABLE_LIVE_SEARCH!=='true')return 'none';
   if(env.BRAVE_SEARCH_API_KEY)return 'brave';
   if(env.GOOGLE_CSE_API_KEY && env.GOOGLE_CSE_ID)return 'google-legacy';
   return 'none';
