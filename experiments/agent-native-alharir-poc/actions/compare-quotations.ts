@@ -6,6 +6,7 @@ import { compare } from "../src/procurement.mjs";
 export default defineAction({
  description:"Compare synthetic supplier quotations using FOB, currency, completeness, specification, quantity, and integer-cent rules. Never send emails.",
  mcpTool:true,
+ readOnly:true,
  schema:z.object({rfqId:z.literal("RFQ-POC-001")}),
  http:{method:"GET"},
  run:async ({rfqId})=>({rfqId,...compare()})
