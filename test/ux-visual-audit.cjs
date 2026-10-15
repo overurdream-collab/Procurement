@@ -60,10 +60,13 @@ async function freePort(){
    if(screen.name==='desktop'){
     if(!await page.locator('#mainSidebar').isVisible())throw Error('Desktop sidebar hidden');
    }else{
-    if(await page.locator('#mainSidebar').isVisible())throw Error('Mobile sidebar should be collapsed');
+    const initial=await page.locator('#mainSidebar').boundingBox();
+    if(initial&&initial.x<screen.width-4)throw Error('Mobile drawer intersects viewport when closed: '+JSON.stringify(initial));
     await page.locator('#sidebarToggle').click();
     await page.waitForFunction(()=>document.body.classList.contains('nav-open'));
-    if(!await page.locator('#mainSidebar').isVisible())throw Error('Mobile nav drawer did not open');
+    await page.waitForFunction(()=>{const r=document.querySelector('#mainSidebar')?.getBoundingClientRect();return r&&r.left>=0&&r.left<innerWidth&&r.right>0;});
+    const openBox=await page.locator('#mainSidebar').boundingBox();
+    if(!openBox||openBox.x>=screen.width)throw Error('Mobile nav drawer did not enter viewport');
     await page.locator('#sidebarBackdrop').click({position:{x:1,y:1}});
     await page.waitForFunction(()=>!document.body.classList.contains('nav-open'));
    }
