@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: alharir-china-services
+    runtime: static
+    repo: https://github.com/overurdream-collab/Procurement
+    branch: gh-pages
+    buildCommand: echo "ALHARIR static website ready"
+    staticPublishPath: .
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
