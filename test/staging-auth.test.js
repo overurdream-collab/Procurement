@@ -29,6 +29,17 @@ test('hosted demo requires login before serving any Procurement data',async()=>{
    assert.match(r.headers.get('www-authenticate'),/ALHARIR/);
    r=await fetch(base+'/api/state');assert.equal(r.status,401);
    const good={Authorization:'Basic '+Buffer.from('demo-staff:test-only-strong-password-2026').toString('base64')};
+   const wrong={Authorization:'Basic '+Buffer.from('demo-staff:incorrect-password').toString('base64')};
+   // Both earlier anonymous requests count toward 10 failures. Exhaust the limit.
+   for(let i=0;i<8;i++){
+     r=await fetch(base+'/api/state',{headers:wrong});assert.equal(r.status,401);
+   }
+   r=await fetch(base+'/api/state',{headers:wrong});assert.equal(r.status,429);
+   assert.ok(Number(r.headers.get('retry-after'))>=1);
+   // Correct sign-in from another browser using the same proxy IP must succeed.
+   r=await fetch(base+'/api/state',{headers:good});assert.equal(r.status,200);
+   // Successful authentication clears previous failures, instead of locking users out.
+   r=await fetch(base+'/api/state',{headers:wrong});assert.equal(r.status,401);
    r=await fetch(base+'/api/state',{headers:good});assert.equal(r.status,200);
    const state=await r.json();
    assert.equal(state.project.name,'ALHARIR Procurement DEMO');
