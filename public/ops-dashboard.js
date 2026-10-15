@@ -167,12 +167,12 @@ async function loadComparisons(){
 function dailyMarkup(r){
  const k=r.kpis||{},management=r.audience==='management';
  const requestRows=(r.requests||[]).map(x=>
-   '<tr><td>'+dEsc(x.id)+'</td><td>'+dEsc(x.title)+'</td><td>'+dEsc(x.status)+
-   '</td><td>'+dEsc(x.supplierCount)+'</td><td>'+dEsc(x.quotes)+'</td><td>'+dEsc(x.comparableGroups)+'</td></tr>').join('');
+   '<tr><td data-label="رقم الطلب">'+dEsc(x.id)+'</td><td data-label="المنتج أو المشروع">'+dEsc(x.title)+'</td><td data-label="الحالة">'+dEsc(x.status)+
+   '</td><td data-label="موردون">'+dEsc(x.supplierCount)+'</td><td data-label="عروض">'+dEsc(x.quotes)+'</td><td data-label="مقارنات">'+dEsc(x.comparableGroups)+'</td></tr>').join('');
  const comparisonRows=(r.priceComparisons||[]).map(x=>
-  '<tr><td>'+dEsc(x.product)+'</td><td>'+dEsc(x.lowestSupplier)+'</td><td>'+dAmount(x.lowestPrice)+
-  ' '+dEsc(x.currency)+'/'+dEsc(x.unit)+'</td><td>'+dAmount(x.spreadForQuantity)+
-  ' '+dEsc(x.currency)+'</td><td>'+dEsc(x.comparableSuppliers)+'</td></tr>').join('');
+  '<tr><td data-label="البند">'+dEsc(x.product)+'</td><td data-label="أقل عرض متكافئ">'+dEsc(x.lowestSupplier)+'</td><td data-label="السعر">'+dAmount(x.lowestPrice)+
+  ' '+dEsc(x.currency)+'/'+dEsc(x.unit)+'</td><td data-label="فرق السعر">'+dAmount(x.spreadForQuantity)+
+  ' '+dEsc(x.currency)+'</td><td data-label="عدد العروض">'+dEsc(x.comparableSuppliers)+'</td></tr>').join('');
  const achievements=(r.achievements||[]).map(x=>'<li>'+dEsc(x)+'</li>').join('');
  const risks=(r.risks||[]).map(x=>'<li>'+dEsc(x)+'</li>').join('');
  const priorities=(r.priorities||[]).map(x=>'<li>'+dEsc(x)+'</li>').join('');
