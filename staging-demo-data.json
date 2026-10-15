@@ -1,0 +1,66 @@
+{
+  "project": {
+    "name": "ALHARIR Procurement DEMO",
+    "activeRfq": "RFQ-001",
+    "company": "ALHARIR"
+  },
+  "requests": [
+    {
+      "id": "RFQ-001",
+      "title": "طلب تجريبي — ألواح غرف تبريد",
+      "status": "تجربة فقط",
+      "createdAt": "2026-10-15",
+      "product": "100mm PU cold room insulated panel",
+      "specifications": "100mm PU sandwich panel, unit price per m²",
+      "quantity": "100 m²",
+      "currency": "USD",
+      "designBasis": {
+        "temperature": "0°C to +5°C",
+        "roomSizes": [
+          "4 × 5 × 3 m"
+        ]
+      }
+    }
+  ],
+  "suppliers": [
+    {
+      "id": "DEMO-S1",
+      "name": "Demo Supplier A (synthetic)",
+      "country": "China",
+      "email": null,
+      "status": "بيانات وهمية",
+      "excluded": false,
+      "source": "demo",
+      "category": "panel_door_manufacturer"
+    },
+    {
+      "id": "DEMO-S2",
+      "name": "Demo Supplier B (synthetic)",
+      "country": "China",
+      "email": null,
+      "status": "بيانات وهمية",
+      "excluded": false,
+      "source": "demo",
+      "category": "panel_door_manufacturer"
+    }
+  ],
+  "rfqCompliance": {
+    "requiredMetrics": [],
+    "rule": "demo"
+  },
+  "approvals": [],
+  "quotes": [],
+  "activity": [],
+  "marketScans": [],
+  "gmailMessages": [],
+  "gmailReplies": [],
+  "settings": {
+    "autoSearch": false,
+    "autoSend": false,
+    "autoFollowup": false,
+    "autoExclude": false,
+    "autoAward": false,
+    "dryRun": true,
+    "requirePerMessageApproval": true
+  }
+}
