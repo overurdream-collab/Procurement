@@ -2,17 +2,21 @@
 // Search snippet evidence is provisional; no website bypass or fabricated quotations.
 function parsePrices(input) {
   const text=String(input||'');
-  const re=/(USD|US\$|RMB|CNY|CN¥|\$|¥|￥)\s*[:：]?\s*(\d+(?:,\d{3})*(?:\.\d+)?)|(\d+(?:,\d{3})*(?:\.\d+)?)\s*(USD|US\$|RMB|CNY|CN¥|¥|￥)/gi;
+  const re=/(USD|US\s*\$|RMB|CNY|CN¥|\$|¥|￥)\s*[:：]?\s*(\d+(?:,\d{3})*(?:\.\d+)?)|(\d+(?:,\d{3})*(?:\.\d+)?)\s*(USD|US\s*\$|RMB|CNY|CN¥|¥|￥)/gi;
   const prices=[];
   for (const m of text.matchAll(re)) {
     const token=String(m[1]||m[4]).toUpperCase();
-    const currency=/^(USD|US\$|\$)$/.test(token)?'USD':'CNY';
+    const currency=/^(USD|US\s*\$|\$)$/.test(token)?'USD':'CNY';
     const amount=Number(String(m[2]||m[3]).replace(/,/g,''));
     if(!Number.isFinite(amount)||amount<=0)continue;
-    const after=text.slice(m.index+m[0].length,m.index+m[0].length+35);
-    const found=after.match(/^\s*(?:\/|per\s+|each\s+)(?:([mM](?:2|²)|sqm|sq\.?\s*m|㎡|square\s*met(?:er|re)s?)|([pP]c|piece|pieces)|([sS]et|sets)|([kK]g)|([uU]nit|units)|([mM]et(?:er|re)s?))/i);
+    let after=text.slice(m.index+m[0].length,m.index+m[0].length+50);
+    // Price ranges are not precise quotes, so only show them as unverified bounds.
+    const range=after.match(/^\s*[-–—~]\s*(\d+(?:,\d{3})*(?:\.\d+)?)/);
+    const rangeMax=range?Number(range[1].replace(/,/g,'')):null;
+    if(range)after=after.slice(range[0].length);
+    const found=after.match(/^\s*(?:\/\s*|per\s+|each\s+)(?:([mM](?:2|²)|sqm|sq\.?\s*m|㎡|square\s*met(?:er|re)s?)|([pP]c|piece|pieces)|([sS]et|sets)|([kK]g)|([uU]nit|units)|([mM]et(?:er|re)s?))/i);
     const unit=!found?null:found[1]?'sqm':found[2]?'piece':found[3]?'set':found[4]?'kg':found[5]?'unit':'meter';
-    prices.push({amount,currency,unit,raw:m[0].trim(),evidence:'unverified-search-snippet'});
+    prices.push({amount,currency,unit,rangeMax:Number.isFinite(rangeMax)&&rangeMax>amount?rangeMax:null,raw:m[0].trim(),evidence:'unverified-search-snippet'});
   }
   return prices;
 }
@@ -31,7 +35,7 @@ function summarizePublishedPrices(sources) {
   for(const s of sources){
     if(s.type!=='Published Market Source'||!s.url)continue;
     for(const p of s.priceEvidence||[]){
-      if(p.currency!=='USD'||!p.unit)continue;
+      if(p.currency!=='USD'||!p.unit||p.rangeMax)continue;
       if(!groups.has(p.unit))groups.set(p.unit,new Map());
       if(!groups.get(p.unit).has(s.url))groups.get(p.unit).set(s.url,p.amount);
     }
