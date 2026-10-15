@@ -85,3 +85,10 @@ test('rejects non-local self-hosted search endpoint to prevent query exfiltratio
    /SEARXNG_URL/
  );
 });
+
+test('search provider cannot return more than requested limit',async()=>{
+ const x=await searchIndexedWeb('cold room panels',{env:{MARKET_ENABLE_LIVE_SEARCH:'true',TAVILY_API_KEY:'mock'},limit:2,fetcher:async()=>({
+   ok:true,json:async()=>({results:Array.from({length:30},(_,i)=>({title:'Part '+i,url:'https://example.com/'+i,content:'USD 10/unit'}))})
+ })});
+ assert.equal(x.items.length,2);
+});
