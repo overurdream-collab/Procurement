@@ -5,7 +5,15 @@ const clean=x=>String(x??'').replace(/\s+/g,' ').trim();
 const money=n=>Math.round((Number(n)+Number.EPSILON)*100)/100;
 const numeric=n=>typeof n==='number'&&Number.isFinite(n)&&n>0?n:null;
 const norm=x=>clean(x).toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ');
-const day=x=>{const v=String(x||'');return /^\d{4}-\d\d-\d\d/.test(v)?v.slice(0,10):null};
+// All daily reporting dates use the operating city's calendar (Asia/Aden).
+// A timestamp with Z or an offset is converted before deciding "today".
+function day(x){
+ const v=String(x||'');
+ if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;
+ if(!/^\d{4}-\d{2}-\d{2}T/.test(v))return null;
+ const d=new Date(v);if(!Number.isFinite(d.getTime()))return null;
+ return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Aden',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+}
 const unitName=x=>{
  const u=norm(x).replace(/\s/g,'');
  if(['sqm','m2','m²','㎡','平方米','平米'].includes(u))return 'm²';
@@ -111,7 +119,7 @@ function priceAnalysis(st,{requestId=null}={}){
   disclaimer:'لا تُقارن الأسعار بدون التحقق من المستند، أساس FOB ومينائه، العملة، وحدات البيع، الكمية، المواصفات والفئة. السعر المنشور على الإنترنت ليس عرضًا موثقًا.'};
 }
 function dailyReport(st,{requestId=null,date=null,audience='management'}={}){
- const dateLabel=day(date)||new Date().toISOString().slice(0,10);
+ const dateLabel=day(date)||day(new Date().toISOString());
  const allRequests=(st.requests||[]).filter(x=>!requestId||x.id===requestId);
  const requestIds=new Set(allRequests.map(x=>x.id));
  const linkedSuppliers=new Set(allRequests.flatMap(r=>r.selectedSupplierIds||[]));
