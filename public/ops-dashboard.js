@@ -1,5 +1,26 @@
 'use strict';
 let dailySnapshot=null,comparisonSnapshot=null,dailyAudience='management';
+
+function diagnosticsShell(){
+ return '<details class="service-status no-print"><summary>حالة الخدمات والتكاملات — ما يعمل وما يحتاج إعدادًا</summary>'+
+  '<div id="serviceStatusTable" class="muted">جارٍ فحص حالة الخدمات...</div></details>';
+}
+async function loadDiagnostics(){
+ const container=document.getElementById('serviceStatusTable');if(!container)return;
+ try{
+  const r=await fetch('/api/system-status'),x=await r.json();
+  if(!r.ok){container.textContent='تعذر جلب حالة الخدمات';return}
+  container.innerHTML='<div class="status-grid">'+(x.services||[]).map(s=>{
+    const ready=s.status==='available',kind=ready?'service-good':'service-limited';
+    const label=ready?'جاهز':s.status==='configured'?'مفعّل — يحتاج اختبار حقيقي':
+      s.status==='temporary-demo'?'مؤقت':s.status==='not-integrated'?'غير متكامل':
+      s.status==='disabled-in-demo'?'معطّل للتجربة':'يحتاج إعدادًا';
+    return '<div class="service-card '+kind+'"><b>'+dEsc(s.name)+'</b>'+
+      '<span>'+dEsc(label)+'</span><small>'+dEsc(s.detail||'')+'</small></div>';
+   }).join('')+'</div>';
+ }catch(e){container.textContent='الخدمة لا تستجيب حاليًا'}
+}
+
 const dEsc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 const dAmount=n=>Number.isFinite(Number(n))?Number(n).toLocaleString('en-US',{maximumFractionDigits:2}):'—';
 const statCard=(label,value,caption='')=>'<div class="mini-stat"><span>'+dEsc(label)+'</span><strong>'+dEsc(value)+'</strong><small>'+dEsc(caption)+'</small></div>';
@@ -18,7 +39,7 @@ function dailyView(){
   '<button class="btn" onclick="downloadDailyHtml()">تنزيل تقرير HTML</button>'+
   '<button class="btn" onclick="printDailyReport()">طباعة / PDF</button>'+
   '<button class="btn" onclick="shareDailyReport()">مشاركة / WeChat</button></div>'+
-  '<div id="dailyReportOutput" aria-live="polite"><p class="muted">جارٍ تحميل نتائج اليوم...</p></div>';
+  '<div id="dailyReportOutput" aria-live="polite"><p class="muted">جارٍ تحميل نتائج اليوم...</p></div>'+diagnosticsShell();
 }
 function comparisonView(){
  return '<section class="page-intro"><div><span class="eyebrow">EVIDENCE BASED BID LEVELING</span>'+
@@ -167,6 +188,7 @@ async function loadDailyReport(){
   const r=await fetch(u),j=await r.json();
   if(!r.ok){output.textContent=j.error||'تعذر إعداد التقرير';return}
   dailySnapshot=j;output.innerHTML=dailyMarkup(j);
+  loadDiagnostics();
  }catch(e){output.textContent='تعذر الاتصال بالخادم.'}
 }
 const reportDoc=(data)=>'<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">'+
