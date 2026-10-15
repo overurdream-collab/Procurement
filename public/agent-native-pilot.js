@@ -31,14 +31,17 @@
    verified:scanned.filter(q=>q.verified).length,pending:scanned.filter(q=>!q.verified).length,
    groups:groups.length,actions:acts.length,recentQuotes:recentQuotes.length,
    approvals:(st.approvals||[]).filter(a=>a.status==='pending').length};
-  const monthCount=Math.max(1,Math.ceil(days/30));
-  const monthly=Array.from({length:monthCount},(_,idx)=>{
-   const d=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-monthCount+idx+1,1));
-   const key=d.toISOString().slice(0,7);
-   return {key,label:new Intl.DateTimeFormat('ar',{month:'short',timeZone:'UTC'}).format(d),
+  // Include every month touched by the selected rolling range, including boundary months.
+  const start=new Date(now.getTime()-days*86400000);
+  const monthly=[];
+  for(let t=Date.UTC(start.getUTCFullYear(),start.getUTCMonth(),1);
+      t<=Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1);
+      t=Date.UTC(new Date(t).getUTCFullYear(),new Date(t).getUTCMonth()+1,1)){
+   const d=new Date(t),key=d.toISOString().slice(0,7);
+   monthly.push({key,label:new Intl.DateTimeFormat('ar',{month:'short',timeZone:'UTC'}).format(d),
     actions:acts.filter(x=>monthKey(x.time||x.createdAt)===key).length,
-    quotes:recentQuotes.filter(x=>monthKey(x.receivedAt||x.createdAt)===key).length};
-  });
+    quotes:recentQuotes.filter(x=>monthKey(x.receivedAt||x.createdAt)===key).length});
+  }
   return {requests,groups,counts,monthly,days,demo:report.mode==='synthetic-demo',
    reportKPIs:requestId?null:report.kpis,requestId};
  }
