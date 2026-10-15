@@ -224,6 +224,7 @@ function gate(st,action){let map={followup:'autoFollowup',send:'autoSend',exclud
 
 const {marketScan}=require('./market-scan');
 const {priceAnalysis,dailyReport}=require('./procurement-reports');
+const {monthlyReport,validateMonth}=require('./monthly-report');
 const {unifiedMarketSearch,validateSearchInput}=require('./market-unified');
 const {registerSearch,researchContact,prepareConversion,outreachDrafts,publicUrl}=require('./market-leads');
 const {configuredProvider}=require('./market-index-search');
@@ -391,6 +392,14 @@ if(u.pathname==='/api/price-comparison'&&req.method==='GET'){
   const st=load(),requestId=u.searchParams.get('requestId')||null;
   if(requestId&&!(st.requests||[]).some(x=>x.id===requestId))return json(res,404,{error:'request_not_found'});
   return json(res,200,priceAnalysis(st,{requestId}));
+}
+if(u.pathname==='/api/monthly-report'&&req.method==='GET'){
+  const st=load(),requestId=u.searchParams.get('requestId')||null,
+    audience=u.searchParams.get('audience')||'management',rawMonth=u.searchParams.get('month');
+  if(requestId&&!(st.requests||[]).some(x=>x.id===requestId))return json(res,404,{error:'request_not_found'});
+  if(!['buyer','management'].includes(audience))return json(res,422,{error:'audience_not_supported'});
+  if(rawMonth&&!validateMonth(rawMonth))return json(res,422,{error:'invalid_month'});
+  return json(res,200,monthlyReport(st,{month:rawMonth,requestId,audience}));
 }
 if(u.pathname==='/api/daily-report'&&req.method==='GET'){
   const st=load(),requestId=u.searchParams.get('requestId')||null,
