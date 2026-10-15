@@ -1,0 +1,50 @@
+name: Free live marketplace index probe
+on:
+  push:
+    branches: [ fix/evidence-based-market-research-20261015 ]
+    paths:
+      - 'ops/searxng/settings.yml'
+      - 'scripts/market-searxng-probe.js'
+      - 'market-index-search.js'
+      - 'market-scan.js'
+      - '.github/workflows/live-market-search-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local-searxng-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Start private no-card search
+        run: |
+          docker run -d --name procurement-searxng \
+            -p 127.0.0.1:8888:8080 \
+            -v "${{ github.workspace }}/ops/searxng/settings.yml:/etc/searxng/settings.yml:ro" \
+            -e SEARXNG_SECRET="$(openssl rand -hex 32)" \
+            searxng/searxng:latest
+          for i in $(seq 1 45); do
+            if curl -fsS --max-time 2 http://127.0.0.1:8888/ >/dev/null; then
+              echo "SearXNG ready"; exit 0
+            fi
+            sleep 2
+          done
+          docker logs procurement-searxng --tail 100
+          exit 1
+      - name: Search real public indexes without vendor API keys
+        run: node scripts/market-searxng-probe.js
+      - name: Save probe evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-searxng-probe
+          path: live-searxng-probe.json
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Stop local search container
+        if: always()
+        run: docker rm -f procurement-searxng || true
