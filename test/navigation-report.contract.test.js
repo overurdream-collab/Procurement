@@ -7,7 +7,7 @@ const html=fs.readFileSync(path.join(root,'public/index.html'),'utf8');
 const ops=fs.readFileSync(path.join(root,'public/ops-dashboard.js'),'utf8');
 
 test('nine sidebar services are unique and report functions are wired',()=>{
- const expected=['dashboard','rfq','market','suppliers','responses','quotes','approvals','agent','gmail'];
+ const expected=['dashboard','reports','rfq','market','suppliers','responses','quotes','approvals','agent','gmail'];
  const links=[...html.matchAll(/data-view="([^"]+)"/g)].map(x=>x[1]);
  assert.deepEqual(links,expected);
  assert.equal(new Set(links).size,links.length);
@@ -16,6 +16,11 @@ test('nine sidebar services are unique and report functions are wired',()=>{
  assert.match(html,/id="sidebarBackdrop"/);
  assert.match(html,/ops-dashboard\.js/);
  assert.match(ops,/function dailyView\(/);
+ assert.match(ops,/id="reportPeriod"/);
+ assert.match(ops,/function updateReportPeriod\(/);
+ assert.match(html,/dashboard:executiveHomeView,reports:dailyView/);
+ assert.match(html,/if\(view==='dashboard'\)ALHARIRDashboardPilot.init\(\)/);
+ assert.match(html,/if\(view==='reports'\)loadDailyReport\(\)/);
  assert.match(ops,/function comparisonView\(/);
  assert.match(ops,/function saveStructuredQuote\(/);
  assert.match(ops,/function loadDailyReport\(/);
