@@ -15,6 +15,7 @@ on:
       - 'market-leads.js'
       - 'public/market-outreach.js'
       - 'test/market-lead-pipeline.test.js'
+      - 'test/market-rfq-http.integration.test.js'
       - 'public/index.html'
       - '.github/workflows/staging-demo-tests.yml'
   pull_request:
@@ -30,6 +31,7 @@ on:
       - 'market-leads.js'
       - 'public/market-outreach.js'
       - 'test/market-lead-pipeline.test.js'
+      - 'test/market-rfq-http.integration.test.js'
       - 'public/index.html'
       - '.github/workflows/staging-demo-tests.yml'
 permissions:
@@ -51,4 +53,4 @@ jobs:
           node --check market-leads.js
           node --check public/market-outreach.js
       - name: Test real HTTP authentication and synthetic-only sample
-        run: node --test test/staging-auth.test.js test/unified-market-search.test.js test/market-lead-pipeline.test.js
+        run: node --test --test-concurrency=1 test/staging-auth.test.js test/unified-market-search.test.js test/market-lead-pipeline.test.js test/market-rfq-http.integration.test.js
