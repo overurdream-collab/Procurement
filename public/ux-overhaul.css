@@ -156,6 +156,24 @@ body{background:#f6f8fc!important;background-image:none!important;font-family:Ta
 @media(max-width:1200px){.executive-home .executive-head{grid-template-columns:1fr}.executive-home .head-aside{min-height:125px}.executive-home .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-printable .mini-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:920px){.side-nav{position:fixed;top:0;right:0;height:100dvh;width:min(312px,86vw);z-index:101;transform:translateX(120%)}body.nav-open .side-nav{transform:translateX(0)}.sidebar-backdrop{z-index:99!important} .app-content{width:100%;padding:0 17px 30px}.work-toolbar{height:67px;min-height:67px;margin-bottom:20px}.work-toolbar .sidebar-toggle{height:42px;display:inline-flex;align-items:center;gap:7px;background:#153758;color:white;border-color:#153758}.executive-home .panels{grid-template-columns:1fr}}
 @media(max-width:620px){.app-content{padding:0 12px 28px}.executive-home .executive-head{padding:25px 21px;gap:18px;border-radius:19px}.executive-home .executive-head h2{font-size:29px}.executive-home .head-aside{padding:16px}.executive-home .executive-actions{display:grid;grid-template-columns:repeat(2,1fr);width:100%}.executive-home .executive-actions a{min-height:45px;font-size:11px;padding:10px 9px;justify-content:center}.executive-home .stats{gap:9px}.executive-home .stat{min-height:141px;padding:15px;border-radius:13px}.executive-home .stat strong{font-size:31px}.executive-home .stat label{font-size:11px}.executive-home .panel{padding:19px;border-radius:15px;min-height:250px}.executive-home .funnelrow{grid-template-columns:89px 1fr 25px}.executive-home .executive-tools label{flex:1 1 150px}.reports-page .page-intro{padding:20px}.reports-page .report-toolbar{padding:15px}.reports-page .report-toolbar label{flex:1 1 45%;min-width:0}.reports-page .report-toolbar .btn{flex:1 1 45%;height:auto;min-height:45px}.daily-printable{padding:14px;border-radius:13px}.daily-heading{padding:18px;gap:6px}.daily-heading strong{font-size:18px}.daily-printable .mini-stats{gap:7px}.daily-printable .mini-stat{padding:11px}.daily-printable .mini-stat strong{font-size:24px}.daily-printable .report-columns{grid-template-columns:1fr}}
+
+/* Native month/date fields have an intrinsic width on iOS: constrain the reports form.
+ * Tables may scroll INSIDE their card, never enlarge the entire viewport. */
+.reports-page,.reports-page .report-toolbar,.reports-page .report-toolbar label,
+.reports-page #dailyReportOutput,.daily-printable,.daily-printable .table-scroll,
+.daily-printable .report-columns,.daily-printable .report-columns section{min-width:0;max-width:100%}
+.reports-page .report-toolbar select,.reports-page .report-toolbar input{
+ box-sizing:border-box;width:100%;min-width:0;max-width:100%;
+}
+.daily-printable .table-scroll{display:block;width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+.daily-printable table{width:100%}
+@media(max-width:620px){
+ .reports-page .report-toolbar{overflow:hidden}
+ .daily-heading>div{min-width:0}
+ .daily-heading h2{overflow-wrap:anywhere}
+ .daily-printable .report-columns,.daily-printable .mini-stats{width:100%}
+}
+
 @media print{
  body,.app-content{background:white!important;background-image:none!important}
  .side-nav,.work-toolbar,.sidebar-backdrop,.executive-home,.reports-page .report-toolbar,.reports-page .page-intro,.service-status{display:none!important}
