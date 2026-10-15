@@ -170,9 +170,13 @@ function dailyReport(st,{requestId=null,date=null,audience='management'}={}){
    quoteRecords:q.quotesReviewed,verifiedQuotes:q.verifiedQuotes,
    comparableGroups:q.comparableGroups,actionsToday:acts.length,repliesToday:received.length,
    pendingApprovals:publicBuyer?null:pending.length},
-  requests:byRequest,priceComparisons:q.comparisons,
-  quotationGaps:publicBuyer?gaps.map(x=>({quoteId:x.quoteId,issues:x.issues})):gaps,
-  priorities,risks,achievements,
+  requests:byRequest,priceComparisons:publicBuyer?q.comparisons.map(({quoteIds,rows,...summary})=>({
+    ...summary,rows:[],lowestSupplier:'أقل عرض متوافق (بعد المراجعة)'
+  })):q.comparisons,
+  quotationGaps:publicBuyer?gaps.map(x=>({quoteId:'',issues:x.issues})):gaps,
+  priorities:publicBuyer?priorities.filter(x=>!/اعتماد|الموافقات|مراسلة/.test(x)):priorities,
+  risks:publicBuyer?risks.filter(x=>!/اعتماد|الموافقات/.test(x)):risks,
+  achievements,
   activities:publicBuyer?[]:acts.slice(0,15).map(x=>({time:x.time,type:x.type,description:clean(x.text)})),
   evidence:{verifiedQuotes:q.verifiedQuotes,nonComparableLines:q.excludedQuoteLines},
   disclaimer:q.disclaimer,
