@@ -45,3 +45,13 @@ Optional MARKET_MAX_SEARCH_QUERIES accepts an integer from 1 to 6 (default 3). T
 6. Only after these pass: deploy and perform user acceptance, then consider merging to main.
 
 **Security note:** The existing Procurement app is documented as local/development only; it needs separate authentication/session/secret hardening before public deployment. Do not use its current network endpoints as publicly exposed services.
+
+## October 15 real live no-card search experiment
+
+The workflow `.github/workflows/live-market-search-probe.yml` started a local SearXNG instance on a GitHub-hosted runner and executed five *genuine* internet index searches from the Procurement code (not mock results). Job: https://github.com/overurdream-collab/Procurement/actions/runs/38766957324 . It returned 195 indexed links across five product categories and 2 matching marketplaces (Alibaba and Made-in-China), but just one source with an explicit USD unit price among the saved subset; some source snippets had other unverified currency/price formats. 1688 did not appear in accepted results. Therefore the finding is **real discovery works, multi-product benchmark does not yet meet acceptance**. The archive contains raw captured links and snippet-derived prices and is available from the workflow for seven days.
+
+Following this experiment, a stricter product token/size/refrigerant relevance filter was added. Mismatched listing URLs may still be presented as unverified sources, but cannot contribute to the benchmark. Result lists were capped per provider search request, preventing inflated counts when an engine returns more than requested.
+
+## No-card local SearXNG startup
+
+Configure a private SearXNG Docker container binding port `8888` on `127.0.0.1` (never `0.0.0.0`), with `ops/searxng/settings.yml` mounted to `/etc/searxng/settings.yml`, a generated secret via `SEARXNG_SECRET`, and the official `searxng/searxng` image. Set in the Procurement server environment: `SEARXNG_URL=http://127.0.0.1:8888/`, `MARKET_ENABLE_LIVE_SEARCH=true`, `MARKET_MAX_SEARCH_QUERIES=3`. JSON must be enabled in the SearXNG settings. No provider key or credit card is required, though real hosting capacity and existing platform quotas may apply. Stop the SearXNG container when finished. Be aware SearXNG's upstream search engines can block/rate-limit even legitimate low-rate indexing queries.
