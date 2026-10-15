@@ -37,6 +37,22 @@ test('protected daily operations dashboard, quote intake, verification and buyer
   assert.equal(buyer.activities.length,0);
   r=await fetch(base+'/api/price-comparison',{headers});assert.equal(r.status,200);
   assert.equal((await r.json()).comparisons.length,0);
+  // Every primary navigation destination must resolve through the protected server.
+  for(const dest of ['/request.html','/workspace.html?id=RFQ-001','/market-outreach.js']){
+    let p=await fetch(base+dest,{headers});assert.equal(p.status,200,dest);
+  }
+  const statusResponse=await fetch(base+'/api/system-status',{headers});
+  assert.equal(statusResponse.status,200);
+  const statusPayload=await statusResponse.json();
+  const statuses=new Map(statusPayload.services.map(s=>[s.id,s.status]));
+  assert.equal(statuses.get('daily-report'),'available');
+  assert.equal(statuses.get('quote-analysis'),'available');
+  assert.equal(statuses.get('storage'),'temporary-demo');
+  assert.equal(statuses.get('email'),'disabled-in-demo');
+  assert.equal(statuses.get('wechat'),'not-integrated');
+  assert.equal(statuses.get('quote-ingestion'),'not-integrated');
+  const noAuthServices=await fetch(base+'/api/system-status');
+  assert.equal(noAuthServices.status,401);
   const state=await (await fetch(base+'/api/state',{headers})).json();
   const req=state.requests[0].id,supp=state.suppliers.map(s=>s.id);
   const quote=(supplierId,price)=>({supplierId,requestId:req,currency:'USD',basis:'FOB Guangzhou',
