@@ -103,3 +103,50 @@ test('real protected HTTP: indexed search -> company research -> select one -> R
   await new Promise(resolve=>s.close(resolve));
  }
 });
+
+
+
+test('manual no-key route creates real demo RFQ from chosen subset without sending or inventing suppliers',async()=>{
+ const port=await freePort();
+ const env={...process.env,STAGING_HOSTED:'true',STAGING_DEMO:'true',
+  HOSTED_ACCESS_USER:'manual-reviewer',HOSTED_ACCESS_PASSWORD:'strong-test-password-4567890',
+  MARKET_ENABLE_LIVE_SEARCH:'false',PORT:String(port)};
+ const child=spawn(process.execPath,['server.js'],{cwd:require('node:path').join(__dirname,'..'),env,stdio:'ignore'});
+ const base='http://127.0.0.1:'+port;
+ const headers={'Content-Type':'application/json',
+  Authorization:'Basic '+Buffer.from(env.HOSTED_ACCESS_USER+':'+env.HOSTED_ACCESS_PASSWORD).toString('base64')};
+ const post=(url,data)=>fetch(base+url,{method:'POST',headers,body:JSON.stringify(data)});
+ try{
+  let ready=false;
+  for(let i=0;i<100;i++){
+   if(child.exitCode!==null)throw Error('Server unexpectedly terminated');
+   try{if((await fetch(base+'/health/live')).ok){ready=true;break}}catch{}
+   await delay(100);
+  }
+  assert.equal(ready,true);
+  let r=await post('/api/market-intelligence/search',{query:'100mm PIR panels'});
+  assert.equal(r.status,200);assert.equal((await r.json()).count,0);
+  r=await post('/api/market-intelligence/manual-leads',{
+   query:'100mm PIR panels',urls:[
+     'https://www.alibaba.com/product-detail/panels-one',
+     'https://www.made-in-china.com/offer/panels-two'
+   ]});
+  assert.equal(r.status,200);const leads=await r.json();
+  assert.equal(leads.count,2);assert.equal(leads.manual,true);
+  r=await post('/api/market-intelligence/convert',{
+   searchId:leads.searchId,
+   selected:[{index:1,companyName:'Demo Factory Selected',
+     email:'sales@factory.test',websiteUrl:'https://factory.test/',contactEvidenceUrl:'https://factory.test/contact'}],
+   details:{quantity:'100 sqm',specifications:'PIR 100mm, density 40kg/m3, FOB'}
+  });
+  assert.equal(r.status,201);const rfq=await r.json();
+  assert.equal(rfq.suppliers.length,1);
+  assert.equal(rfq.request.selectedSupplierIds.length,1);
+  assert.equal(rfq.suppliers[0].sourcePlatform,'Operator-supplied public link');
+  assert.equal(rfq.sentCount,0);
+  assert.equal(rfq.drafts[0].canOpenEmail,true);
+  r=await post('/api/market-intelligence/manual-leads',{
+   query:'test',urls:['http://127.0.0.1/private']});
+  assert.equal(r.status,422);
+ }finally{child.kill('SIGTERM')}
+});
