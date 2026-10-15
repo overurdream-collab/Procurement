@@ -1,7 +1,7 @@
 'use strict';
 // Market Intelligence -> shortlist -> contact validation -> RFQ drafts.
 // All output is escaped; no emails are sent through this script.
-let marketLeadResult=null, marketLeadContacts={};
+let marketLeadResult=null, marketLeadContacts={},lastCreatedRfqExport=null;
 function mEsc(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function leadField(i,key){return document.getElementById('ml-'+key+'-'+i)}
 function fieldVal(i,key){return leadField(i,key)?.value.trim()||''}
@@ -80,6 +80,23 @@ function marketDraftHtml(drafts){
      '<p class="muted">لا يمكن تجهيز إرسال لهذا المورد دون بريد تواصل.</p>')+'</div>';
  }).join('');
 }
+
+function downloadMarketRFQ(){
+ if(!lastCreatedRfqExport)return;
+ const result=lastCreatedRfqExport;
+ const snapshot={
+  exportedAt:new Date().toISOString(),purpose:'ALHARIR RFQ draft backup, not a signed quotation',
+  request:result.request,suppliers:result.suppliers,drafts:result.drafts,
+  warning:'Contains unverified business contact information. No messages were sent. Protect this file.'
+ };
+ const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json;charset=utf-8'});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');
+ a.href=url;a.download='ALHARIR-'+String(result.request.id).replace(/[^a-zA-Z0-9-]/g,'')+'-RFQ-DRAFT.json';
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1200);
+}
+
 async function convertMarketLeads(){
  const status=document.getElementById('ml-conversion-result'),btn=document.getElementById('ml-convert'),data=marketLeadResult;
  if(!status||!data?.searchId)return;
@@ -100,12 +117,14 @@ async function convertMarketLeads(){
    headers:{'Content-Type':'application/json'},body:JSON.stringify({
     searchId:data.searchId,selected,details:{product,quantity,specifications,incoterm:'FOB'}})});
   const x=await r.json();if(!r.ok){status.textContent=x.message||x.error;return}
+  lastCreatedRfqExport=x;
   st.requests.unshift(x.request);st.suppliers.push(...x.suppliers);
   selectedMarketRequestId=x.request.id;
   status.innerHTML='<div class="safe">تم حفظ مسودة '+mEsc(x.request.id)+' مع '+x.suppliers.length+
    ' موردين مختارين — لم تُرسل أي رسائل.</div>'+
    (x.persistence==='temporary-demo'?'<p class="muted">تنبيه: هذه نسخة اختبار وبياناتها مؤقتة على Render.</p>':'')+
    '<p><a href="/requests/'+encodeURIComponent(x.request.id)+'" class="btn">فتح طلب RFQ</a></p>'+
+   '<p><button class="btn" onclick="downloadMarketRFQ()">حفظ نسخة من الطلب والموردين والمسودات على جهازك</button></p>'+
    marketDraftHtml(x.drafts);
  }catch(e){status.textContent='تعذر الاتصال. تحقق من الطلبات قبل إعادة المحاولة.'}
  finally{btn.disabled=false}
