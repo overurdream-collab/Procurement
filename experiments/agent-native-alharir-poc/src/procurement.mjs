@@ -10,7 +10,7 @@ export const quotes = Object.freeze([
  {id:"D",vendor:"Synthetic supplier D",email:"d@supplier.example",incoterm:"FOB",currency:"USD",lines:[{sku:"PIR100",qty:200,spec:"PIR100",unitCents:2700},{sku:"DOOR",qty:2,spec:"CHILLER",unitCents:83000}]}
 ]);
 export function cents(n){if(!Number.isSafeInteger(n)||n<0)throw Error("INVALID_CENTS");return n;}
-export function emailKey(s){if(typeof s!=="string"||!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(s.trim()))throw Error("INVALID_EMAIL");return s.trim().toLowerCase();}
+export function emailKey(s){if(typeof s!=="string")throw Error("INVALID_EMAIL");const e=s.trim().toLowerCase(),p=e.split("@");if(p.length!==2||!p[0]||!p[1]||!p[1].includes(".")||e.includes(" ")||e.includes("\n"))throw Error("INVALID_EMAIL");return e;}
 export function dedupeVendors(xs){const seen=new Set();return xs.filter(x=>{const key=emailKey(x.email);if(seen.has(key))return false;seen.add(key);return true;});}
 export function evaluate(q,spec=rfq){
  const issues=[],totals=[];
