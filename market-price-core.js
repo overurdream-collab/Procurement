@@ -42,7 +42,7 @@ function summarizePublishedPrices(sources) {
     }
   }
   const ranked=[...groups.entries()].sort((a,b)=>b[1].size-a[1].size);
-  if(!ranked.length)return null;
+  if(!ranked.length||ranked[0][1].size<2)return null;
   const [unit,bySource]=ranked[0],values=[...bySource.values()].sort((a,b)=>a-b),mid=Math.floor(values.length/2);
   return {low:values[0],median:values.length%2?values[mid]:(values[mid-1]+values[mid])/2,
     high:values[values.length-1],count:values.length,currency:'USD',unit,
