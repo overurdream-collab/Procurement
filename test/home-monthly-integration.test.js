@@ -12,7 +12,7 @@ test('monthly report is calendar scoped, with clear cumulative-vs-period metrics
   suppliers:[{id:'SUP-A',name:'Supplier A',associatedRequestId:'REQ-OCT'}],
   quotes:[],
   activity:[
-   {type:'review',requestId:'REQ-OCT',time:'2026-09-30T20:00:00Z',text:'October in Sana’a'},
+   {type:'review',requestId:'REQ-OCT',time:'2026-09-30T21:00:00Z',text:'October in Sana’a'},
    {type:'review',requestId:'REQ-OCT',time:'2026-10-14T10:00:00Z',text:'October follow up'},
    {type:'review',requestId:'REQ-OCT',time:'2026-11-01T01:00:00Z',text:'November only'}],
   gmailReplies:[{receivedAt:'2026-10-07T10:00:00Z',requestId:'REQ-OCT'}],
