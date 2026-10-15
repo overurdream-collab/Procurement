@@ -42,7 +42,17 @@ test('keeps ranges as uncertain bounds, not precise benchmark data',()=>{
 test('does not benchmark currency values without matched units',()=>{
  const a=parsePrices('USD 19000 total including service; US $11.25 / piece');
  const s=summarizePublishedPrices([{type:'Published Market Source',url:'https://a.test/x',priceEvidence:a}]);
- assert.equal(s.count,1);
- assert.equal(s.unit,'piece');
- assert.equal(s.low,11.25);
+ assert.equal(s,null);
+});
+
+
+test('reads Chinese indexed prices and dimensions without currency conversion',()=>{
+ const p=parsePrices('￥100.00/平方米; ¥98/件; 200元/套; RMB 45/米');
+ assert.deepEqual(p.map(x=>[x.currency,x.unit,x.amount]),
+   [['CNY','sqm',100],['CNY','piece',98],['CNY','set',200],['CNY','meter',45]]);
+ assert.equal(summarizePublishedPrices([{type:'Published Market Source',url:'https://1688.example/item',priceEvidence:p}]),null);
+});
+test('single indexed listing cannot establish a reliable market range',()=>{
+ const p=parsePrices('US $19.50 / Square Meter');
+ assert.equal(summarizePublishedPrices([{type:'Published Market Source',url:'https://example.com/p',priceEvidence:p}]),null);
 });
