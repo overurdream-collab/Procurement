@@ -170,6 +170,7 @@ function dailyMarkup(r){
   '<tr><td>'+dEsc(x.product)+'</td><td>'+dEsc(x.lowestSupplier)+'</td><td>'+dAmount(x.lowestPrice)+
   ' '+dEsc(x.currency)+'/'+dEsc(x.unit)+'</td><td>'+dAmount(x.spreadForQuantity)+
   ' '+dEsc(x.currency)+'</td><td>'+dEsc(x.comparableSuppliers)+'</td></tr>').join('');
+ const achievements=(r.achievements||[]).map(x=>'<li>'+dEsc(x)+'</li>').join('');
  const risks=(r.risks||[]).map(x=>'<li>'+dEsc(x)+'</li>').join('');
  const priorities=(r.priorities||[]).map(x=>'<li>'+dEsc(x)+'</li>').join('');
  const gaps=(r.quotationGaps||[]).map(x=>
@@ -195,10 +196,11 @@ function dailyMarkup(r){
     '<th>البند</th><th>الأقل سعرًا في المجموعة</th><th>السعر</th><th>فرق السعر على الكمية</th><th>عدد العروض</th>'+
     '</tr></thead><tbody>'+comparisonRows+'</tbody></table></div>':
     '<p class="data-warning">لا توجد مقارنات قابلة للاعتماد حتى الآن؛ تُعرض الأسعار غير المتكافئة في سجل العروض وليس كمكاسب أو وفورات.</p>')+
-   '<div class="report-columns"><section><h3>الإنجازات والمخاطر</h3>'+
-   (risks?'<ul>'+risks+'</ul>':'<p>لا توجد مخاطر مسجلة في الفترة المحددة.</p>')+
+   '<div class="report-columns"><section><h3>الإنجازات المثبتة</h3>'+
+   (achievements?'<ul>'+achievements+'</ul>':'<p class="muted">لم يسجل إنجاز جديد في التاريخ المحدد.</p>')+
    '</section><section><h3>الأولويات والقرارات المطلوبة</h3>'+
    (priorities?'<ul>'+priorities+'</ul>':'<p>لا توجد أولويات إضافية مسجلة.</p>')+'</section></div>'+
+   (risks?'<section><h3>المخاطر والفجوات الرئيسية</h3><ul>'+risks+'</ul></section>':'')+
    (gaps?'<section><h3>نواقص العروض</h3><ul>'+gaps+'</ul></section>':'')+
    (management&&activities?'<section><h3>سجل نشاط اليوم</h3><ul>'+activities+'</ul></section>':'')+
    '<footer><p>'+dEsc(r.disclaimer)+'</p><p>'+dEsc(r.privacyNotice)+'</p>'+
