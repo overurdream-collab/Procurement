@@ -103,6 +103,14 @@ async function freePort(){
     throw Error(screen.name+': report horizontal overflow '+reportOverflow+' / '+JSON.stringify(offenders));
    }
    await page.screenshot({path:path.join(dir,screen.name+'-reports.png'),fullPage:true,animations:'disabled'});
+   // Real browser exercise of the requested downloadable management/buyer report.
+   const downloadPromise=page.waitForEvent('download',{timeout:12000});
+   await page.locator('button[onclick="downloadDailyHtml()"]').click();
+   const downloaded=await downloadPromise;
+   if(!/ALHARIR-Monthly-management-/.test(downloaded.suggestedFilename())){
+    throw Error(screen.name+': report download incorrectly named '+downloaded.suggestedFilename());
+   }
+
    if(scriptErrors.length)throw Error(screen.name+': JS page errors: '+scriptErrors.join(' | '));
    console.log('UI_PASS',screen.name,JSON.stringify({kpis,charts,report:'monthly',width:screen.width}));
    await context.close();
