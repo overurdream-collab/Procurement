@@ -109,7 +109,13 @@
  }
  function render(m){
   const stats=document.getElementById('pilotStats'),area=document.getElementById('pilotPanels');
-  stats.replaceChildren();area.replaceChildren();document.getElementById('pilotDemo').hidden=!m.demo;
+  if(!stats||!area)return; // SPA navigation can change during an async refresh.
+  stats.replaceChildren();area.replaceChildren();
+  const demoMark=document.getElementById('pilotDemo');if(demoMark)demoMark.hidden=!m.demo;
+  const writeCount=(id,n)=>{const node=document.getElementById(id);if(node)node.textContent=String(n);};
+  writeCount('executiveActiveRequests',m.counts.requests);
+  writeCount('executiveComparableCount',m.counts.groups);
+  writeCount('executiveVerifiedCount',m.counts.verified);
   const c=m.counts;[
    ['أوامر الشراء',c.requests,colors[1],'رابط تفاصيل الطلبات','/#rfq'],
    ['الموردون',c.suppliers,colors[0],'الشركات المسجلة','/#suppliers'],
@@ -126,7 +132,8 @@
    {id:'requests',title:'أوامر الشراء النشطة',desc:'افتح الطلب مباشرة لمراجعة الموردين والأدلة.',render:requestCards}];
   const rows=globalThis.ALHARIRAgentNativeLayout.buildDashboardRows(specs.map(x=>({...x,width:1})),2);
   rows.forEach(row=>row.panels.forEach(spec=>{const p=panel(spec.title,spec.desc);spec.render(p,m);area.append(p);}));
-  document.getElementById('pilotStatus').textContent='تم جلب المؤشرات من واجهات Procurement · '+(m.demo?'بيانات وهمية':'بيانات مسجلة')+' · نطاق النشاط آخر '+m.days+' يومًا.';
+  const status=document.getElementById('pilotStatus');
+  if(status)status.textContent='آخر تحديث من سجلات Procurement · '+(m.demo?'وضع العرض التجريبي':'بيانات مسجلة')+' · نشاط آخر '+m.days+' يومًا.';
  }
  async function init(){
   const select=document.getElementById('pilotRequest'),range=document.getElementById('pilotRange');
