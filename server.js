@@ -15,7 +15,7 @@ if(fs.existsSync(ENVFILE)){
 const {guardHostedRequest,requireHostedAccessConfig}=require('./staging-access');
 requireHostedAccessConfig();
 const HOSTED_DEMO=process.env.STAGING_HOSTED==='true';
-const DATA=HOSTED_DEMO?path.join(require('node:os').tmpdir(),'alharir-procurement-synthetic-demo.json'):path.join(__dirname,'data.json');
+const DATA=HOSTED_DEMO?path.join(require('node:os').tmpdir(),'alharir-procurement-synthetic-demo-'+crypto.randomBytes(8).toString('hex')+'.json'):path.join(__dirname,'data.json');
 if(HOSTED_DEMO && !fs.existsSync(DATA)){
   fs.copyFileSync(path.join(__dirname,'staging-demo-data.json'),DATA);
 }
