@@ -224,7 +224,7 @@ function gate(st,action){let map={followup:'autoFollowup',send:'autoSend',exclud
 
 const {marketScan}=require('./market-scan');
 const {unifiedMarketSearch,validateSearchInput}=require('./market-unified');
-const {registerSearch,researchContact,prepareConversion,outreachDrafts}=require('./market-leads');
+const {registerSearch,researchContact,prepareConversion,outreachDrafts,publicUrl}=require('./market-leads');
 const {configuredProvider}=require('./market-index-search');
 const marketTrialBudget={day:'',count:0};
 function rateLimitUnifiedSearch(res){
@@ -282,6 +282,27 @@ if(u.pathname==='/api/market-intelligence/search'&&req.method==='POST'){
 }
 
 
+
+if(u.pathname==='/api/market-intelligence/manual-leads'&&req.method==='POST'){
+  const input=await body(req),query=validateSearchInput(input?.query);
+  if(!query)return json(res,422,{error:'invalid_product_query'});
+  const urls=Array.isArray(input?.urls)?input.urls:[];
+  if(urls.length<1||urls.length>12)return json(res,422,{error:'one_to_twelve_source_urls_required'});
+  const items=[];
+  for(const raw of urls){
+    const url=publicUrl(raw);
+    if(!url)return json(res,422,{error:'invalid_public_source_url'});
+    const host=new URL(url).hostname;
+    if(!items.some(x=>x.url===url))
+      items.push({source:'Operator-supplied public link',title:'مصدر أدخله الموظف — '+host,
+        snippet:'لم يتحقق النظام من هوية الشركة أو السعر أو البريد.',url});
+  }
+  const snapshot=registerSearch(items,query);
+  return json(res,200,{ok:true,query,searchId:snapshot.searchId,
+    count:snapshot.results.length,results:snapshot.results.map(x=>({...x,prices:[]})),
+    searchConfigured:false,provider:'manual-reviewed-links',manual:true,
+    warning:'روابط أدخلها المستخدم، غير متحقق منها آليًا، وتحتاج مراجعة بشرية قبل مراسلة الشركات.'});
+}
 if(u.pathname==='/api/market-intelligence/contacts'&&req.method==='POST'){
   const input=await body(req);
   if(rateLimitUnifiedSearch(res))return;
