@@ -224,6 +224,7 @@ function gate(st,action){let map={followup:'autoFollowup',send:'autoSend',exclud
 
 const {marketScan}=require('./market-scan');
 const {unifiedMarketSearch,validateSearchInput}=require('./market-unified');
+const {registerSearch,researchContact,prepareConversion,outreachDrafts}=require('./market-leads');
 const {configuredProvider}=require('./market-index-search');
 const marketTrialBudget={day:'',count:0};
 function rateLimitUnifiedSearch(res){
@@ -268,8 +269,48 @@ if(u.pathname==='/api/market-intelligence/search'&&req.method==='POST'){
     return json(res,422,{error:'invalid_product_query',message:'اسم المنتج يجب أن يكون من 2 إلى 160 حرفًا.'});
   if(rateLimitUnifiedSearch(res))return;
   const result=await unifiedMarketSearch(input);
-  // Do not log or persist a commercial query in the synthetic shared demo.
+  // Keep result pointers ephemeral for intentional supplier shortlisting; no supplier auto-import.
+  if(result.ok){
+    const snapshot=registerSearch(result.results,result.query);
+    result.searchId=snapshot.searchId;
+    result.results=snapshot.results.map(x=>{
+      const original=result.results.find(z=>z.url===x.url);
+      return {...original,index:x.index};
+    });
+  }
   return json(res,result.status,result);
+}
+
+
+if(u.pathname==='/api/market-intelligence/contacts'&&req.method==='POST'){
+  const input=await body(req);
+  if(rateLimitUnifiedSearch(res))return;
+  const result=await researchContact(input);
+  return json(res,result.status,result);
+}
+if(u.pathname==='/api/market-intelligence/convert'&&req.method==='POST'){
+  const input=await body(req),draft=prepareConversion(input);
+  if(!draft.ok)return json(res,draft.status,{error:draft.error,message:draft.message||draft.error});
+  const st=load();
+  st.requests=Array.isArray(st.requests)?st.requests:[];
+  st.suppliers=Array.isArray(st.suppliers)?st.suppliers:[];
+  st.activity=Array.isArray(st.activity)?st.activity:[];
+  st.requests.unshift(draft.request);
+  st.suppliers.push(...draft.suppliers);
+  st.activity.unshift({time:new Date().toISOString(),type:'rfq_draft_created',
+    text:'أنشئت مسودة '+draft.request.id+' مع '+draft.suppliers.length+' مورّدين مختارين — لم تُرسل أي رسائل'});
+  save(st);
+  return json(res,201,{request:draft.request,suppliers:draft.suppliers,
+    drafts:outreachDrafts(draft.request,draft.suppliers),
+    sentCount:0,persistence:HOSTED_DEMO?'temporary-demo':'local-file'});
+}
+let outreachRoute=u.pathname.match(/^\/api\/requests\/([^/]+)\/outreach-drafts$/);
+if(outreachRoute&&req.method==='GET'){
+  const st=load(),request=(st.requests||[]).find(x=>x.id===outreachRoute[1]);
+  if(!request)return json(res,404,{error:'request_not_found'});
+  const chosen=(st.suppliers||[]).filter(x=>(request.selectedSupplierIds||[]).includes(x.id));
+  return json(res,200,{requestId:request.id,status:request.outreachStatus||'unknown',
+    drafts:outreachDrafts(request,chosen),sentCount:0});
 }
 
 if(u.pathname==='/api/market-search'&&req.method==='POST'){
