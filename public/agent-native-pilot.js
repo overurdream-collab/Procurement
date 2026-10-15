@@ -3,7 +3,7 @@
  * Calls three existing authenticated endpoints and uses the MIT layout adapter. */
 (function(root,factory){const app=factory();
  if(typeof module==='object'&&module.exports)module.exports=app;
- else {root.ALHARIRDashboardPilot=app;if(root.document)app.init();}
+ else {root.ALHARIRDashboardPilot=app;if(root.document?.getElementById('pilotStats'))app.init();}
 })(typeof globalThis==='object'?globalThis:this,function(){
  'use strict';
  const ENDPOINTS=['/api/state','/api/daily-report?audience=management','/api/price-comparison'];
@@ -143,5 +143,5 @@
   select.addEventListener('change',display);range.addEventListener('change',display);
   document.getElementById('pilotRefresh').addEventListener('click',refresh);await refresh();
  }
- return {ENDPOINTS,model,loadData,init,inRange};
+ return {ENDPOINTS,model,loadData,init,inRange,render};
 });
