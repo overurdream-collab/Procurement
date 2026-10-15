@@ -39,6 +39,16 @@ test('trend refuses to invent dated events',()=>{
  assert.equal(m.counts.recentQuotes,0);
  assert.equal(m.monthly.every(x=>x.quotes===0&&x.actions===0),true);
 });
+test('rolling 7/30 day timeline includes prior month when the window crosses it',()=>{
+ const f=fixtures(),now=new Date('2026-10-16T09:00:00Z');
+ f.state.activity=[{time:'2026-09-30T14:00:00Z',requestId:'R1'}];
+ f.state.quotes=[{requestId:'R1',receivedAt:'2026-09-30T15:00:00Z'}];
+ const m=pilot.model(f.state,f.report,f.comparison,'',30,now);
+ assert.deepEqual(m.monthly.map(x=>x.key),['2026-09','2026-10']);
+ assert.equal(m.monthly[0].actions,1);
+ assert.equal(m.monthly[0].quotes,1);
+ assert.equal(m.counts.recentQuotes,1);
+});
 test('Arabic pilot references only three read-only private APIs',()=>{
  assert.match(html,/<html lang="ar" dir="rtl"/);
  assert.match(html,/noindex,nofollow,noarchive/);
