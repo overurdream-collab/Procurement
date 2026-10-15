@@ -368,6 +368,25 @@ let sm=u.pathname.match(/^\/api\/suppliers\/([^/]+)$/);if(sm&&req.method==='PATC
 let am=u.pathname.match(/^\/api\/approvals\/([^/]+)$/);if(am&&req.method==='PATCH'){let st=load(),b=await body(req),x=st.approvals.find(x=>x.id===am[1]);if(!x)return json(res,404,{error:'not_found'});x.status=b.status||x.status;x.updatedAt=new Date().toISOString();save(st);return json(res,200,x)}
 if(u.pathname==='/api/settings'&&req.method==='PATCH'){let st=load(),b=await body(req);st.settings={...st.settings,...b};save(st);return json(res,200,st.settings)}
 
+
+if(u.pathname==='/api/system-status'&&req.method==='GET'){
+ const provider=configuredProvider();
+ const availableMail=!!(GCLIENT&&GSECRET)&&!!oauth().refresh_token;
+ const serviceList=[
+  {id:'private-access',name:'الدخول المحمي',status:'available',detail:HOSTED_DEMO?'دخول إداري واحد للتجربة؛ ليست صلاحيات فردية':'بوابة محمية'},
+  {id:'market-page',name:'صفحة بحث المنتج والموردين',status:'available',detail:'تشغيل الواجهة وإنشاء قائمة مرشحين'},
+  {id:'live-search',name:'بحث السوق الحي',status:provider==='none'?'not-configured':'configured',detail:provider==='none'?'لا يوجد محرك بحث مفعل على الخادم':provider},
+  {id:'manual-leads',name:'إضافة روابط الموردين يدويًا',status:'available',detail:'مع التحقق اليدوي من الهوية'},
+  {id:'rfq-drafts',name:'إنشاء مسودات RFQ',status:'available',detail:'لا إرسال تلقائي'},
+  {id:'quote-analysis',name:'التحليل المالي للعروض',status:'available',detail:'مقارنة مقيدة بالأدلة والمواصفات والعملة وFOB'},
+  {id:'daily-report',name:'لوحة وتقارير الإدارة والمشتري',status:'available',detail:'تحميل HTML، طباعة/PDF، مشاركة يدوية'},
+  {id:'email',name:'ربط ومزامنة Gmail',status:HOSTED_DEMO?'disabled-in-demo':availableMail?'configured':'not-configured',detail:HOSTED_DEMO?'غير متاح في النسخة التجريبية':'يتطلب إعداد OAuth وربط حساب'},
+  {id:'wechat',name:'إرسال تلقائي إلى WeChat',status:'not-integrated',detail:'المتاح مشاركة الملف يدويًا عبر الجهاز'},
+  {id:'storage',name:'تخزين مستمر للبيانات',status:HOSTED_DEMO?'temporary-demo':'local-file',detail:HOSTED_DEMO?'بيانات وهمية تزول عند إعادة تشغيل الخدمة':'ملف محلي، ليس قاعدة بيانات مؤسسية'},
+  {id:'quote-ingestion',name:'استخراج تلقائي لعروض PDF والبريد',status:'not-integrated',detail:'الإدخال المنظم متاح والمرفقات تحتاج مراجعة'}
+ ];
+ return json(res,200,{checkedAt:new Date().toISOString(),staging:HOSTED_DEMO,services:serviceList});
+}
 if(u.pathname==='/api/price-comparison'&&req.method==='GET'){
   const st=load(),requestId=u.searchParams.get('requestId')||null;
   if(requestId&&!(st.requests||[]).some(x=>x.id===requestId))return json(res,404,{error:'request_not_found'});
@@ -442,7 +461,7 @@ if(verifyQuote&&req.method==='POST'){
     comparison:priceAnalysis(st,{requestId:q.requestId})});
 }
 
-if(u.pathname==='/api/quotes'&&req.method==='POST'){let st=load(),b=await body(req),x={id:'Q-'+Date.now(),...b,createdAt:new Date().toISOString()};st.quotes.unshift(x);save(st);return json(res,201,x)}
+if(u.pathname==='/api/quotes'&&req.method==='POST')return json(res,410,{error:'legacy_unverified_quote_write_disabled',message:'استخدم الإدخال المنظم /api/quotes/structured حتى لا تدخل أسعار دون إثبات.'});
 if(u.pathname==='/api/agent/run'&&req.method==='POST'){let st=load(),b=await body(req);if(b.action==='followup'&&st.settings?.dryRun)return json(res,409,{error:'dry_run_enabled',message:'وضع الحماية مفعل: لا يسمح بإرسال متابعة جماعية فعلية.'});if(b.action==='followup'&&st.settings?.requirePerMessageApproval)return json(res,409,{error:'per_message_approval_required',message:'يلزم اعتماد كل رسالة ومستلم بشكل منفصل قبل الإرسال.'});if(b.action==='followup'&&!gate(st,'followup'))return json(res,409,{error:'approval_required',message:'تحتاج موافقة قبل الإرسال'});if(b.action==='followup'){let targets=st.suppliers.filter(s=>!['رد','تم الرد — ننتظر العرض'].includes(s.status)&&!s.excluded&&s.email);let sent=[];for(let s of targets){await sendMail(s.email,'Follow-up: RFQ-001 – Cold Storage Project, Sana’a','Dear '+s.name+',\n\nThis is a follow-up regarding RFQ-001 for our cold storage project in Sana’a, Yemen. Please send your technical and commercial quotation, including cooling load, equipment brands/models, daily pull-down capacity, 24h power consumption, panel specifications, FOB price/port, CBM/gross weight, lead time, warranty and payment terms.\n\nBest regards,\nAlharir shipping and export');sent.push(s.name)}st.activity.unshift({time:new Date().toISOString(),type:'agent',text:'تم إرسال متابعة إلى '+sent.length+' مورد'});save(st);return json(res,200,{ok:true,sent})}st.activity.unshift({time:new Date().toISOString(),type:'agent',text:'تشغيل الوكيل: '+(b.action||'analyze')});save(st);return json(res,200,{ok:true,action:b.action||'analyze'})}
 let rw=u.pathname.match(/^\/requests\/([^/]+)$/);if(rw&&req.method==='GET'){res.writeHead(302,{Location:'/workspace.html?id='+encodeURIComponent(rw[1])});return res.end()}
 let file=u.pathname==='/'?'index.html':u.pathname.replace(/^\//,'');
