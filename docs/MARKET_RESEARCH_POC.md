@@ -12,7 +12,7 @@ Status: **offline tests passed; live provider not yet accepted**. This is not a 
 
 ## Current implementation
 - market-price-core.js: explicit currency/unit extraction, URL-domain checks, conservative benchmark, generic product queries.
-- market-index-search.js: provider adapter with Brave Search API when BRAVE_SEARCH_API_KEY is supplied, otherwise an existing Google Custom Search JSON API configuration. No keys or an unset MARKET_ENABLE_LIVE_SEARCH flag means honest search-not-configured, not simulated "live".
+- market-index-search.js: provider adapter prioritizing Tavily, then Serper, then Brave, then legacy Google CSE, but only if the live-search opt-in is set. No keys or an unset MARKET_ENABLE_LIVE_SEARCH flag means honest search-not-configured, not simulated "live".
 - server.js: POST /api/requests/:requestId/market-scan; labels indicative results for review, uses max 3 provider requests per scan by default, caches each provider query in memory for 30 minutes (until process restart). The 1688 source is included among the first three targets. Provider errors and query-count information are returned.
 - Existing localhost:8790 and localhost:8791 specialty proxy endpoints are untouched and must be tested independently. They are not guaranteed to be running.
 
@@ -26,7 +26,11 @@ No API key, credit card, paid subscription or external web access is needed for 
 ## Optional live search (requires separate user action)
 Live search is **disabled by default even if credentials are present**. Activation needs MARKET_ENABLE_LIVE_SEARCH=true in the server environment and explicit owner approval. Do not enable until provider-side spend controls are set.
 
-For Brave, create a Brave Search API account, confirm its spend controls and obtain a Search API key, then set BRAVE_SEARCH_API_KEY in the server process environment. **Do not commit credentials**. Brave currently advertises $5 monthly credits; credit-card verification may still be required, so there is no claim that signup is frictionless or possible without financial information. See https://api-dashboard.search.brave.com/documentation/pricing and https://api-dashboard.search.brave.com/documentation/resources/help-feedback .
+**Recommended $0 / no-card option:** Tavily Researcher advertises 1,000 API credits per month (basic search costs 1 credit) with no credit card. Register at https://app.tavily.com/ and set TAVILY_API_KEY in server environment (never in GitHub), plus MARKET_ENABLE_LIVE_SEARCH=true when authorized. Official references: https://tavily.com/pricing and https://docs.tavily.com/documentation/api-reference/endpoint/search .
+
+**Alternative:** Serper advertises 2,500 free search queries at signup without a credit card; set SERPER_API_KEY instead. It uses public Google search indexing. See https://serper.dev/ . Trial results may differ in 1688 indexing and real-time freshness.
+
+**Secondary option, needs a payment method for identity verification:** For Brave, create a Brave Search API account, confirm its spend controls and obtain a Search API key, then set BRAVE_SEARCH_API_KEY in the server process environment. **Do not commit credentials**. Brave currently advertises $5 monthly credits; credit-card verification may still be required, so there is no claim that signup is frictionless or possible without financial information. See https://api-dashboard.search.brave.com/documentation/pricing and https://api-dashboard.search.brave.com/documentation/resources/help-feedback .
 
 If you already have a valid Google Custom Search JSON API key and CSE ID, legacy GOOGLE_CSE_API_KEY + GOOGLE_CSE_ID remain a temporary fallback. Google has announced that these integrations need transition by January 1, 2027: https://programmablesearchengine.googleblog.com/2026/01/updates-to-our-web-search-products.html . Do not acquire a new Google account/key as a long-term solution.
 
@@ -34,7 +38,7 @@ Optional MARKET_MAX_SEARCH_QUERIES accepts an integer from 1 to 6 (default 3). T
 
 ## Real-world acceptance test (not done yet)
 1. Select 5 dissimilar products and exact quantities/specifications from the user.
-2. Run a real provider with its approved credentials and record API cost, elapsed time and per-platform coverage.
+2. Run a real provider with its approved credentials (prefer Tavily or Serper free tiers) and record API credits, elapsed time and per-platform coverage.
 3. Confirm at least two independently sourced, relevant price observations for each test product (or document genuine unavailable-price cases).
 4. Inspect product pages manually to validate price units, dimensions, quantity tiers and updated prices. Identify mismatches rather than hiding them.
 5. Test retries/provider errors, empty results, and operation with exhausted quota.
