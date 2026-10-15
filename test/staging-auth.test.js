@@ -50,6 +50,6 @@ test('hosted demo requires login before serving any Procurement data',async()=>{
    assert.equal(r.status,403);
    r=await fetch(base+'/',{headers:good});
    assert.equal(r.status,200);
-   assert.match(await r.text(),/Procurement Command Center/);
+   assert.match(await r.text(),/ALHARIR · مركز قيادة المشتريات/);
  }finally{child.kill('SIGTERM')}
 });
