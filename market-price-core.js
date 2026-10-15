@@ -2,7 +2,7 @@
 // Search snippet evidence is provisional; no website bypass or fabricated quotations.
 function parsePrices(input) {
   const text=String(input||'');
-  const re=/(USD|US\s*\$|RMB|CNY|CN¥|\$|¥|￥)\s*[:：]?\s*(\d+(?:,\d{3})*(?:\.\d+)?)|(\d+(?:,\d{3})*(?:\.\d+)?)\s*(USD|US\s*\$|RMB|CNY|CN¥|¥|￥)/gi;
+  const re=/(USD|US\s*\$|RMB|CNY|CN¥|\$|¥|￥|元)\s*[:：]?\s*(\d+(?:,\d{3})*(?:\.\d+)?)|(\d+(?:,\d{3})*(?:\.\d+)?)\s*(USD|US\s*\$|RMB|CNY|CN¥|¥|￥|元)/gi;
   const prices=[];
   for (const m of text.matchAll(re)) {
     const token=String(m[1]||m[4]).toUpperCase();
@@ -14,7 +14,8 @@ function parsePrices(input) {
     const range=after.match(/^\s*[-–—~]\s*(\d+(?:,\d{3})*(?:\.\d+)?)/);
     const rangeMax=range?Number(range[1].replace(/,/g,'')):null;
     if(range)after=after.slice(range[0].length);
-    const found=after.match(/^\s*(?:\/\s*|per\s+|each\s+)(?:([mM](?:2|²)|sqm|sq\.?\s*m|㎡|square\s*met(?:er|re)s?)|([pP]c|piece|pieces)|([sS]et|sets)|([kK]g)|([uU]nit|units)|([mM]et(?:er|re)s?))/i);
+    after=after.replace(/^\s*元\s*/, '');
+    const found=after.match(/^\s*(?:\/\s*|per\s+|each\s+)(?:([mM](?:2|²)|sqm|sq\.?\s*m|㎡|平方米|平米|square\s*met(?:er|re)s?)|([pP]c|piece|pieces|件|个|片)|([sS]et|sets|套)|([kK]g|公斤|千克)|([uU]nit|units)|([mM]et(?:er|re)s?|米))/i);
     const unit=!found?null:found[1]?'sqm':found[2]?'piece':found[3]?'set':found[4]?'kg':found[5]?'unit':'meter';
     prices.push({amount,currency,unit,rangeMax:Number.isFinite(rangeMax)&&rangeMax>amount?rangeMax:null,raw:m[0].trim(),evidence:'unverified-search-snippet'});
   }
