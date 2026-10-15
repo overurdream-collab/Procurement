@@ -1,0 +1,97 @@
+{
+  "observationDate": "2026-10-15",
+  "status": "MANUALLY OBSERVED PUBLIC SOURCES — NOT LIVE API RESULTS",
+  "caveat": "Prices are unverified commercial listings. Samples intentionally span distinct specs, seller terms and units. Do not merge them as comparable quotes.",
+  "cases": [
+    {
+      "name": "100mm PU cold-room insulation panel",
+      "product": "100mm PU cold room insulated panel",
+      "sources": [
+        {
+          "platform": "Made-in-China",
+          "url": "https://china-coldroom.en.made-in-china.com/product-list-3.html",
+          "title": "100mm PU panel 0.326mm color steel",
+          "snippet": "FOB Price: US $19.5 / Square Meter; Min Order: 100 Square Meters"
+        },
+        {
+          "platform": "Made-in-China",
+          "url": "https://www.made-in-china.com/price/prodetail_Cold-Room_XGUrdFpKCRcY.html",
+          "title": "PU panel 100-200mm",
+          "snippet": "US$19.60 / Square Meter; MOQ 1 Square Meter"
+        }
+      ]
+    },
+    {
+      "name": "100mm insulated sliding cold room door",
+      "product": "100mm cold room sliding door",
+      "sources": [
+        {
+          "platform": "Alibaba",
+          "url": "https://www.alibaba.com/showroom/cold-room-fast-shutter-doors.html",
+          "title": "100mm sliding door",
+          "snippet": "US$235.00-US$298.00 per set; MOQ 1 set"
+        },
+        {
+          "platform": "Made-in-China",
+          "url": "https://www.made-in-china.com/price/prodetail_Cold-Room_RTqpilexJYcs.html",
+          "title": "Cold Storage Sliding Door 100mm",
+          "snippet": "US$249.00; 1 Piece (MOQ)"
+        }
+      ]
+    },
+    {
+      "name": "2HP R410A rotary refrigeration compressor",
+      "product": "2HP R410A rotary compressor",
+      "sources": [
+        {
+          "platform": "Made-in-China",
+          "url": "https://www.made-in-china.com/price/prodetail_Rotary-Compressor_FGQrpHEUjtVY.html",
+          "title": "GMCC PA170M2A 2HP R410A rotary compressor",
+          "snippet": "US$120.00 for 5-19 sets"
+        },
+        {
+          "platform": "Alibaba",
+          "url": "https://www.alibaba.com/countrysearch/CN/2-hp-refrigeration-compressor.html",
+          "title": "Other 2HP compressor models, different type",
+          "snippet": "R404A 2HP semi-hermetic compressor US$880 - 900; MOQ 1 set"
+        }
+      ]
+    },
+    {
+      "name": "2HP cold-room evaporator",
+      "product": "2HP cold room air cooler evaporator",
+      "sources": [
+        {
+          "platform": "Alibaba",
+          "url": "https://www.alibaba.com/countrysearch/CN/cooling-evaporators.html",
+          "title": "2HP defrost wall mounted evaporator",
+          "snippet": "US$215 - 220; MOQ 5 units"
+        },
+        {
+          "platform": "Made-in-China",
+          "url": "https://www.made-in-china.com/price/prodetail_Cold-Room_qswEBJWrZckU.html",
+          "title": "DD DJ DL cold-room unit cooler",
+          "snippet": "US$200.00 - 500.00; MOQ 1 Piece"
+        }
+      ]
+    },
+    {
+      "name": "Danfoss T2 TE2 expansion valve",
+      "product": "Danfoss T2 TE2 thermostatic expansion valve",
+      "sources": [
+        {
+          "platform": "Alibaba",
+          "url": "https://www.alibaba.com/countrysearch/CN/refrigeration-expansion-valves.html",
+          "title": "Danfoss T2 TE2 expansion valves",
+          "snippet": "US$29.36 - 46.60; MOQ 1"
+        },
+        {
+          "platform": "Made-in-China",
+          "url": "https://www.made-in-china.com/products-search/hot-china-products/Danfoss_Expansion_Valve_Price.html",
+          "title": "TES2, different model, cannot compare directly",
+          "snippet": "US$10.00-20.00; MOQ 1 Piece"
+        }
+      ]
+    }
+  ]
+}

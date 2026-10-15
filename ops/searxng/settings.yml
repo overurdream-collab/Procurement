@@ -1,0 +1,10 @@
+# Local-only SearXNG configuration. Bind the container port to host 127.0.0.1 only.
+use_default_settings: true
+search:
+  formats:
+    - html
+    - json
+server:
+  limiter: false
+  public_instance: false
+  image_proxy: false

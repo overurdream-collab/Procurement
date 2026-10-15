@@ -1,0 +1,32 @@
+name: Market research POC tests
+on:
+  push:
+    branches:
+      - fix/evidence-based-market-research-20261015
+  pull_request:
+    paths:
+      - 'market-price-core.js'
+      - 'market-index-search.js'
+      - 'server.js'
+      - 'public/index.html'
+      - 'test/market-*.test.js'
+      - '.github/workflows/market-research-tests.yml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax-check server and modules
+        run: |
+          node --check server.js
+          node --check market-price-core.js
+          node --check market-index-search.js
+          node --check market-scan.js
+      - name: Run standalone no-credentials tests
+        run: node --test test/market-price-core.test.js test/market-index-search.test.js test/market-scan.integration.test.js test/public-price-evidence.integration.test.js

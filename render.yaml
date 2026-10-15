@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: alharir-public-site-preview
+    runtime: static
+    staticPublishPath: ./alharir-site
+    buildCommand: echo 'ALHARIR static content ready'
+    autoDeployTrigger: off
+  - type: web
+    name: alharir-procurement-private-demo
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: node --check server.js && node --test test/market-price-core.test.js test/market-index-search.test.js test/market-scan.integration.test.js test/public-price-evidence.integration.test.js test/staging-auth.test.js
+    startCommand: node server.js
+    healthCheckPath: /health/live
+    autoDeployTrigger: off
+    envVars:
+      - key: STAGING_HOSTED
+        value: 'true'
+      - key: STAGING_DEMO
+        value: 'true'
+      - key: HOSTED_ACCESS_USER
+        sync: false
+      - key: HOSTED_ACCESS_PASSWORD
+        sync: false
+      - key: MARKET_ENABLE_LIVE_SEARCH
+        value: 'false'
+      - key: MARKET_MAX_SEARCH_QUERIES
+        value: '3'
