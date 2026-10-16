@@ -37,6 +37,9 @@ async function registerManualMarketLinks(){
 
 function marketLeadPanel(data){
  marketLeadResult=data;marketLeadContacts={};
+ const active=typeof selectedMarketRequest==='function'?selectedMarketRequest():null;
+ const attach=!!active&&String(active.product||'').trim().toLowerCase()===String(data.query||'').trim().toLowerCase();
+
  if(!data.searchId||!data.results?.length)return '';
  const rows=data.results.map(x=>{
    const i=x.index;
@@ -58,11 +61,14 @@ function marketLeadPanel(data){
   '<p class="muted">اختر الشركات التي تريد التعامل معها، وتحقق من اسم الشركة والموقع والبريد. لا يعتمد النظام البريد المستخرج تلقائيًا ولا يرسل رسائل جماعية.</p></div>'+
   '<div style="max-height:500px;overflow-y:auto">'+rows+'</div>'+
   '<h3>تفاصيل طلب عرض الأسعار</h3>'+
-  '<input id="ml-product" class="ml-field" maxlength="160" value="'+mEsc(data.query)+'" placeholder="المنتج">'+
-  '<input id="ml-quantity" class="ml-field" maxlength="100" placeholder="الكمية المطلوبة — إلزامية">'+
-  '<textarea id="ml-specs" class="ml-field" rows="3" maxlength="1500" placeholder="المواصفات الفنية المطلوبة — إلزامية"></textarea>'+
-  '<p class="muted">شروط العرض: FOB فقط. يجب مراجعة رسائل كل شركة قبل الإرسال.</p>'+
-  '<button class="btn primary" id="ml-convert" onclick="convertMarketLeads()">إنشاء RFQ للموردين المختارين — دون إرسال</button>'+
+  (active?'<label class="approval-details" style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="ml-attach-existing" '+
+     (attach?'checked':'')+'><span>إضافة الموردين المحددين إلى طلب الشراء الحالي: <b>'+mEsc(active.id)+'</b><br>'+
+     '<small class="muted">إذا لم تؤشر هذا الخيار، يُنشأ طلب RFQ جديد مستقل. لا يتم إرسال رسائل تلقائيًا.</small></span></label>':'')+
+  '<input id="ml-product" class="ml-field" maxlength="160" value="'+mEsc(attach?active.product:data.query)+'" placeholder="المنتج">'+
+  '<input id="ml-quantity" class="ml-field" maxlength="100" value="'+mEsc(attach?active.quantity:'')+'" placeholder="الكمية المطلوبة — إلزامية">'+
+  '<textarea id="ml-specs" class="ml-field" rows="3" maxlength="1500" placeholder="المواصفات الفنية المطلوبة — إلزامية">'+mEsc(attach?active.specifications:'')+'</textarea>'+
+  '<p class="muted">شروط العرض: FOB فقط. اختر الموردين بدقة وراجع العنوان والبريد قبل أي مراسلة.</p>'+
+  '<button class="btn primary" id="ml-convert" onclick="convertMarketLeads()">حفظ الموردين المختارين وتجهيز المسودات — دون إرسال</button>'+
   '<div id="ml-conversion-result" role="status" aria-live="polite" style="margin-top:14px"></div>'+
   '</div></div>';
 }
@@ -145,15 +151,20 @@ async function convertMarketLeads(){
  try{
   const r=await fetch('/api/market-intelligence/convert',{method:'POST',
    headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    searchId:data.searchId,selected,details:{product,quantity,specifications,incoterm:'FOB'}})});
+    searchId:data.searchId,selected,targetRequestId:document.getElementById('ml-attach-existing')?.checked?activeMarketRequestId():null,
+    details:{product,quantity,specifications,incoterm:'FOB'}})});
   const x=await r.json();if(!r.ok){status.textContent=x.message||x.error;return}
   lastCreatedRfqExport=x;
-  st.requests.unshift(x.request);st.suppliers.push(...x.suppliers);
+  if(x.attachedToExistingRequest){
+   const index=st.requests.findIndex(r=>r.id===x.request.id);
+   if(index>=0)st.requests[index]=x.request;
+  }else st.requests.unshift(x.request);
+  st.suppliers.push(...x.suppliers);
   selectedMarketRequestId=x.request.id;
-  status.innerHTML='<div class="safe">تم حفظ مسودة '+mEsc(x.request.id)+' مع '+x.suppliers.length+
-   ' موردين مختارين — لم تُرسل أي رسائل.</div>'+
-   (x.persistence==='temporary-demo'?'<p class="muted">تنبيه: هذه نسخة اختبار وبياناتها مؤقتة على Render.</p>':'')+
-   '<p><a href="/requests/'+encodeURIComponent(x.request.id)+'" class="btn">فتح طلب RFQ</a></p>'+
+  status.innerHTML='<div class="safe">'+(x.attachedToExistingRequest?'أُضيف الموردون إلى طلبك الموجود ':'تم إنشاء مسودة طلب جديدة ')+
+    mEsc(x.request.id)+' · '+x.suppliers.length+' موردين مختارين — لم تُرسل أي رسائل.</div>'+
+   (x.persistence==='temporary-demo'?'<p class="muted">تنبيه: بيانات هذه النسخة مؤقتة على Render.</p>':'')+
+   '<p><a href="/workspace.html?id='+encodeURIComponent(x.request.id)+'" class="btn">فتح تفاصيل الطلب والمراسلات</a></p>'+
    '<p><button class="btn" onclick="downloadMarketRFQ()">حفظ نسخة من الطلب والموردين والمسودات على جهازك</button></p>'+
    marketDraftHtml(x.drafts);
  }catch(e){status.textContent='تعذر الاتصال. تحقق من الطلبات قبل إعادة المحاولة.'}
