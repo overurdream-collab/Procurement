@@ -9,6 +9,11 @@ on:
       - 'public/executive-home.css'
       - 'public/agent-native-pilot.js'
       - 'public/ops-dashboard.js'
+      - 'public/request.html'
+      - 'public/executive-report.css'
+      - 'public/executive-report.js'
+      - 'public/workspace.html'
+      - 'public/mail-correspondence.js'
       - 'test/visual-qa.cjs'
       - '.github/workflows/ux-visual-qa.yml'
   workflow_dispatch:
