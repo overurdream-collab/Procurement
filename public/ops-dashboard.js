@@ -169,6 +169,14 @@ function dailyMarkup(r){
  const requestRows=(r.requests||[]).map(x=>
    '<tr><td data-label="رقم الطلب">'+dEsc(x.id)+'</td><td data-label="المنتج أو المشروع">'+dEsc(x.title)+'</td><td data-label="الحالة">'+dEsc(x.status)+
    '</td><td data-label="موردون">'+dEsc(x.supplierCount)+'</td><td data-label="عروض">'+dEsc(x.quotes)+'</td><td data-label="مقارنات">'+dEsc(x.comparableGroups)+'</td></tr>').join('');
+ const supplierRows=(r.supplierProgress||[]).map(x=>
+   '<tr><td data-label="الشركة">'+dEsc(x.supplier)+'</td>'+
+   '<td data-label="حالة المتابعة">'+dEsc(x.stage)+'</td>'+
+   '<td data-label="ردود">'+dEsc(x.replies)+'</td>'+
+   '<td data-label="عروض">'+dEsc(x.quotes)+'</td>'+
+   '<td data-label="عروض موثقة">'+dEsc(x.verifiedQuotes)+'</td>'+
+   (management?'<td data-label="آخر رد مسجل">'+dEsc(x.lastReplyAt||'غير مسجل')+'</td>':'')+
+   '</tr>').join('');
  const comparisonRows=(r.priceComparisons||[]).map(x=>
   '<tr><td data-label="البند">'+dEsc(x.product)+'</td><td data-label="أقل عرض متكافئ">'+dEsc(x.lowestSupplier)+'</td><td data-label="السعر">'+dAmount(x.lowestPrice)+
   ' '+dEsc(x.currency)+'/'+dEsc(x.unit)+'</td><td data-label="فرق السعر">'+dAmount(x.spreadForQuantity)+
@@ -196,6 +204,13 @@ function dailyMarkup(r){
    '<h3>متابعة الطلبات</h3><div class="table-scroll"><table><thead><tr>'+
    '<th>رقم الطلب</th><th>المنتج أو المشروع</th><th>الحالة</th><th>موردون</th><th>عروض</th><th>مقارنات</th>'+
    '</tr></thead><tbody>'+requestRows+'</tbody></table></div>'+
+   '<h3>متابعة الموردين والشركات</h3>'+
+   '<p class="muted">موقف السجل الحالي لكل مورد؛ لا تعني الردود اكتمال الأسعار، والبيانات الشهرية تراكمية.</p>'+
+   (supplierRows?'<div class="table-scroll"><table><thead><tr>'+
+     '<th>المورد</th><th>حالة المتابعة</th><th>ردود</th><th>عروض</th><th>موثقة</th>'+
+     (management?'<th>آخر رد مسجل</th>':'')+'</tr></thead><tbody>'+
+     supplierRows+'</tbody></table></div>':
+     '<p class="data-warning">لا توجد شركات ضمن نطاق التقرير.</p>')+
    '<h3>نتيجة تحليل الأسعار المتكافئة</h3>'+
    (comparisonRows?'<div class="table-scroll"><table><thead><tr>'+
     '<th>البند</th><th>الأقل سعرًا في المجموعة</th><th>السعر</th><th>فرق السعر على الكمية</th><th>عدد العروض</th>'+
@@ -220,6 +235,13 @@ function updateReportPeriod(){
 }
 async function loadDailyReport(){
  const output=document.getElementById('dailyReportOutput');if(!output)return;
+ const dateParts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{
+  timeZone:'Asia/Aden',year:'numeric',month:'2-digit',day:'2-digit'
+ }).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+ const localDay=dateParts.year+'-'+dateParts.month+'-'+dateParts.day;
+ const dayControl=document.getElementById('dailyDate'),monthControl=document.getElementById('monthlyDate');
+ if(dayControl&&!dayControl.value)dayControl.value=localDay;
+ if(monthControl&&!monthControl.value)monthControl.value=localDay.slice(0,7);
  const scope=field('dailyScope'),audience=field('dailyAudience')||'management',
  monthly=field('reportPeriod')==='monthly',date=monthly?field('monthlyDate'):field('dailyDate');
  dailyAudience=audience;output.textContent='جارٍ إعداد التقرير من البيانات المسجلة...';
@@ -251,6 +273,11 @@ function formatWeChatDailyText(r){
   '',
   'الإنجاز:',
   ...(safeList(r.achievements).length?safeList(r.achievements):['• لا توجد إنجازات جديدة مسجلة لهذا التاريخ']),
+  '',
+  'متابعة الموردين:',
+  ...((r.supplierProgress||[]).length?r.supplierProgress.slice(0,6).map(x=>
+    '• '+clean(x.supplier)+': '+clean(x.stage)+' | ردود '+(x.replies??0)+' | عروض '+(x.quotes??0)):
+   ['• لا توجد بيانات متابعة موردين مسجلة']),
   '',
   'مقارنة الأسعار:',
   ...(Array.isArray(r.priceComparisons)&&r.priceComparisons.length?
