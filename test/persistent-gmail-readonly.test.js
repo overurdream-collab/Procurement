@@ -30,7 +30,7 @@ class FakePool{
  async end(){this.ended=true}
 }
 const secret=crypto.randomBytes(32).toString('hex');
-const env={DATABASE_URL:'postgresql://test:test@database.example/alharir?sslmode=require',OAUTH_ENCRYPTION_KEY:secret,
+const env={DATABASE_URL:'postgresql://test:test@ep-synthetic.eu-central-1.aws.neon.tech/alharir?sslmode=require',OAUTH_ENCRYPTION_KEY:secret,
  PROCUREMENT_PRODUCTION:'true',PRODUCTION_ACCESS_USER:'alharir-admin',
  PRODUCTION_ACCESS_PASSWORD:'a-synthetic-test-password-greater-than-24-chars',
  APP_BASE_URL:'https://business.example',PRODUCTION_READONLY_MAIL:'true'};
