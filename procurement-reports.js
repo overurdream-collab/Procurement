@@ -182,7 +182,7 @@ function dailyReport(st,{requestId=null,date=null,audience='management'}={}){
  });
  return {type:'ALHARIR_DAILY_PROCUREMENT_REPORT',date:dateLabel,generatedAt:new Date().toISOString(),
   audience:publicBuyer?'buyer':'management',requestId:requestId||null,
-  company:'ALHARIR Shipping and Export',mode:process.env.STAGING_HOSTED==='true'?'synthetic-demo':'internal',
+  company:'ALHARIR Shipping and Export',mode:process.env.STAGING_HOSTED==='true'||/\bDEMO\b/i.test(st.project?.name||'')?'synthetic-demo':'internal',
   kpis:{requests:allRequests.length,suppliers:uniqueSuppliers.length,
    quoteRecords:q.quotesReviewed,verifiedQuotes:q.verifiedQuotes,
    comparableGroups:q.comparableGroups,actionsToday:acts.length,repliesToday:received.length,
