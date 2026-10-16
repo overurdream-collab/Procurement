@@ -27,6 +27,8 @@ function decryptOauth(payload,env){
 }
 function createStateStore({env=process.env,localFile,oauthFile,pgFactory}={}){
  const demo=env.STAGING_HOSTED==='true',postgres=!!env.DATABASE_URL&&!demo;
+ if(!demo&&env.DATABASE_URL&&env.PROCUREMENT_PRODUCTION!=='true')
+   throw Error('Durable database mode requires protected production access');
  if(env.PROCUREMENT_PRODUCTION==='true'&&!postgres)
    throw Error('Production requires DATABASE_URL and must not use demo storage');
  if(postgres)keyFromEnv(env);
