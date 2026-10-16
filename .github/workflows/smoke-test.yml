@@ -1,155 +1,57 @@
 name: Procurement Smoke Test
-
 on:
   workflow_dispatch:
   push:
-    branches: [ "ui/ecilab-design-system", "feature/new-request-market-intelligence", "feature/request-intelligence-workspace" ]
+    branches: ["alharir-free-hosting-poc"]
+    paths:
+      - 'server.js'
+      - 'public/index.html'
+      - 'public/request.html'
+      - 'public/workspace.html'
+      - 'public/executive-report.js'
+      - 'public/mail-correspondence.js'
+      - 'procurement-reports.js'
+      - 'gmail-request-link.js'
+      - 'test/phase2-procurement.integration.test.js'
+      - 'test/phase2-mail-correspondence.test.js'
+      - '.github/workflows/smoke-test.yml'
   pull_request:
-    branches: [ "main" ]
-
+    branches: ["main"]
 permissions:
   contents: read
-
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Syntax check
-        run: node --check server.js
-      - name: Start application
+      - name: Check server and browser script syntax
         run: |
-          node server.js > /tmp/procurement.log 2>&1 &
-          echo $! > /tmp/procurement.pid
-          for i in {1..20}; do
-            curl -fsS http://127.0.0.1:8787/api/state >/tmp/state.json && break
-            sleep 0.5
-          done
-          curl -fsS http://127.0.0.1:8787/ >/tmp/index.html
-          curl -fsS http://127.0.0.1:8787/request.html >/tmp/request.html
-          curl -fsS 'http://127.0.0.1:8787/workspace.html?id=RFQ-001' >/tmp/workspace.html
-      - name: Inline UI script syntax check
+          node --check server.js
+          node --check procurement-reports.js
+          node --check gmail-request-link.js
+          node --check public/ops-dashboard.js
+          node --check public/executive-report.js
+          node --check public/mail-correspondence.js
+          node --check public/agent-native-pilot.js
+          node - <<'NODE'
+          const fs=require('fs');
+          for(const file of ['public/index.html','public/request.html','public/workspace.html']){
+            const src=fs.readFileSync(file,'utf8');
+            const scripts=[...src.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+            if(!scripts.length)throw Error('Missing inline script: '+file);
+            for(const [,script] of scripts)new Function(script);
+          }
+          NODE
+      - name: Integrated staging access, new request, price rules, Gmail dates and attachments
         run: |
-          node -e "const fs=require('fs');const h=fs.readFileSync('public/index.html','utf8');const m=h.match(/<script>([\s\S]*?)<\/script>/);if(!m)throw new Error('inline script missing');new Function(m[1]);"
-
-      - name: API and UI assertions
-        run: |
-          grep -q '"activeRfq":"RFQ-001"' /tmp/state.json
-          grep -q '"dryRun":true' /tmp/state.json
-          grep -q '"requirePerMessageApproval":true' /tmp/state.json
-          grep -q 'PROCUREMENT COMMAND CENTER' /tmp/index.html
-          grep -q 'Compliance' /tmp/index.html
-          grep -q 'AI Assistant' /tmp/index.html
-          grep -q 'request.html' /tmp/index.html
-          grep -q 'New Procurement Request' /tmp/request.html
-          grep -q 'AI Market Intelligence' /tmp/request.html
-          grep -q 'Request Intelligence Workspace' /tmp/workspace.html
-          grep -q 'Procurement AI Copilot' /tmp/workspace.html
-          grep -q 'Supplier Pipeline Overview' /tmp/index.html
-          grep -q 'chart-grid' /tmp/index.html
-          grep -q 'class="ic"' /tmp/index.html
-          grep -q '#030A28' /tmp/index.html
-      - name: Verify follow-up safety gate
-        run: |
-          code=$(curl -sS -o /tmp/followup.json -w "%{http_code}" -X POST             -H "Content-Type: application/json"             -d '{"action":"followup"}'             http://127.0.0.1:8787/api/agent/run)
-          test "$code" = "409"
-          grep -q 'dry_run_enabled' /tmp/followup.json
-      - name: Verify request and market intelligence API
-        run: |
-          req=$(curl -fsS -X POST -H "Content-Type: application/json" -d '{"title":"Test Pump","product":"pump","quantity":"10","currency":"USD","incoterm":"FOB"}' http://127.0.0.1:8787/api/requests)
-          id=$(node -e "let x=JSON.parse(process.argv[1]);process.stdout.write(x.id)" "$req")
-          test -n "$id"
-          scan=$(curl -fsS -X POST -H "Content-Type: application/json" -d '{}' "http://127.0.0.1:8787/api/requests/$id/market-scan")
-          node -e "let x=JSON.parse(process.argv[1]);if(!x.id||x.requestId!==process.argv[2]||typeof x.confidence!=='number')process.exit(1)" "$scan" "$id"
-      - name: Verify request intelligence workspace and copilot
-        run: |
-          ws=$(curl -fsS http://127.0.0.1:8787/api/requests/RFQ-001/workspace)
-          node -e "let x=JSON.parse(process.argv[1]);if(!x.workspace||!x.workspace.analysisRules||!x.workspace.scenarios)process.exit(1)" "$ws"
-          cp=$(curl -fsS -X POST -H "Content-Type: application/json" -d '{"message":"التجميع والتركيب سيكون في صنعاء"}' http://127.0.0.1:8787/api/requests/RFQ-001/copilot)
-          node -e "let x=JSON.parse(process.argv[1]);if(!x.executed||x.executed.length<1||!x.workspace.changeHistory.length)process.exit(1)" "$cp"
-      - name: Verify conversational Procurement AI Copilot
-        run: |
-          ask=$(curl -fsS -X POST -H "Content-Type: application/json" -d '{"message":"كم عدد الموردين في RFQ-001؟"}' http://127.0.0.1:8787/api/requests/RFQ-001/copilot)
-          node -e "let x=JSON.parse(process.argv[1]);if(x.intent!=='ask'||!/مورد/.test(x.reply))process.exit(1)" "$ask"
-          spec=$(curl -fsS -X POST -H "Content-Type: application/json" -d '{"message":"ماهي مواصفات المواد في RFQ-001؟"}' http://127.0.0.1:8787/api/requests/RFQ-001/copilot)
-          node -e "let x=JSON.parse(process.argv[1]);if(x.intent!=='ask'||!/0°C/.test(x.reply))process.exit(1)" "$spec"
-          act=$(curl -fsS -X POST -H "Content-Type: application/json" -d '{"message":"أضف شرط أن المورد يجب أن يكون من الصين"}' http://127.0.0.1:8787/api/requests/RFQ-001/copilot)
-          node -e "let x=JSON.parse(process.argv[1]);if(x.intent!=='act'||!x.executed.length||x.executed[0].status!=='Confirmed Decision')process.exit(1)" "$act"
-      - name: Verify Market Intelligence and Approvals UI wiring
-        run: |
-          grep -F 'dashboard:executiveHomeView,reports:dailyView,rfq:rfqView,suppliers,responses' public/index.html
-          grep -F "show('approvals');toast" public/index.html
-          curl -fsS -X POST -H "Content-Type: application/json" -d '{}' http://127.0.0.1:8787/api/requests/RFQ-001/market-scan | grep -q '"requestId":"RFQ-001"'
-          curl -fsS -X PATCH -H "Content-Type: application/json" -d '{"status":"approved"}' http://127.0.0.1:8787/api/approvals/A1 | grep -q '"status":"approved"'
-          curl -fsS -X PATCH -H "Content-Type: application/json" -d '{"status":"pending"}' http://127.0.0.1:8787/api/approvals/A1 | grep -q '"status":"pending"'
-      - name: Verify reliable hash navigation and quote visibility
-        run: |
-          grep -F "window.addEventListener('hashchange'" public/index.html
-          grep -F "function render(v)" public/index.html
-          grep -F 'function comparisonView()' public/ops-dashboard.js
-      - name: Verify shared UI escape helper exists
-        run: |
-          grep -F "function esc(v)" public/index.html
-      - name: Verify structured quote comparison
-        run: |
-          curl -fsS http://127.0.0.1:8787/api/state | grep -q '"Q-Emaar-001"'
-          curl -fsS http://127.0.0.1:8787/api/state | grep -q '"panel_door_manufacturer"'
-          curl -fsS http://127.0.0.1:8787/api/price-comparison | grep -q '"comparisons"'
-          curl -fsS http://127.0.0.1:8787/api/daily-report | grep -q '"kpis"'
-      - name: Verify conversation and comparison detail flows
-        run: |
-          grep -F "function openConversation(id)" public/index.html
-          grep -F "فتح سجل المراسلات" public/index.html
-          grep -F "function loadComparisons()" public/ops-dashboard.js
-      - name: Verify Gmail project-reply detection
-        run: |
-          grep -F '"Fresh Produce Cold Room" newer_than:90d' server.js
-          grep -F "sales@emaarllc.com" data.json
-          grep -F "function gmailView()" public/index.html
-      - name: Verify Gmail reply linking and relinking
-        run: |
-          grep -F "st.gmailReplies.unshift(rec)" server.js
-          grep -F "relinked" server.js
-          grep -F "sales@emaarllc.com" data.json
-      - name: Verify deterministic Gmail reconciliation
-        run: |
-          grep -F '"Fresh Produce Cold Room" newer_than:90d' server.js
-          grep -F "st.correspondence||[]" server.js
-          grep -F "gmailSyncStatus" server.js
-          grep -F "آخر مزامنة" public/index.html
-      - name: Verify supplier-domain matching and internal-mail filtering
-        run: |
-          grep -F "function internalSender(from)" server.js
-          grep -F "emaarllc.com" server.js
-          grep -F "numbersinchina@gmail.com" server.js
-          grep -F "if(internalSender(from))continue" server.js
-      - name: Verify UI reply normalization
-        run: |
-          grep -F "function internalReplySender(from)" public/index.html
-          grep -F "function supplierIdForReply(m)" public/index.html
-          grep -F "unmatched=allReplies().filter" public/index.html
-          grep -F "emaarllc.com" public/index.html
-      - name: Verify verified RFQ repliers and mail filtering
-        run: |
-          grep -F "function ensureVerifiedRfqSuppliers(st)" server.js
-          grep -F "sophia@moonrefrigeration.com" server.js
-          grep -F "sales3@dmllcn.com" server.js
-          grep -F "function projectReply(m)" public/index.html
-          ! grep -F "'newer_than:14d -from:me'" server.js
-      - name: Static responsive and RTL assertions
-        run: |
-          grep -q 'dir="rtl"' /tmp/index.html
-          grep -q '@media(max-width:900px)' /tmp/index.html
-          grep -q '@media(max-width:520px)' /tmp/index.html
-          grep -q 'viewport-fit=cover' /tmp/index.html
-          grep -q "localStorage.setItem('procurement-theme'" /tmp/index.html
-          grep -q 'class="side-nav"' /tmp/index.html
-      - name: Stop application
-        if: always()
-        run: |
-          test ! -f /tmp/procurement.pid || kill $(cat /tmp/procurement.pid) || true
-          cat /tmp/procurement.log || true
+          node --test --test-concurrency=1 \
+            test/staging-auth.test.js \
+            test/procurement-reports.test.js \
+            test/phase2-procurement.integration.test.js \
+            test/phase2-mail-correspondence.test.js \
+            test/navigation-report.contract.test.js \
+            test/home-monthly-integration.test.js
