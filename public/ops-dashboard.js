@@ -72,7 +72,7 @@ function dailyView(){
 }
 function comparisonView(){
  return '<section class="page-intro"><div><span class="eyebrow">EVIDENCE BASED BID LEVELING</span>'+
-   '<h2>تحليل عروض الأسعار الفعلية</h2><p>لا يتم ترتيب أسعار غير موثقة أو بوحدات وكمية وشروط تجارية غير متكافئة.</p></div></section>'+
+   '<h2>تحليل الطلبات ومقارنة العروض</h2><p>اختر أمر الشراء لمراجعة عروض مورديه. لا نقارن الأسعار غير الموثقة أو المختلفة في شروط FOB والمواصفات والوحدات.</p></div></section>'+
    '<div class="report-toolbar no-print"><label>طلب الشراء <select id="comparisonScope" onchange="loadComparisons()">'+reportOptions()+'</select></label>'+
    '<button class="btn primary" onclick="loadComparisons()">تحديث المقارنة</button>'+
    '<button class="btn" onclick="document.getElementById(\'quoteEntryForm\').hidden=!document.getElementById(\'quoteEntryForm\').hidden">إضافة عرض أسعار مستلم</button></div>'+
@@ -80,10 +80,10 @@ function comparisonView(){
    quoteEntryForm();
 }
 function quoteEntryForm(){
- const supplierOptions=(st.suppliers||[]).map(s=>'<option value="'+dEsc(s.id)+'">'+dEsc(s.name)+'</option>').join('');
+ const supplierOptions='<option value="">اختر المورد المرتبط بالطلب</option>';
  return '<section class="panel no-print" id="quoteEntryForm" hidden><div class="ph"><h2>إدخال عرض سعر مستلم — مراجعة المستند إلزامية</h2></div>'+
  '<div class="pb"><div class="approval-details" style="display:block">كل سعر يُسجّل أولاً كعرض غير موثق. يجب تحديد الدليل والمراجعة لاحقًا قبل استخدامه في المقارنة.</div>'+
- '<div class="form-grid"><label>الطلب <select id="qeRequest">'+(st.requests||[]).map(r=>
+ '<div class="form-grid"><label>الطلب <select id="qeRequest" onchange="syncQuoteSupplierOptions()">'+(st.requests||[]).map(r=>
  '<option value="'+dEsc(r.id)+'">'+dEsc(r.id)+' — '+dEsc(r.product||r.title)+'</option>').join('')+'</select></label>'+
  '<label>المورد <select id="qeSupplier">'+supplierOptions+'</select></label>'+
  '<label>العملة <select id="qeCurrency"><option>USD</option><option>CNY</option><option>EUR</option><option>YER</option></select></label>'+
@@ -97,6 +97,15 @@ function quoteEntryForm(){
  '<label>تفاصيل المواصفات <textarea id="qeSpecs" rows="2" placeholder="المادة والسمك والموديل والضمان أو شروط المطابقة"></textarea></label>'+
  '<button class="btn primary" onclick="saveStructuredQuote()">تسجيل العرض للمراجعة</button>'+
  '<p id="qeStatus" aria-live="polite" class="muted"></p></div></section>';
+}
+function syncQuoteSupplierOptions(){
+ const requestId=document.getElementById('qeRequest')?.value,request=(st.requests||[]).find(r=>r.id===requestId);
+ const input=document.getElementById('qeSupplier');if(!input||!request)return;
+ const ids=new Set(request.selectedSupplierIds||[]),old=input.value;
+ const suppliers=(st.suppliers||[]).filter(s=>ids.has(s.id)||s.associatedRequestId===requestId);
+ input.replaceChildren(new Option('اختر المورد المرتبط بالطلب',''));
+ for(const s of suppliers)input.append(new Option(s.name,s.id));
+ if(suppliers.some(s=>s.id===old))input.value=old;
 }
 const field=id=>document.getElementById(id)?.value?.trim()||'';
 async function saveStructuredQuote(){
@@ -158,10 +167,20 @@ async function verifyQuotation(id){
 async function loadComparisons(){
  const output=document.getElementById('comparisonOutput');if(!output)return;
  const scope=field('comparisonScope');output.textContent='جارٍ مقارنة العروض...';
+ const requestControl=document.getElementById('qeRequest');
+ if(requestControl&&scope&&[...requestControl.options].some(o=>o.value===scope))requestControl.value=scope;
+ syncQuoteSupplierOptions();
  try{
   const r=await fetch('/api/price-comparison'+(scope?'?requestId='+encodeURIComponent(scope):'')),data=await r.json();
   if(!r.ok){output.textContent=data.error||'تعذر قراءة المقارنات';return}
-  comparisonSnapshot=data;output.innerHTML=comparisonMarkup(data);
+  comparisonSnapshot=data;
+  output.innerHTML=(scope?
+   '<div class="approval-details" style="display:block;margin:12px 0"><b>تحليل الطلب '+dEsc(scope)+'</b>'+
+   '<p class="muted">فروق الأسعار لا تمثل توفيرًا محققًا. تُقارن العروض الموثقة والمتطابقة فقط.</p>'+
+   '<div class="actions"><a class="btn" href="/workspace.html?id='+encodeURIComponent(scope)+'">مساحة الطلب</a>'+
+   '<a class="btn" href="/?requestId='+encodeURIComponent(scope)+'#market">البحث عن موردين</a>'+
+   '<a class="btn" href="/?requestId='+encodeURIComponent(scope)+'#reports">تقرير الطلب</a></div></div>':'')+
+   comparisonMarkup(data);
  }catch(e){output.textContent='تعذر الاتصال بالخادم.'}
 }
 function dailyMarkup(r){
