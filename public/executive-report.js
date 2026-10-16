@@ -22,13 +22,22 @@ function executiveReportMarkup(r){
  const badge=stats.map((s,i)=>'<div class="eod-stat eod-stat-'+i+'"><small>'+E(s.label)+'</small>'+
   '<b>'+E(s.value)+'</b><span>'+s.sub+'</span></div>').join('');
  const quoteBars=comp.length?(()=>{
-  const largest=Math.max(1,...comp.map(x=>Number(x.lowestPrice)||0));
-  return comp.slice(0,4).map((c,i)=>{
-   const val=Number(c.lowestPrice)||0,pct=val/largest*100;
-   return '<div class="eod-price-row"><div><b>'+E(c.product)+'</b><small>'+
-    E(c.lowestSupplier||'أقل عرض متكافئ')+' · '+E(c.comparableSuppliers)+' موردين</small></div>'+
+  const listings=comp.flatMap(group=>{
+   const rows=management&&Array.isArray(group.rows)&&group.rows.length?group.rows.slice(0,5):null;
+   if(rows)return rows.map(row=>({
+     label:row.supplier,value:row.unitPrice,unit:group.unit,currency:group.currency,
+     detail:group.product,verified:true
+   }));
+   return [{label:group.lowestSupplier||'أقل عرض متكافئ',value:group.lowestPrice,
+    unit:group.unit,currency:group.currency,detail:group.product,verified:true}];
+  }).slice(0,6);
+  const max=Math.max(1,...listings.map(x=>Number(x.value)||0));
+  return listings.map(c=>{
+   const price=Number(c.value)||0,pct=Math.max(0,Math.min(100,price/max*100));
+   return '<div class="eod-price-row"><div><b>'+E(c.label)+'</b><small>'+
+    E(c.detail)+'</small></div>'+
     '<div class="eod-bar-track"><span class="eod-bar-fill" style="width:'+pct.toFixed(1)+'%"></span></div>'+
-    '<strong>'+number(val)+' '+E(c.currency)+' / '+E(c.unit)+'</strong></div>';
+    '<strong>'+number(price)+' '+E(c.currency)+' / '+E(c.unit)+'</strong></div>';
   }).join('');
  })():'<div class="eod-empty"><strong>لا توجد مقارنة سعرية موثقة بعد</strong>'+
   '<p>لن نرتب عروض EXW مع FOB أو نقارن البنود مختلفة الوحدات والمواصفات والكمية. أدخل العروض المستلمة وراجع مستنداتها أولًا.</p></div>';
