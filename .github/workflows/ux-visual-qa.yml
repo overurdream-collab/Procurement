@@ -13,6 +13,8 @@ on:
       - 'public/executive-report.css'
       - 'public/executive-report.js'
       - 'public/workspace.html'
+      - 'public/workspace-view.css'
+      - 'public/workspace-view.js'
       - 'public/mail-correspondence.js'
       - 'test/visual-qa.cjs'
       - '.github/workflows/ux-visual-qa.yml'
