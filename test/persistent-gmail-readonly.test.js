@@ -10,6 +10,8 @@ class FakePool{
   if(sql.startsWith('INSERT INTO alharir_state')){
    if(!fakeDb.state)fakeDb.state=JSON.parse(args[0]);return {rows:[],rowCount:1};
   }
+  if(sql.startsWith('SELECT id FROM alharir_state'))return {rows:fakeDb.state?[{id:1}]:[],rowCount:fakeDb.state?1:0};
+  if(sql.startsWith('SELECT key FROM alharir_secrets LIMIT 0'))return {rows:[],rowCount:0};
   if(sql.startsWith('SELECT revision,payload')){
    return {rows:[{revision:fakeDb.revision.toString(),payload:JSON.parse(JSON.stringify(fakeDb.state))}],rowCount:1};
   }
@@ -42,7 +44,7 @@ test('production mode cannot accidentally store real data on demo or local files
  assert.throws(()=>createStateStore({env:{...env,DATABASE_URL:''},localFile:'data.json'}));
 });
 test('durable empty start, version-controlled updates and verified reload across instances',async()=>{
- fakeDb.state=null;fakeDb.revision=0n;fakeDb.secret=null;
+ fakeDb.state=JSON.parse(JSON.stringify(require('../persistent-store').INITIAL_STATE()));fakeDb.revision=0n;fakeDb.secret=null;
  const first=createStateStore({env,pgFactory:FakePool}),other=createStateStore({env,pgFactory:FakePool});
  const a=await first.load(),b=await other.load();
  assert.deepEqual(a.requests,[]);
@@ -58,6 +60,13 @@ test('durable empty start, version-controlled updates and verified reload across
  assert.equal(fresh.requests[0].id,'TEST-1');
  assert.equal((await other.diagnostics()).durable,true);
  await first.close();await other.close();
+});
+test('production refuses an uninitialized database rather than silently seeding it',async()=>{
+ fakeDb.state=null;
+ const storage=createStateStore({env,pgFactory:FakePool});
+ await assert.rejects(()=>storage.ready(),/production_database_not_initialized/);
+ await storage.close();
+ fakeDb.state=JSON.parse(JSON.stringify(require('../persistent-store').INITIAL_STATE()));
 });
 test('OAuth refresh token stored only as AES-256-GCM ciphertext with integrity protection',async()=>{
  const store=createStateStore({env,pgFactory:FakePool});
