@@ -163,6 +163,23 @@ function dailyReport(st,{requestId=null,date=null,audience='management'}={}){
       'تم تسجيل '+q.quotes.filter(x=>day(x.receivedAt)===dateLabel).length+' عروض مستلمة اليوم (قد تحتاج مراجعة)']:[])
  ];
  const publicBuyer=audience==='buyer';
+ // Evidence-grounded supplier follow-up, without claiming messages were sent.
+ // The buyer version intentionally anonymizes supplier identity and hides internal notes.
+ const supplierProgress=uniqueSuppliers.slice(0,30).map((s,i)=>{
+   const supplierQuotes=q.quotes.filter(x=>x.supplierId===s.id);
+   const replies=(st.gmailReplies||[]).filter(x=>x.supplierId===s.id&&
+     (!requestId||!x.requestId||x.requestId===requestId));
+   const latest=[...replies].sort((a,b)=>new Date(b.receivedAt||b.time||0)-new Date(a.receivedAt||a.time||0))[0];
+   const verified=supplierQuotes.filter(x=>x.verified).length;
+   const stage=verified?'عرض موثق':supplierQuotes.length?'عرض مسجل بحاجة مراجعة':
+     replies.length?'رد مورد مسجل':'لا يوجد رد أو عرض مسجل';
+   return {
+     supplier:publicBuyer?'مورد '+String(i+1).padStart(2,'0'):clean(s.name)||'مورد غير محدد',
+     stage,quotes:supplierQuotes.length,verifiedQuotes:verified,replies:replies.length,
+     ...(publicBuyer?{}:{lastReplyAt:latest?.receivedAt||latest?.time||null,
+      recordedStatus:clean(s.status||''),supplierId:s.id})
+   };
+ });
  return {type:'ALHARIR_DAILY_PROCUREMENT_REPORT',date:dateLabel,generatedAt:new Date().toISOString(),
   audience:publicBuyer?'buyer':'management',requestId:requestId||null,
   company:'ALHARIR Shipping and Export',mode:process.env.STAGING_HOSTED==='true'?'synthetic-demo':'internal',
@@ -170,7 +187,7 @@ function dailyReport(st,{requestId=null,date=null,audience='management'}={}){
    quoteRecords:q.quotesReviewed,verifiedQuotes:q.verifiedQuotes,
    comparableGroups:q.comparableGroups,actionsToday:acts.length,repliesToday:received.length,
    pendingApprovals:publicBuyer?null:pending.length},
-  requests:byRequest,priceComparisons:publicBuyer?q.comparisons.map(({quoteIds,rows,...summary})=>({
+  requests:byRequest,supplierProgress,priceComparisons:publicBuyer?q.comparisons.map(({quoteIds,rows,...summary})=>({
     ...summary,rows:[],lowestSupplier:'أقل عرض متوافق (بعد المراجعة)'
   })):q.comparisons,
   quotationGaps:publicBuyer?gaps.map(x=>({quoteId:'',issues:x.issues})):gaps,
