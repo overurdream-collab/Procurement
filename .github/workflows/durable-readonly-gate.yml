@@ -1,0 +1,38 @@
+name: Durable storage and Gmail read-only gate
+on:
+  push:
+    branches: [feat/durable-storage-gmail-readonly]
+    paths:
+      - 'server.js'
+      - 'persistent-store.js'
+      - 'commercial-access.js'
+      - 'test/persistent-gmail-readonly.test.js'
+      - 'test/staging-auth.test.js'
+      - 'test/phase2-mail-correspondence.test.js'
+      - '.github/workflows/durable-readonly-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  durable-and-mail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate scripts without production credentials
+        run: |
+          node --check server.js
+          node --check persistent-store.js
+          node --check commercial-access.js
+      - name: Test database revision fencing, encryption, auth and existing app
+        run: |
+          node --test --test-concurrency=1 \
+            test/persistent-gmail-readonly.test.js \
+            test/staging-auth.test.js \
+            test/phase2-mail-correspondence.test.js \
+            test/phase2-procurement.integration.test.js \
+            test/procurement-reports.test.js \
+            test/daily-dashboard-http.test.js
