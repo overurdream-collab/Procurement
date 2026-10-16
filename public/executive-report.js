@@ -53,9 +53,15 @@ function executiveReportMarkup(r){
   const next=s.verifiedQuotes?'مراجعة الاعتماد التجاري والفني':s.quotes?
    'استكمال المستندات والتحقق من العرض':s.replies?'متابعة طلب العرض وتوثيق الرد':'تحديد وسيلة تواصل والتحقق من حالة الطلب';
   const tone=s.verifiedQuotes?'ok':s.quotes?'blue':s.replies?'amber':'muted';
+  const latest=s.lastReplyAt&&Number.isFinite(new Date(s.lastReplyAt).getTime())?
+   new Intl.DateTimeFormat('ar-YE',{timeZone:'Asia/Aden',year:'numeric',month:'short',
+    day:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(s.lastReplyAt))+
+    ' (صنعاء)':'';
+
   return '<tr><td data-label="المورد"><strong>'+E(s.supplier)+'</strong></td>'+
    '<td data-label="الحالة"><span class="eod-pill '+tone+'">'+E(s.stage)+'</span></td>'+
-   '<td data-label="المعلومات المسجلة">'+E(s.replies)+' ردود · '+E(s.quotes)+' عروض · '+E(s.verifiedQuotes)+' موثقة</td>'+
+   '<td data-label="المعلومات المسجلة">'+E(s.replies)+' ردود · '+E(s.quotes)+' عروض · '+E(s.verifiedQuotes)+' موثقة'+
+   (management&&latest?'<br><small>آخر رد: '+E(latest)+'</small>':'')+'</td>'+
    '<td data-label="الخطوة التالية">'+E(next)+'</td></tr>';
  }).join('');
  const priorityCards=priorities.slice(0,3).map((x,i)=>
