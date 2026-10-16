@@ -419,14 +419,36 @@ if(u.pathname==='/api/market-intelligence/convert'&&req.method==='POST'){
   st.requests=Array.isArray(st.requests)?st.requests:[];
   st.suppliers=Array.isArray(st.suppliers)?st.suppliers:[];
   st.activity=Array.isArray(st.activity)?st.activity:[];
-  st.requests.unshift(draft.request);
+  const targetId=typeof input.targetRequestId==='string'?input.targetRequestId.trim():'';
+  let request=draft.request,attachedToExistingRequest=false;
+  if(targetId){
+    const existing=st.requests.find(x=>x.id===targetId);
+    if(!existing)return json(res,404,{error:'target_request_not_found'});
+    if(existing.incoterm!=='FOB')return json(res,422,{error:'target_request_requires_FOB'});
+    if([existing.product,existing.quantity,existing.specifications].some((v,i)=>
+      String(v||'').trim()!==String([draft.request.product,draft.request.quantity,draft.request.specifications][i]||'').trim()))
+      return json(res,409,{error:'request_details_changed',
+        message:'بيانات الطلب لا تطابق البحث الحالي. حدث الصفحة وأعد اختيار طلب الشراء الصحيح.'});
+    const attached=new Set(existing.selectedSupplierIds||[]);
+    const duplicates=draft.suppliers.filter(s=>st.suppliers.some(prev=>
+      attached.has(prev.id)&&prev.name?.trim().toLowerCase()===s.name.trim().toLowerCase()));
+    if(duplicates.length)return json(res,409,{error:'supplier_already_selected',
+      message:'يوجد مورد مختار مسبقًا بالاسم نفسه داخل هذا الطلب. راجع الموردين قبل إعادة الإضافة.'});
+    for(const supplier of draft.suppliers){supplier.associatedRequestId=targetId;attached.add(supplier.id)}
+    existing.selectedSupplierIds=[...attached];
+    existing.outreachStatus='draft_review_required';
+    request=existing;attachedToExistingRequest=true;
+  }else{
+    st.requests.unshift(draft.request);
+  }
   st.suppliers.push(...draft.suppliers);
-  st.activity.unshift({time:new Date().toISOString(),type:'rfq_draft_created',
-    text:'أنشئت مسودة '+draft.request.id+' مع '+draft.suppliers.length+' مورّدين مختارين — لم تُرسل أي رسائل'});
+  st.activity.unshift({time:new Date().toISOString(),type:'rfq_draft_created',requestId:request.id,
+    text:(attachedToExistingRequest?'أضيفت شركات مستهدفة إلى ':'أنشئت مسودة ')+request.id+
+      ' مع '+draft.suppliers.length+' مورّدين مختارين — لم تُرسل أي رسائل'});
   await save(st);
-  return json(res,201,{request:draft.request,suppliers:draft.suppliers,
-    drafts:outreachDrafts(draft.request,draft.suppliers),
-    sentCount:0,persistence:HOSTED_DEMO?'temporary-demo':'local-file'});
+  return json(res,attachedToExistingRequest?200:201,{request,suppliers:draft.suppliers,
+    attachedToExistingRequest,drafts:outreachDrafts(request,draft.suppliers),
+    sentCount:0,persistence:HOSTED_DEMO?'temporary-demo':store.durable?'postgres':'local-file'});
 }
 let outreachRoute=u.pathname.match(/^\/api\/requests\/([^/]+)\/outreach-drafts$/);
 if(outreachRoute&&req.method==='GET'){
