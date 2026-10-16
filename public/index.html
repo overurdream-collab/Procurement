@@ -181,7 +181,13 @@ function activeMarketRequestId(){
  if(!all.some(x=>x.id===selectedMarketRequestId))selectedMarketRequestId=(all.find(x=>x.id==='RFQ-001')||all[0]||{}).id||'';
  return selectedMarketRequestId;
 }
-function setMarketRequest(id){selectedMarketRequestId=id;show('market')}
+function setMarketRequest(id){
+ selectedMarketRequestId=id;
+ const url=new URL(location.href);
+ if(id)url.searchParams.set('requestId',id);else url.searchParams.delete('requestId');
+ history.replaceState(null,'',url.pathname+url.search+'#market');
+ render('market');
+}
 const A='/api/';async function load(){let saved=localStorage.getItem('procurement-theme');if(saved)document.documentElement.dataset.theme=saved;st=await fetch(A+'state').then(r=>r.json());render(location.hash.slice(1)||'dashboard')};window.addEventListener('hashchange',()=>render(location.hash.slice(1)||'dashboard'));function toast(t){let x=document.getElementById('toast');x.textContent=t;x.style.display='block';setTimeout(()=>x.style.display='none',2200)}function theme(){let h=document.documentElement;h.dataset.theme=h.dataset.theme==='dark'?'light':'dark';localStorage.setItem('procurement-theme',h.dataset.theme)}function show(v){if(location.hash!=='#'+v)location.hash=v;else render(v)}function render(v){
  const view=v;
  const views={
