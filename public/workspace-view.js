@@ -57,7 +57,7 @@ function showWorkspace(data,active){
  qs('chat').scrollTop=qs('chat').scrollHeight;
 }
 function init(){
- const id=requestId(root.location?.search);
+ const id=requestId(globalThis.location?.search);
  if(!id){qs('workspaceMain').hidden=true;qs('title').textContent='اختر طلب مشتريات أولًا';qs('errorMessage').textContent='لم تحدد رقم الطلب. افتح قائمة الطلبات ثم اختر مساحة الطلب المطلوبة.';qs('errorMessage').hidden=false;return;}
  updateNav(id);
  let data=null,active='specifications';
@@ -88,7 +88,7 @@ function init(){
  async function loadMail(){
   const box=qs('requestMailList');box.textContent='جارٍ تحميل مراسلات الطلب...';
   try{const result=await http('/api/requests/'+encodeURIComponent(id)+'/correspondence');
-   box.innerHTML=result.records?.length?result.records.map(m=>root.ALHARIRMailUI.messageHtml(m,{disabled:result.integrationAvailable===false})).join(''):'<p class="empty">لا توجد رسائل مرتبطة بهذا الطلب حتى الآن.</p>';
+   box.innerHTML=result.records?.length?result.records.map(m=>globalThis.ALHARIRMailUI.messageHtml(m,{disabled:result.integrationAvailable===false})).join(''):'<p class="empty">لا توجد رسائل مرتبطة بهذا الطلب حتى الآن.</p>';
    if(result.unassigned>0){const p=document.createElement('p');p.className='hint';p.textContent='هناك '+result.unassigned+' رسالة غير مرتبطة بطلب؛ تُراجع من صفحة البريد دون نسبتها تلقائيًا لهذا الطلب.';box.append(p)}
    if(result.notice){const p=document.createElement('p');p.className='hint';p.textContent=result.notice;box.append(p)}
   }catch(e){box.textContent='تعذر تحميل سجل البريد: '+e.message;}
