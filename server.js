@@ -435,7 +435,7 @@ if(attachMarketRoute&&req.method==='POST'){
  if(added.length)st.activity.unshift({time:new Date().toISOString(),type:'rfq_supplier_shortlist',
   requestId:request.id,text:'أضيف '+added.length+' موردًا مرشحًا إلى '+request.id+' دون إرسال مراسلات'});
  save(st);
- return json(res,200,{ok:true,requestId:request.id,added,alreadyExists:already,
+ return json(res,200,{ok:true,requestId:request.id,request,suppliers:added,added,alreadyExists:already,
   linkedSuppliers:request.selectedSupplierIds.length,sentCount:0,
   drafts:outreachDrafts(request,added),persistence:HOSTED_DEMO?'temporary-demo':'local-file',
   warning:'هذه ترشيحات بحث ولم تُتحقق هويات الشركات أو عناوين البريد آليًا.'});
