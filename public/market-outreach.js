@@ -57,6 +57,15 @@ function marketLeadPanel(data){
   '<div class="approval-details" style="display:block"><b>قائمة مستهدفة وليست قائمة إرسال</b>'+
   '<p class="muted">اختر الشركات التي تريد التعامل معها، وتحقق من اسم الشركة والموقع والبريد. لا يعتمد النظام البريد المستخرج تلقائيًا ولا يرسل رسائل جماعية.</p></div>'+
   '<div style="max-height:500px;overflow-y:auto">'+rows+'</div>'+
+  '<h3>وجهة الموردين المختارين</h3>'+
+  '<label class="ml-scope-label">أضف المرشحين إلى طلب موجود أو أنشئ مسودة RFQ مستقلة'+
+   '<select id="ml-target-request" class="ml-field" onchange="marketTargetChanged()">'+
+   '<option value="__new__">طلب جديد مستقل — دون إرسال</option>'+
+   (st.requests||[]).map(r=>'<option value="'+mEsc(r.id)+'"'+
+    ((new URLSearchParams(location.search).get('requestId')===r.id)?' selected':'')+'>'+
+    mEsc(r.id)+' — '+mEsc(r.product||r.title||'')+'</option>').join('')+
+   '</select></label>'+
+  '<p class="muted" id="ml-target-note">لا تُرسل رسائل تلقائيًا. حدّد الطلب الصحيح قبل الحفظ.</p>'+
   '<h3>تفاصيل طلب عرض الأسعار</h3>'+
   '<input id="ml-product" class="ml-field" maxlength="160" value="'+mEsc(data.query)+'" placeholder="المنتج">'+
   '<input id="ml-quantity" class="ml-field" maxlength="100" placeholder="الكمية المطلوبة — إلزامية">'+
@@ -65,6 +74,17 @@ function marketLeadPanel(data){
   '<button class="btn primary" id="ml-convert" onclick="convertMarketLeads()">إنشاء RFQ للموردين المختارين — دون إرسال</button>'+
   '<div id="ml-conversion-result" role="status" aria-live="polite" style="margin-top:14px"></div>'+
   '</div></div>';
+}
+function marketTargetChanged(){
+ const id=document.getElementById('ml-target-request')?.value;
+ const r=(st.requests||[]).find(x=>x.id===id);
+ const note=document.getElementById('ml-target-note');
+ if(!note)return;
+ if(!r){note.textContent='سيُنشئ النظام مسودة RFQ جديدة مع الموردين المختارين دون إرسال.';return}
+ document.getElementById('ml-product').value=r.product||r.title||'';
+ document.getElementById('ml-quantity').value=r.quantity||'';
+ document.getElementById('ml-specs').value=r.specifications||'';
+ note.textContent='الموردون سيُضافون إلى '+r.id+' فقط، دون إنشاء أمر شراء مكرر أو إرسال مراسلات.';
 }
 async function researchLead(i){
  const panel=document.getElementById('ml-suggestions-'+i),status=document.getElementById('ml-feedback-'+i);
@@ -143,17 +163,28 @@ async function convertMarketLeads(){
  if(!product||!quantity||!specifications){status.textContent='المنتج والكمية والمواصفات إلزامية.';return}
  btn.disabled=true;status.textContent='جارٍ إنشاء مسودة RFQ دون إرسال بريد...';
  try{
-  const r=await fetch('/api/market-intelligence/convert',{method:'POST',
+  const targetId=document.getElementById('ml-target-request')?.value||'__new__';
+  const existing=targetId!=='__new__';
+  const endpoint=existing?'/api/requests/'+encodeURIComponent(targetId)+'/market-suppliers':'/api/market-intelligence/convert';
+  const r=await fetch(endpoint,{method:'POST',
    headers:{'Content-Type':'application/json'},body:JSON.stringify({
     searchId:data.searchId,selected,details:{product,quantity,specifications,incoterm:'FOB'}})});
   const x=await r.json();if(!r.ok){status.textContent=x.message||x.error;return}
   lastCreatedRfqExport=x;
-  st.requests.unshift(x.request);st.suppliers.push(...x.suppliers);
+  if(existing){
+   const saved=(st.requests||[]).find(req=>req.id===targetId);
+   if(saved)Object.assign(saved,x.request);
+  }else st.requests.unshift(x.request);
+  st.suppliers.push(...(x.suppliers||[]));
   selectedMarketRequestId=x.request.id;
-  status.innerHTML='<div class="safe">تم حفظ مسودة '+mEsc(x.request.id)+' مع '+x.suppliers.length+
-   ' موردين مختارين — لم تُرسل أي رسائل.</div>'+
+  status.innerHTML='<div class="safe">'+
+   (existing?'تمت إضافة '+(x.suppliers?.length||0)+' موردًا إلى الطلب '+mEsc(x.request.id):
+     'تم إنشاء مسودة '+mEsc(x.request.id)+' مع '+(x.suppliers?.length||0)+' موردين')+
+   ' — لم تُرسل أي رسائل.</div>'+
+   (x.alreadyExists?.length?'<p class="muted">تجاوزنا '+x.alreadyExists.length+' موردين مكررين.</p>':'')+
    (x.persistence==='temporary-demo'?'<p class="muted">تنبيه: هذه نسخة اختبار وبياناتها مؤقتة على Render.</p>':'')+
-   '<p><a href="/requests/'+encodeURIComponent(x.request.id)+'" class="btn">فتح طلب RFQ</a></p>'+
+   '<p><a href="/workspace.html?id='+encodeURIComponent(x.request.id)+'" class="btn primary">مساحة الطلب</a> '+
+   '<a href="/?requestId='+encodeURIComponent(x.request.id)+'#quotes" class="btn">تحليل عروض الطلب</a></p>'+
    '<p><button class="btn" onclick="downloadMarketRFQ()">حفظ نسخة من الطلب والموردين والمسودات على جهازك</button></p>'+
    marketDraftHtml(x.drafts);
  }catch(e){status.textContent='تعذر الاتصال. تحقق من الطلبات قبل إعادة المحاولة.'}
