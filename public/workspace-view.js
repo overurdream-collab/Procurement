@@ -1,5 +1,5 @@
 /* ALHARIR Request Workspace: request-scoped, evidence-based, no automatic correspondence */
-(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else{root.ALHARIRRequestUI=api;if(root.document)api.init();}})(typeof globalThis==='object'?globalThis:this,function(){
+(function(root,factory){const api=factory(root);if(typeof module==='object'&&module.exports)module.exports=api;else{root.ALHARIRRequestUI=api;if(root.document)api.init();}})(typeof globalThis==='object'?globalThis:this,function(root){
 'use strict';
 const qs=(name)=>document.getElementById(name);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
