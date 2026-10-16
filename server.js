@@ -277,7 +277,37 @@ if(u.pathname==='/api/gmail/attachment'&&req.method==='GET'){
   let a=await gmail('messages/'+encodeURIComponent(messageId)+'/attachments/'+encodeURIComponent(attachmentId)),buf=Buffer.from(String(a.data||'').replace(/-/g,'+').replace(/_/g,'/'),'base64');
   res.writeHead(200,{'Content-Type':att.mimeType||'application/octet-stream','Content-Disposition':'inline; filename*=UTF-8\'\''+encodeURIComponent(att.filename||'attachment'),'Content-Length':buf.length});return res.end(buf)
 }
-if(u.pathname==='/api/requests'&&req.method==='POST'){let st=load(),b=await body(req),x={id:'REQ-'+String(Date.now()).slice(-6),title:b.title||'طلب مشتريات جديد',product:b.product||'',specifications:b.specifications||'',quantity:b.quantity||'',deliveryCountry:b.deliveryCountry||'',targetMarkets:b.targetMarkets||'',currency:b.currency||'USD',incoterm:b.incoterm||'FOB',neededBy:b.neededBy||'',notes:b.notes||'',status:'جديد',createdAt:new Date().toISOString()};st.requests=st.requests||[];st.marketScans=st.marketScans||[];st.requests.unshift(x);st.activity.unshift({time:new Date().toISOString(),type:'request',text:'إنشاء '+x.id});save(st);return json(res,201,x)}
+if(u.pathname==='/api/requests'&&req.method==='POST'){
+ const st=load(),b=await body(req);
+ const plain=(v,max)=>typeof v==='string'?v.replace(/[\x00-\x1f\x7f]/g,' ').trim().slice(0,max):'';
+ const title=plain(b.title,180),product=plain(b.product,180),quantity=plain(b.quantity,90);
+ const specs=plain(b.specifications,2000),terms=plain(b.incoterm||'FOB',8).toUpperCase();
+ const currency=plain(b.currency||'USD',3).toUpperCase();
+ if(title.length<3||product.length<3||!quantity||specs.length<8)
+   return json(res,422,{error:'request_fields_required',message:'أكمل عنوان الطلب والمنتج والكمية والمواصفات الفنية.'});
+ if(!['FOB','EXW'].includes(terms)||!['USD','CNY','EUR','YER'].includes(currency))
+   return json(res,422,{error:'invalid_commercial_terms'});
+ if(b.neededBy&&!/^\d{4}-\d{2}-\d{2}$/.test(String(b.neededBy)))
+   return json(res,422,{error:'invalid_needed_by_date'});
+ const key=plain(b.clientRequestKey,80);
+ if(key&&Array.isArray(st.requests)){
+   const previous=st.requests.find(r=>r.clientRequestKey===key);
+   if(previous)return json(res,200,{...previous,alreadyExists:true});
+ }
+ const x={id:'REQ-'+crypto.randomBytes(6).toString('hex').toUpperCase(),
+   title,product,quantity,specifications:specs,
+   targetMarkets:plain(b.targetMarkets,180),currency,incoterm:terms,
+   neededBy:plain(b.neededBy,10),notes:plain(b.notes,1000),
+   category:['goods','machinery','service'].includes(b.category)?b.category:'goods',
+   status:'جديد',createdAt:new Date().toISOString(),
+   ...(key?{clientRequestKey:key}:{})};
+ st.requests=Array.isArray(st.requests)?st.requests:[];
+ st.marketScans=Array.isArray(st.marketScans)?st.marketScans:[];
+ st.activity=Array.isArray(st.activity)?st.activity:[];
+ st.requests.unshift(x);
+ st.activity.unshift({time:x.createdAt,type:'request',requestId:x.id,text:'إنشاء '+x.id});
+ save(st);return json(res,201,x);
+}
 let mm=u.pathname.match(new RegExp('^/api/requests/([^/]+)/market-scan$'));if(mm&&req.method==='POST'){let st=load(),b=await body(req),x=(st.requests||[]).find(x=>x.id===mm[1]);if(!x)return json(res,404,{error:'request_not_found'});let scan=await marketScan(st,{...x,sourceObservations:b.sourceObservations||[]});st.marketScans=st.marketScans||[];st.marketScans.unshift(scan);x.marketScanId=scan.id;x.marketStatus=scan.resultStatus;st.activity.unshift({time:new Date().toISOString(),type:'market_scan',text:'Market Intelligence '+x.id+' — '+scan.sourceCount+' sources'});save(st);return json(res,200,scan)}
 if(u.pathname==='/api/market-scans'&&req.method==='GET'){let st=load();return json(res,200,st.marketScans||[])}
 
