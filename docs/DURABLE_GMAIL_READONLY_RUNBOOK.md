@@ -1,0 +1,62 @@
+# ALHARIR — Durable storage and Gmail read-only implementation
+Status: **Implementation branch; not connected to real Gmail or a database. Not production-ready.**
+
+## Current infrastructure and decision
+
+The existing Render Free web service stores synthetic demonstration data in ephemeral disk storage. Render Free PostgreSQL expires 30 days after creation and has no backups. Do not move real supplier correspondence to either. Owner-controlled Neon Free PostgreSQL is a potential zero-fee option, subject to current plan limits and account connection.
+
+## Implemented architecture
+
+- persistent-store.js provides PostgreSQL-backed business JSON state with a monotonically increasing revision. Concurrent overwrites produce 409 conflict instead of silently losing an operator's changes.
+- It initializes a blank procurement state, NEVER automatically copies data.json or stored demo data into business storage.
+- Gmail OAuth credentials live encrypted (AES-256-GCM with authenticated associated data) in alharir_secrets, not in local Render disk. The secret encryption key is a separate private environment variable.
+- The current Gmail client requests only the gmail.readonly permission. Production auto-send and autonomous agent actions are disabled.
+- Mail metadata and original source timestamp are stored; production mail bodies are requested on demand and attachments streamed directly from Gmail, not archived to local Render storage.
+- commercial-access.js enforces separate password-protected access for a non-demo deployment. This remains single-admin PILOT security, not staff RBAC.
+
+## Required private configuration on a separate service
+
+Configure these variables privately, never in GitHub or chat:
+- PROCUREMENT_PRODUCTION=true
+- STAGING_HOSTED=false
+- STAGING_DEMO=false
+- DATABASE_URL (owner's TLS-verified Neon Postgres connection string)
+- OAUTH_ENCRYPTION_KEY (64 hexadecimal characters representing 32 random bytes)
+- PRODUCTION_ACCESS_USER
+- PRODUCTION_ACCESS_PASSWORD (24+ characters, separate from the demo password)
+- PRODUCTION_READONLY_MAIL=true
+- APP_BASE_URL (exact HTTPS base URL for the new protected service)
+- GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET from the owner's Google Cloud OAuth Web client
+- NODE_ENV=production
+- MARKET_ENABLE_LIVE_SEARCH=false until separately approved.
+
+No paid service or new live instance is created from this branch.
+
+## Google account owner tasks
+
+1. Create or connect the company-controlled Neon project, obtain its Postgres connection string (keep it private).
+2. In Google Cloud: configure the OAuth consent screen, enable Gmail API and create a Web application client. Redirect URI is the new production service's HTTPS origin followed by /api/gmail/callback.
+3. Google Gmail API gmail.readonly is a RESTRICTED scope. Verification/security assessment rules may apply. Test-mode external OAuth refresh tokens can expire after 7 days. Confirm the intended compliance exception and production scope before relying on long-term access.
+4. Sign into the protected production service personally, review and approve Google's Gmail read-only consent screen. The ChatGPT Gmail connection is NOT a Procurement OAuth authorization.
+5. Check /api/storage/status and /api/gmail/status. Run one controlled /api/gmail/sync and verify the source date, supplier, RFQ match and a harmless PDF attachment opened from the system.
+6. Review unmatched messages manually; never assume a product listing proves a supplier identity or assume a Gmail attachment is a verified offer.
+
+## Backup and safety
+
+- Never commit credentials, downloaded mail or backup files to GitHub.
+- Google remains the source of email/attachments. Attachment retrieval depends on OAuth remaining valid.
+- Owner-controlled encrypted backups must be scheduled and restore-tested to a second database before routine business usage.
+- Full employee RBAC, write auditing, backup/restore verification and Google's restricted-scope compliance remain mandatory before broad production rollout.
+- The existing synthetic Render demo must remain isolated and unchanged.
+
+## Acceptance gates
+
+Already implemented: PostgreSQL state revision control, AES-GCM OAuth vault, guarded HTTPS live mode, conservative mail storage and on-demand Gmail message retrieval.
+
+Still outstanding: actual owner Neon connection; verified live database round-trip; separate protected non-demo deployment; Google Cloud OAuth consent; real harmless message/attachment read test; backups/restore drill; employee RBAC.
+
+Official documentation:
+- https://render.com/docs/free
+- https://neon.com/pricing
+- https://developers.google.com/workspace/gmail/api/auth/scopes
+- https://developers.google.com/identity/protocols/oauth2/
