@@ -38,6 +38,7 @@ async function registerManualMarketLinks(){
 function marketLeadPanel(data){
  marketLeadResult=data;marketLeadContacts={};
  if(!data.searchId||!data.results?.length)return '';
+ const currentRequest=(st.requests||[]).find(r=>r.id===new URLSearchParams(location.search).get('requestId'))||null;
  const rows=data.results.map(x=>{
    const i=x.index;
    return '<div class="approval" style="margin:8px 0">'+
@@ -67,9 +68,9 @@ function marketLeadPanel(data){
    '</select></label>'+
   '<p class="muted" id="ml-target-note">لا تُرسل رسائل تلقائيًا. حدّد الطلب الصحيح قبل الحفظ.</p>'+
   '<h3>تفاصيل طلب عرض الأسعار</h3>'+
-  '<input id="ml-product" class="ml-field" maxlength="160" value="'+mEsc(data.query)+'" placeholder="المنتج">'+
-  '<input id="ml-quantity" class="ml-field" maxlength="100" placeholder="الكمية المطلوبة — إلزامية">'+
-  '<textarea id="ml-specs" class="ml-field" rows="3" maxlength="1500" placeholder="المواصفات الفنية المطلوبة — إلزامية"></textarea>'+
+  '<input id="ml-product" class="ml-field" maxlength="160" value="'+mEsc(currentRequest?.product||data.query)+'" placeholder="المنتج">'+
+  '<input id="ml-quantity" class="ml-field" maxlength="100" value="'+mEsc(currentRequest?.quantity||'')+'" placeholder="الكمية المطلوبة — إلزامية">'+
+  '<textarea id="ml-specs" class="ml-field" rows="3" maxlength="1500" placeholder="المواصفات الفنية المطلوبة — إلزامية">'+mEsc(currentRequest?.specifications||'')+'</textarea>'+
   '<p class="muted">شروط العرض: FOB فقط. يجب مراجعة رسائل كل شركة قبل الإرسال.</p>'+
   '<button class="btn primary" id="ml-convert" onclick="convertMarketLeads()">إنشاء RFQ للموردين المختارين — دون إرسال</button>'+
   '<div id="ml-conversion-result" role="status" aria-live="polite" style="margin-top:14px"></div>'+
