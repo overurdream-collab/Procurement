@@ -1,7 +1,7 @@
 'use strict';
 // Market Intelligence -> shortlist -> contact validation -> RFQ drafts.
 // All output is escaped; no emails are sent through this script.
-let marketLeadResult=null, marketLeadContacts={},lastCreatedRfqExport=null;
+let marketLeadResult=null, marketLeadContacts={},lastCreatedRfqExport=null,lastMarketDiscovery=null;
 function mEsc(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function leadField(i,key){return document.getElementById('ml-'+key+'-'+i)}
 function fieldVal(i,key){return leadField(i,key)?.value.trim()||''}
