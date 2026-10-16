@@ -200,7 +200,12 @@ const A='/api/';async function load(){let saved=localStorage.getItem('procuremen
  if(workspace)workspace.href='/workspace.html?id='+encodeURIComponent(activeMarketRequestId()||'RFQ-001');
  closeSideNav();
  if(view==='dashboard')ALHARIRDashboardPilot.init();
- if(view==='reports')loadDailyReport();
+ if(view==='reports'){
+  const requested=new URLSearchParams(location.search).get('requestId');
+  const scope=document.getElementById('dailyScope');
+  if(requested&&scope&&[...scope.options].some(x=>x.value===requested))scope.value=requested;
+  loadDailyReport();
+ }
  if(view==='market'){
   const r=(st.requests||[]).find(x=>x.id===new URLSearchParams(location.search).get('requestId'));
   const input=document.getElementById('unifiedMarketQuery');
@@ -212,11 +217,7 @@ const A='/api/';async function load(){let saved=localStorage.getItem('procuremen
   if(requested&&scope&&[...scope.options].some(x=>x.value===requested))scope.value=requested;
   loadComparisons();
  }
- if(view==='reports'){
-  const requested=new URLSearchParams(location.search).get('requestId');
-  const scope=document.getElementById('dailyScope');
-  if(requested&&scope&&[...scope.options].some(x=>x.value===requested))scope.value=requested;
- }
+
  window.scrollTo({top:0,behavior:'instant'});
 }
 function toggleSideNav(){
