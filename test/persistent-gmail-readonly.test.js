@@ -88,3 +88,22 @@ test('production Basic Auth protects all API including mail and blocks autonomou
  a=build('/health/live');
  assert.equal(guardProduction(a.req,a.response,env),false);assert.equal(a.response.status,200);
 });
+
+
+test('live Gmail only stores bounded message metadata, with source message fetched on demand',()=>{
+ const fs=require('node:fs');
+ const code=fs.readFileSync(require('node:path').join(__dirname,'../server.js'),'utf8');
+ const ui=fs.readFileSync(require('node:path').join(__dirname,'../public/mail-correspondence.js'),'utf8');
+ assert.match(code,/body:LIVE\?'':txt/);
+ assert.match(code,/api\/gmail\/message/);
+ assert.match(code,/message_not_in_procurement|email_not_in_procurement/);
+ assert.match(code,/scope:'https:\/\/www\.googleapis\.com\/auth\/gmail\.readonly'/);
+ assert.match(code,/await clearOauth\(\)/);
+ assert.match(ui,/mail-show-original/);
+ assert.match(ui,/data-mail-id/);
+ assert.match(ui,/div\.textContent=d\.body/);
+});
+test('safe mode cannot connect an unprotected external DATABASE_URL',()=>{
+ assert.throws(()=>createStateStore({env:{DATABASE_URL:env.DATABASE_URL,OAUTH_ENCRYPTION_KEY:secret}}),
+  /requires protected production access/);
+});
