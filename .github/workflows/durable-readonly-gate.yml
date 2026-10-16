@@ -6,6 +6,7 @@ on:
       - 'server.js'
       - 'persistent-store.js'
       - 'commercial-access.js'
+      - 'tools/db-backup.js'
       - 'test/persistent-gmail-readonly.test.js'
       - 'test/staging-auth.test.js'
       - 'test/phase2-mail-correspondence.test.js'
@@ -27,6 +28,7 @@ jobs:
           node --check server.js
           node --check persistent-store.js
           node --check commercial-access.js
+          node --check tools/db-backup.js
       - name: Test database revision fencing, encryption, auth and existing app
         run: |
           node --test --test-concurrency=1 \
