@@ -43,6 +43,8 @@ test('request association remains strict even when supplier has several requests
 test('web UI keeps both supplier-log and per-RFQ attachment access',()=>{
  assert.match(main,/mail-correspondence\.js/);
  assert.match(main,/ALHARIRMailUI\.receivedAtText\(m\)/);
+ assert.match(main,/آخر رسالة \(صنعاء\)/);
+ assert.match(main,/supplierMails\(x\.id\)\.reduce/);
  assert.match(main,/ALHARIRMailUI\.attachmentHtml\(m/);
  assert.match(workspace,/id="requestMailCard"/);
  assert.match(workspace,/loadCorrespondence/);
