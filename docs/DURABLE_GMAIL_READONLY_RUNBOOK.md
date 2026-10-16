@@ -18,6 +18,24 @@ The existing Render Free web service stores synthetic demonstration data in ephe
 - **No application DATABASE_URL is configured anywhere.** Do not copy it into the existing synthetic Render preview.
 - No scheduled database backup/snapshot configured. Added `tools/db-backup.js` for owner-run AES-256-GCM encrypted export / verify without exporting OAuth secrets. Scheduling remains outstanding.
 
+## Render Trial Connection Troubleshooting — 16 Oct 2026
+A separate **Free Render service** has been created at:
+- Dashboard: https://dashboard.render.com/web/srv-db944i59fdbs73eaip0g
+- Service name: alharir-procurement-neon-trial
+- Branch: feat/durable-storage-gmail-readonly (manual deploy, no auto deploy)
+- Service status: **not live**. The most recent build passed 19/19 checks but startup reported `Persistent state startup failed: Invalid URL`. This is an invalid `DATABASE_URL` format, not an application test failure.
+
+Safe owner-side remediation:
+1. In Neon console, open the **ALHARIR Procurement** project. Select **render-integration-test** branch, **alharir_procurement** database and **alharir_trial_app** role; choose the pooled connection URI.
+2. Copy only the entire single-line PostgreSQL URI, starting `postgresql://` and including its SSL parameters. Do **not** copy labels such as `Connection string details:` or `URI:`, quotes, Markdown formatting, spaces or line breaks.
+3. Open **the new Render trial service > Environment** and replace the existing `DATABASE_URL` using the secret field. Never put its password in an issue/chat/commit.
+4. The nonsecret Render checks are configured: `DATABASE_EXPECTED_ENDPOINT=ep-crimson-lake-b9bjhqpi`, `DATABASE_EXPECTED_ROLE=alharir_trial_app`, and `DATABASE_EXPECTED_NAME=alharir_procurement`. Both pooled and unpooled connection hostname variants for this same endpoint pass.
+5. Deploy the development branch manually after updating the secret. Validate the authenticated `/api/storage/status` indicates `type: postgres` and `durable: true`.
+6. Test a single explicitly fake purchase request and reload to prove DB persistence; do not import real vendor mail or enable Gmail in this trial.
+7. The Neon default app role currently exposes CREATEROLE and CREATEDB flags despite table-specific rights. Tightening these directly was rejected by Neon (`permission denied to alter role`). This is **not acceptable for broad real-data production** until a genuinely least-privileged runtime identity is available and verified.
+
+The persistent-store adapter now fails safely with `DATABASE_URL_invalid_format` for malformed strings, and explicitly rejects any mismatch in the expected branch endpoint, role and database. No credentials should appear in application logs.
+
 ## Implemented architecture
 
 - persistent-store.js provides PostgreSQL-backed business JSON state with a monotonically increasing revision. Concurrent overwrites produce 409 conflict instead of silently losing an operator's changes.
