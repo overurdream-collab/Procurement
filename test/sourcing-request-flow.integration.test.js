@@ -46,8 +46,10 @@ test('protected HTTP: manual sourcing attaches just one chosen supplier to the e
   assert.equal(ready,true);
   let r=await fetch(base+'/api/state',{headers});assert.equal(r.status,200);
   const initial=await r.json();
-  const request=initial.requests.find(x=>x.id==='RFQ-001')||initial.requests[0];
-  assert.ok(request);
+  r=await post('/api/requests',{title:'100mm PIR panel sourcing test',product:'100mm PIR insulated panel',
+   quantity:'100 sqm',specifications:'PIR 100mm, density 40kg, steel 0.5mm',
+   incoterm:'FOB',currency:'USD',clientRequestKey:'synthetic-sourcing-integration'});
+  assert.equal(r.status,201);const request=await r.json();
   const noProvider=await post('/api/market-intelligence/search',{query:request.product});
   assert.equal(noProvider.status,200);const discovery=await noProvider.json();
   assert.equal(discovery.searchConfigured,false);
@@ -74,7 +76,7 @@ test('protected HTTP: manual sourcing attaches just one chosen supplier to the e
   assert.equal(result.drafts.length,1);
   assert.equal(result.drafts[0].requiresReview,true);
   r=await fetch(base+'/api/state',{headers});const after=await r.json();
-  assert.equal(after.requests.length,initial.requests.length,'must not create duplicate RFQ');
+  assert.equal(after.requests.length,initial.requests.length+1,'must not create duplicate RFQ');
   assert.equal(after.suppliers.length,initial.suppliers.length+1);
   assert.equal(after.requests.find(x=>x.id===request.id).selectedSupplierIds.length,1);
   assert.equal(after.suppliers.find(x=>x.id===result.suppliers[0].id).associatedRequestId,request.id);
