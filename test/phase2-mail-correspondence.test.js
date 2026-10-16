@@ -6,6 +6,7 @@ const ui=require('../public/mail-correspondence.js');
 const {matchRequestForEmail}=require('../gmail-request-link');
 const main=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 const workspace=fs.readFileSync(path.join(__dirname,'../public/workspace.html'),'utf8');
+const workspaceUI=fs.readFileSync(path.join(__dirname,'../public/workspace-view.js'),'utf8');
 const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
 function freePort(){return new Promise((resolve,reject)=>{const n=net.createServer();n.once('error',reject);n.listen(0,'127.0.0.1',()=>{const p=n.address().port;n.close(()=>resolve(p))})})}
 test('Gmail source date displayed in Sana’a local timezone, not replaced by last sync time',()=>{
@@ -47,8 +48,8 @@ test('web UI keeps both supplier-log and per-RFQ attachment access',()=>{
  assert.match(main,/supplierMails\(x\.id\)\.reduce/);
  assert.match(main,/ALHARIRMailUI\.attachmentHtml\(m/);
  assert.match(workspace,/id="requestMailCard"/);
- assert.match(workspace,/loadCorrespondence/);
- assert.match(workspace,/ALHARIRMailUI\.messageHtml/);
+ assert.match(workspaceUI,/loadMail/);
+ assert.match(workspaceUI,/ALHARIRMailUI\.messageHtml/);
  assert.match(server,/api\/gmail\/attachment/);
  assert.match(server,/attachment_exceeds_preview_limit/);
  assert.match(server,/requestMatchMethod/);
