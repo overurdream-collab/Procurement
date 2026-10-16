@@ -165,66 +165,7 @@ async function loadComparisons(){
  }catch(e){output.textContent='تعذر الاتصال بالخادم.'}
 }
 function dailyMarkup(r){
- const k=r.kpis||{},management=r.audience==='management';
- const requestRows=(r.requests||[]).map(x=>
-   '<tr><td data-label="رقم الطلب">'+dEsc(x.id)+'</td><td data-label="المنتج أو المشروع">'+dEsc(x.title)+'</td><td data-label="الحالة">'+dEsc(x.status)+
-   '</td><td data-label="موردون">'+dEsc(x.supplierCount)+'</td><td data-label="عروض">'+dEsc(x.quotes)+'</td><td data-label="مقارنات">'+dEsc(x.comparableGroups)+'</td></tr>').join('');
- const supplierRows=(r.supplierProgress||[]).map(x=>
-   '<tr><td data-label="الشركة">'+dEsc(x.supplier)+'</td>'+
-   '<td data-label="حالة المتابعة">'+dEsc(x.stage)+'</td>'+
-   '<td data-label="ردود">'+dEsc(x.replies)+'</td>'+
-   '<td data-label="عروض">'+dEsc(x.quotes)+'</td>'+
-   '<td data-label="عروض موثقة">'+dEsc(x.verifiedQuotes)+'</td>'+
-   (management?'<td data-label="آخر رد مسجل">'+dEsc(x.lastReplyAt||'غير مسجل')+'</td>':'')+
-   '</tr>').join('');
- const comparisonRows=(r.priceComparisons||[]).map(x=>
-  '<tr><td data-label="البند">'+dEsc(x.product)+'</td><td data-label="أقل عرض متكافئ">'+dEsc(x.lowestSupplier)+'</td><td data-label="السعر">'+dAmount(x.lowestPrice)+
-  ' '+dEsc(x.currency)+'/'+dEsc(x.unit)+'</td><td data-label="فرق السعر">'+dAmount(x.spreadForQuantity)+
-  ' '+dEsc(x.currency)+'</td><td data-label="عدد العروض">'+dEsc(x.comparableSuppliers)+'</td></tr>').join('');
- const achievements=(r.achievements||[]).map(x=>'<li>'+dEsc(x)+'</li>').join('');
- const risks=(r.risks||[]).map(x=>'<li>'+dEsc(x)+'</li>').join('');
- const priorities=(r.priorities||[]).map(x=>'<li>'+dEsc(x)+'</li>').join('');
- const gaps=(r.quotationGaps||[]).map(x=>
- '<li><b>'+dEsc(x.quoteId)+'</b>'+(x.supplier?' — '+dEsc(x.supplier):'')+
- ' : '+dEsc((x.issues||[]).join('، '))+'</li>').join('');
- const activities=(r.activities||[]).map(x=>'<li>'+dEsc(x.time)+' — '+dEsc(x.description)+'</li>').join('');
- return '<article id="dailyPrintable" class="daily-printable" dir="rtl">'+
-  '<header class="daily-heading"><div><div class="eyebrow">ALHARIR / EXECUTIVE PROCUREMENT REPORT</div>'+
-   '<h2>'+(r.period==='monthly'?'تقرير المشتريات الشهري':'تقرير المشتريات اليومي')+
-    '</h2><p>'+(r.period==='monthly'?'الشهر: ':'التاريخ: ')+dEsc(r.date)+' · نوع النسخة: '+
-   (management?'إدارة — سري':'مشتري — نسخة مراجعة')+'</p></div>'+
-   '<strong>ALHARIR</strong></header>'+
-   (r.mode==='synthetic-demo'?'<p class="data-warning"><b>نسخة تجريبية ببيانات غير تشغيلية.</b> لا تعتمد لاتخاذ قرار شراء فعلي.</p>':'')+
-   '<div class="mini-stats">'+statCard('طلبات الشراء',k.requests)+statCard('الموردون',k.suppliers)+
-    statCard('عروض مسجلة',k.quoteRecords)+statCard('عروض متحقق منها',k.verifiedQuotes)+
-    statCard('مقارنات متكافئة',k.comparableGroups)+
-    statCard(r.period==='monthly'?'نشاط الشهر':'نشاط اليوم',k.actionsToday)+
-    statCard(r.period==='monthly'?'ردود الشهر':'ردود اليوم',k.repliesToday)+
-    (management?statCard('اعتمادات معلقة',k.pendingApprovals):'')+'</div>'+
-   '<h3>متابعة الطلبات</h3><div class="table-scroll"><table><thead><tr>'+
-   '<th>رقم الطلب</th><th>المنتج أو المشروع</th><th>الحالة</th><th>موردون</th><th>عروض</th><th>مقارنات</th>'+
-   '</tr></thead><tbody>'+requestRows+'</tbody></table></div>'+
-   '<h3>متابعة الموردين والشركات</h3>'+
-   '<p class="muted">موقف السجل الحالي لكل مورد؛ لا تعني الردود اكتمال الأسعار، والبيانات الشهرية تراكمية.</p>'+
-   (supplierRows?'<div class="table-scroll"><table><thead><tr>'+
-     '<th>المورد</th><th>حالة المتابعة</th><th>ردود</th><th>عروض</th><th>موثقة</th>'+
-     (management?'<th>آخر رد مسجل</th>':'')+'</tr></thead><tbody>'+
-     supplierRows+'</tbody></table></div>':
-     '<p class="data-warning">لا توجد شركات ضمن نطاق التقرير.</p>')+
-   '<h3>نتيجة تحليل الأسعار المتكافئة</h3>'+
-   (comparisonRows?'<div class="table-scroll"><table><thead><tr>'+
-    '<th>البند</th><th>الأقل سعرًا في المجموعة</th><th>السعر</th><th>فرق السعر على الكمية</th><th>عدد العروض</th>'+
-    '</tr></thead><tbody>'+comparisonRows+'</tbody></table></div>':
-    '<p class="data-warning">لا توجد مقارنات قابلة للاعتماد حتى الآن؛ تُعرض الأسعار غير المتكافئة في سجل العروض وليس كمكاسب أو وفورات.</p>')+
-   '<div class="report-columns"><section><h3>الإنجازات المثبتة</h3>'+
-   (achievements?'<ul>'+achievements+'</ul>':'<p class="muted">لم يسجل إنجاز جديد في التاريخ المحدد.</p>')+
-   '</section><section><h3>الأولويات والقرارات المطلوبة</h3>'+
-   (priorities?'<ul>'+priorities+'</ul>':'<p>لا توجد أولويات إضافية مسجلة.</p>')+'</section></div>'+
-   (risks?'<section><h3>المخاطر والفجوات الرئيسية</h3><ul>'+risks+'</ul></section>':'')+
-   (gaps?'<section><h3>نواقص العروض</h3><ul>'+gaps+'</ul></section>':'')+
-   (management&&activities?'<section><h3>'+(r.period==='monthly'?'سجل نشاط الشهر':'سجل نشاط اليوم')+'</h3><ul>'+activities+'</ul></section>':'')+
-   '<footer><p>'+dEsc(r.disclaimer)+'</p><p>'+dEsc(r.privacyNotice)+'</p>'+
-    '<p>المصدر: سجل المشتريات لدى ALHARIR · توليد: '+dEsc(r.generatedAt)+'</p></footer></article>';
+ return executiveReportMarkup(r);
 }
 function updateReportPeriod(){
  const monthly=document.getElementById('reportPeriod')?.value==='monthly';
@@ -310,11 +251,19 @@ async function copyWeChatDailyText(){
  }
 }
 
-const reportDoc=(data)=>'<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">'+
-  '<meta name="viewport" content="width=device-width,initial-scale=1"><title>ALHARIR Daily Procurement '+dEsc(data.date)+'</title>'+
-  '<style>body{font-family:Tahoma,Arial,sans-serif;margin:25px;background:#fff;color:#182f49;line-height:1.8;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
-  'h2,h3{color:#102550}.eyebrow{color:#3c668b;font-size:11px;letter-spacing:1px}.daily-heading{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #183772;padding-bottom:12px}.mini-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:18px 0}.mini-stat{border:1px solid #d9e2ed;border-radius:9px;padding:12px}.mini-stat span,.mini-stat small{display:block;color:#60748b}.mini-stat strong{display:block;font-size:25px;color:#153d7b}.table-scroll{overflow:auto}table{border-collapse:collapse;width:100%;font-size:12px}th,td{padding:9px;border:1px solid #dae4ee;text-align:right}th{background:#edf3f9}.report-columns{display:grid;grid-template-columns:1fr 1fr;gap:24px}.data-warning{background:#fff6e3;padding:12px}.daily-printable footer{border-top:1px solid #b9c7da;margin-top:24px;font-size:11px;color:#50657b}li{margin-bottom:5px} .daily-heading{background:#102c4c;color:white;border-radius:14px;padding:22px 25px;border:0;border-bottom:4px solid #d5ad5e}.daily-heading h2,.daily-heading strong{color:white}.daily-heading .eyebrow{color:#f0d293}.daily-heading p{color:#dce8f5}.mini-stat{background:#f8fafc;border-top:3px solid #d2a657;border-radius:10px}.mini-stat strong{color:#193c5c}.report-columns section{background:#f8fbfe;padding:16px;border:1px solid #e1eaf2;border-radius:10px}h3{border-right:3px solid #d8aa53;padding-right:11px;margin-top:24px}.data-warning{background:#fff7e7;border-right:4px solid #d7ad59}.daily-printable footer{line-height:1.9} @page{size:A4;margin:14mm}@media print{body{margin:0}}</style></head><body>'+
-  dailyMarkup(data)+'</body></html>';
+function reportDoc(data){
+ // Inline the SAME visual stylesheet into the downloadable file: works offline.
+ const link=document.querySelector('link[href="/executive-report.css"]');
+ let styles='';
+ try{styles=Array.from(link?.sheet?.cssRules||[]).map(rule=>rule.cssText).join('\n')}
+ catch(_){styles=''}
+ const base='body{background:white;color:#142d44;font-family:Tahoma,Arial,sans-serif;margin:0}'+
+  '.eod-document{display:block}.eod-sheet{break-after:page}.eod-sheet:last-child{break-after:auto}';
+ return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">'+
+ '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+ '<title>ALHARIR Procurement '+dEsc(data.date)+'</title><style>'+base+styles+'</style></head><body>'+
+ executiveReportMarkup(data)+'</body></html>';
+}
 function dailyFile(){
  if(!dailySnapshot)return null;
  const content=reportDoc(dailySnapshot);
