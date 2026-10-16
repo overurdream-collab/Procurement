@@ -10,6 +10,12 @@ on:
       - 'test/persistent-gmail-readonly.test.js'
       - 'test/staging-auth.test.js'
       - 'test/phase2-mail-correspondence.test.js'
+      - 'public/index.html'
+      - 'public/request.html'
+      - 'public/workspace.html'
+      - 'public/request-workspace.css'
+      - 'public/market-outreach.js'
+      - 'test/sourcing-request-flow.integration.test.js'
       - '.github/workflows/durable-readonly-gate.yml'
   workflow_dispatch:
 permissions:
@@ -29,6 +35,7 @@ jobs:
           node --check persistent-store.js
           node --check commercial-access.js
           node --check tools/db-backup.js
+          node --check public/market-outreach.js
       - name: Test database revision fencing, encryption, auth and existing app
         run: |
           node --test --test-concurrency=1 \
@@ -37,4 +44,7 @@ jobs:
             test/phase2-mail-correspondence.test.js \
             test/phase2-procurement.integration.test.js \
             test/procurement-reports.test.js \
-            test/daily-dashboard-http.test.js
+            test/daily-dashboard-http.test.js \
+            test/sourcing-request-flow.integration.test.js \
+            test/market-rfq-http.integration.test.js \
+            test/unified-market-search.test.js
