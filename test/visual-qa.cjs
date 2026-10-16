@@ -71,7 +71,19 @@ async function run(){
   await desktop.p.getByText('فتح مساحة الطلب',{exact:true}).click();
   await desktop.p.waitForSelector('#requestMailCard',{timeout:18000});
   await desktop.p.waitForSelector('#requestMailList',{timeout:10000});
+  await desktop.p.waitForFunction(()=>document.querySelector('#title')?.textContent.includes('REQ-')&&
+    document.querySelectorAll('#requestStats .stat').length===4,{timeout:15000});
+  if(!await desktop.p.locator('#errorMessage').isHidden())throw Error('Request cockpit reported an error');
   await desktop.p.screenshot({path:path.join(out,'desktop-request-workspace-email.png'),fullPage:true});
+  await desktop.p.locator('#findSuppliers').click();
+  await desktop.p.waitForSelector('#unifiedMarketQuery',{timeout:15000});
+  if(!await desktop.p.locator('#unifiedMarketQuery').inputValue().then(x=>x.includes('100mm PIR')))throw Error('Linked supplier search did not prefill request product');
+  await desktop.p.screenshot({path:path.join(out,'desktop-request-supplier-search.png'),fullPage:true});
+  await desktop.p.locator('.side-links [data-view=quotes]').click();
+  await desktop.p.waitForSelector('#comparisonScope',{timeout:15000});
+  const quoteScope=await desktop.p.locator('#comparisonScope').inputValue();
+  if(!quoteScope.startsWith('REQ-'))throw Error('Quote analysis lost current RFQ selection');
+  await desktop.p.screenshot({path:path.join(out,'desktop-request-quote-analysis.png'),fullPage:true});
   await desktop.c.close();
   const mobile=await context('mobile',390,844,true);
   await mobile.p.goto(base+'/#dashboard',{waitUntil:'domcontentloaded'});
@@ -94,6 +106,14 @@ async function run(){
   await mobile.p.locator('#closeMenu').click();
   if(await mobile.p.locator('body').evaluate(n=>n.classList.contains('nav-open')))throw Error('New request sidebar not closing');
 
+  await mobile.p.goto(base+'/workspace.html?id=RFQ-001',{waitUntil:'domcontentloaded'});
+  await mobile.p.waitForFunction(()=>document.querySelector('#title')?.textContent.includes('RFQ-001')&&
+   document.querySelector('#requestStats')?.querySelectorAll('.stat').length===4,{timeout:17000});
+  await mobile.p.screenshot({path:path.join(out,'mobile-request-workspace.png'),fullPage:true});
+  await mobile.p.locator('#mobileNav').click();
+  if(!await mobile.p.locator('body').evaluate(n=>n.classList.contains('nav-open')))throw Error('Workspace navigation failed to open');
+  await mobile.p.locator('#navBackdrop').click({force:true});
+  if(await mobile.p.locator('body').evaluate(n=>n.classList.contains('nav-open')))throw Error('Workspace navigation failed to close');
   const overflow=await mobile.p.evaluate(()=>({doc:document.documentElement.scrollWidth,window:window.innerWidth}));
   if(overflow.doc>overflow.window+4)throw Error('Mobile horizontal overflow '+JSON.stringify(overflow));
   await mobile.c.close();
