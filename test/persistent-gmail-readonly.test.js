@@ -107,3 +107,17 @@ test('safe mode cannot connect an unprotected external DATABASE_URL',()=>{
  assert.throws(()=>createStateStore({env:{DATABASE_URL:env.DATABASE_URL,OAUTH_ENCRYPTION_KEY:secret}}),
   /requires protected production access/);
 });
+
+
+test('AES-256-GCM backups are readable only with owner key, never contain raw commercial data',()=>{
+ const {sealBackup,openBackup}=require('../tools/db-backup');
+ const example={revision:'7',createdAt:'2026-10-16T00:00:00Z',
+  state:{requests:[{id:'SYNTHETIC-1',title:'private test'}],gmailReplies:[]}};
+ const key=crypto.randomBytes(32).toString('hex'),e={BACKUP_ENCRYPTION_KEY:key};
+ const encrypted=sealBackup(example,e);
+ assert.equal(encrypted.cipher,'AES-256-GCM');
+ assert.doesNotMatch(JSON.stringify(encrypted),/SYNTHETIC-1|private test/);
+ assert.deepEqual(openBackup(encrypted,e),example);
+ assert.throws(()=>openBackup(encrypted,{BACKUP_ENCRYPTION_KEY:crypto.randomBytes(32).toString('hex')}));
+ assert.throws(()=>openBackup({...encrypted,tag:Buffer.alloc(16).toString('base64')},e));
+});
