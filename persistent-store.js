@@ -43,9 +43,16 @@ function createStateStore({env=process.env,localFile,oauthFile,pgFactory}={}){
   if(!postgres)return;
   if(!setup)setup=(async()=>{
    const db=getPool();
-   await db.query('CREATE TABLE IF NOT EXISTS alharir_state (id SMALLINT PRIMARY KEY CHECK(id=1), revision BIGINT NOT NULL DEFAULT 0, payload JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())');
-   await db.query('CREATE TABLE IF NOT EXISTS alharir_secrets (key TEXT PRIMARY KEY, encrypted JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())');
-   await db.query('INSERT INTO alharir_state(id,revision,payload) VALUES (1,0,$1::jsonb) ON CONFLICT (id) DO NOTHING',[JSON.stringify(INITIAL_STATE())]);
+   if(env.PROCUREMENT_PRODUCTION==='true'){
+    // Schema is provisioned by an owner; the runtime role MUST NOT have CREATE privilege.
+    const state=await db.query('SELECT id FROM alharir_state WHERE id=1');
+    if(state.rows.length!==1)throw Error('production_database_not_initialized');
+    await db.query('SELECT key FROM alharir_secrets LIMIT 0');
+   }else{
+    await db.query('CREATE TABLE IF NOT EXISTS alharir_state (id SMALLINT PRIMARY KEY CHECK(id=1), revision BIGINT NOT NULL DEFAULT 0, payload JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())');
+    await db.query('CREATE TABLE IF NOT EXISTS alharir_secrets (key TEXT PRIMARY KEY, encrypted JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())');
+    await db.query('INSERT INTO alharir_state(id,revision,payload) VALUES (1,0,$1::jsonb) ON CONFLICT (id) DO NOTHING',[JSON.stringify(INITIAL_STATE())]);
+   }
   })().catch(e=>{setup=null;throw e});
   return setup;
  }
