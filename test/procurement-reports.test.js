@@ -88,3 +88,36 @@ test('daily report converts UTC activity into Sana’a calendar date, not the UT
  assert.equal(oct15.kpis.actionsToday,0);
  assert.ok(oct16.achievements.some(s=>s.includes('1')));
 });
+
+
+test('management supplier timeline uses only recorded replies and quote evidence',()=>{
+ const fixture=require('../staging-demo-data.json');
+ const st=JSON.parse(JSON.stringify(fixture));
+ st.gmailReplies=[{id:'MAIL-1',supplierId:'DEMO-S1',requestId:'RFQ-001',
+   receivedAt:'2026-10-16T07:30:00Z'}];
+ const out=dailyReport(st,{date:'2026-10-16',audience:'management'});
+ assert.equal(out.supplierProgress.length,2);
+ assert.equal(out.supplierProgress[0].supplier,'Demo Supplier A (synthetic)');
+ assert.equal(out.supplierProgress[0].replies,1);
+ assert.equal(out.supplierProgress[0].quotes,0);
+ assert.equal(out.supplierProgress[0].verifiedQuotes,0);
+ assert.match(out.supplierProgress[0].stage,/رد مورد/);
+ assert.equal(out.supplierProgress[0].lastReplyAt,'2026-10-16T07:30:00Z');
+ assert.equal(out.supplierProgress[1].stage,'لا يوجد رد أو عرض مسجل');
+});
+test('buyer supplier progress remains useful without supplier names, emails or IDs',()=>{
+ const fixture=require('../staging-demo-data.json');
+ const st=JSON.parse(JSON.stringify(fixture));
+ st.suppliers[0].email='private@supplier.example';
+ st.suppliers[0].status='Confidential internal note';
+ st.gmailReplies=[{id:'PRIVATE-MAIL',supplierId:'DEMO-S1',requestId:'RFQ-001',
+   receivedAt:'2026-10-15T08:00:00Z',body:'Private correspondence'}];
+ const out=dailyReport(st,{date:'2026-10-16',audience:'buyer'});
+ assert.equal(out.supplierProgress.length,2);
+ assert.equal(out.supplierProgress[0].supplier,'مورد 01');
+ assert.equal(out.supplierProgress[0].replies,1);
+ assert.equal(out.supplierProgress[0].quotes,0);
+ assert.equal(out.supplierProgress[0].supplierId,undefined);
+ assert.equal(out.supplierProgress[0].lastReplyAt,undefined);
+ assert.doesNotMatch(JSON.stringify(out),/private@supplier|Confidential internal note|PRIVATE-MAIL|Private correspondence/);
+});
