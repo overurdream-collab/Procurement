@@ -175,7 +175,7 @@ body{background-color:var(--bg)}
 <script>
 function icon(n){const p={home:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>',users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',reply:'<path d="M9 17 4 12l5-5"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>',check:'<path d="m4 12 5 5L20 6"/>',report:'<path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h8"/>',spark:'<path d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6Z"/>',moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/>',chart:'<path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/>',scale:'<path d="M12 3v18M5 7h14M7 7l-4 7h8L7 7Zm10 0-4 7h8l-4-7Z"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>'};return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">'+(p[n]||p.report)+'</svg>'}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-let st={},selectedMarketRequestId='';
+let st={},selectedMarketRequestId=new URLSearchParams(location.search).get('requestId')||'';
 function activeMarketRequestId(){
  const all=st.requests||[];
  if(!all.some(x=>x.id===selectedMarketRequestId))selectedMarketRequestId=(all.find(x=>x.id==='RFQ-001')||all[0]||{}).id||'';
@@ -201,7 +201,22 @@ const A='/api/';async function load(){let saved=localStorage.getItem('procuremen
  closeSideNav();
  if(view==='dashboard')ALHARIRDashboardPilot.init();
  if(view==='reports')loadDailyReport();
- if(view==='quotes')loadComparisons();
+ if(view==='market'){
+  const r=(st.requests||[]).find(x=>x.id===new URLSearchParams(location.search).get('requestId'));
+  const input=document.getElementById('unifiedMarketQuery');
+  if(r&&input&&!input.value)input.value=r.product||r.title||'';
+ }
+ if(view==='quotes'){
+  const requested=new URLSearchParams(location.search).get('requestId');
+  const scope=document.getElementById('comparisonScope');
+  if(requested&&scope&&[...scope.options].some(x=>x.value===requested))scope.value=requested;
+  loadComparisons();
+ }
+ if(view==='reports'){
+  const requested=new URLSearchParams(location.search).get('requestId');
+  const scope=document.getElementById('dailyScope');
+  if(requested&&scope&&[...scope.options].some(x=>x.value===requested))scope.value=requested;
+ }
  window.scrollTo({top:0,behavior:'instant'});
 }
 function toggleSideNav(){
@@ -339,12 +354,15 @@ function market(){
  '<h2>Market Intelligence — بحث الشركات والأسعار</h2>'+
  '<p>بحث موحد، تحديد هوية المورد، مراجعة التواصل، اختيار المرشحين، ثم إنشاء RFQ. هذه الخدمة لا تحل محل مقارنة العروض الموثقة.</p></div></section>'+
  unifiedSearchPanel()+
- panel('الطلب المرجعي للبحث التفصيلي',icon('report'),
+ panel('الطلب الذي تعمل عليه',icon('report'),
  '<div class="actions"><label>الطلب: <select onchange="setMarketRequest(this.value)">'+
  (st.requests||[]).map(r=>'<option value="'+esc(r.id)+'"'+(activeMarketRequestId()===r.id?' selected':'')+'>'+
  esc(r.id)+' — '+esc(r.product||r.title||'')+'</option>').join('')+
  '</select></label><button class="btn" onclick="marketScan()">تحليل المصادر لهذا الطلب</button>'+
  '<button class="btn" onclick="viewSelectedRfqDrafts()">عرض مسودات الموردين المحددين</button></div>'+
+ '<div class="actions" style="margin:14px 0">'+
+ '<a class="btn" href="/workspace.html?id='+encodeURIComponent(activeMarketRequestId())+'">مساحة هذا الطلب</a>'+
+ '<a class="btn" href="/?requestId='+encodeURIComponent(activeMarketRequestId())+'#quotes">تحليل عروض الطلب</a></div>'+
  '<div id="marketExistingRfqDrafts"></div>'+
  '<p class="muted">البحث التفصيلي يعرض مصادر عامة فقط إذا كان مزود البحث مفعلًا، ولا يُنشئ عروض أسعار موثقة من نتائج الإنترنت.</p>');
 }
