@@ -16,6 +16,7 @@ on:
       - 'public/request-workspace.css'
       - 'public/market-outreach.js'
       - 'test/sourcing-request-flow.integration.test.js'
+      - 'test/phase2-procurement.integration.test.js'
       - '.github/workflows/durable-readonly-gate.yml'
   workflow_dispatch:
 permissions:
