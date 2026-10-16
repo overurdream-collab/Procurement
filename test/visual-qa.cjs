@@ -72,6 +72,19 @@ async function run(){
   await desktop.p.waitForSelector('#requestMailCard',{timeout:18000});
   await desktop.p.waitForSelector('#requestMailList',{timeout:10000});
   await desktop.p.screenshot({path:path.join(out,'desktop-request-workspace-email.png'),fullPage:true});
+  await desktop.p.locator('#sourceAnalysisBtn').click();
+  await desktop.p.waitForSelector('#unifiedMarketResults .approval-details',{timeout:18000});
+  if(!desktop.p.url().includes('#market'))throw Error('Source analysis did not open unified Market Intelligence');
+  const searchStatus=await desktop.p.locator('#unifiedMarketStatus').innerText();
+  if(!searchStatus.includes('غير مفعّل'))throw Error('Did not explain missing automatic search provider: '+searchStatus);
+  const searchQuery=await desktop.p.locator('#unifiedMarketQuery').inputValue();
+  if(!searchQuery.includes('100mm PIR'))throw Error('Search lost created product context');
+  await desktop.p.screenshot({path:path.join(out,'desktop-sourcing-market.png'),fullPage:true});
+  await desktop.p.locator('#marketManualUrls').fill('https://www.alibaba.com/product-detail/fixture-one');
+  await desktop.p.getByRole('button',{name:'إضافة الروابط إلى قائمة الشركات المرشحة'}).click();
+  await desktop.p.waitForSelector('#ml-convert',{timeout:15000});
+  if(!await desktop.p.locator('#ml-attach-existing').isChecked())throw Error('Supplier shortlist would silently create duplicate RFQ');
+  await desktop.p.screenshot({path:path.join(out,'desktop-supplier-selection.png'),fullPage:true});
   await desktop.c.close();
   const mobile=await context('mobile',390,844,true);
   await mobile.p.goto(base+'/#dashboard',{waitUntil:'domcontentloaded'});
@@ -92,6 +105,13 @@ async function run(){
   if(!await mobile.p.locator('body').evaluate(n=>n.classList.contains('nav-open')))throw Error('New request mobile sidebar not opening');
   await mobile.p.screenshot({path:path.join(out,'mobile-request-sidebar.png')});
   await mobile.p.locator('#closeMenu').click();
+  await mobile.p.goto(base+'/?requestId=RFQ-001&scan=1#market',{waitUntil:'domcontentloaded'});
+  await mobile.p.waitForSelector('#unifiedMarketResults .approval-details',{timeout:18000});
+  await mobile.p.screenshot({path:path.join(out,'mobile-sourcing-market.png'),fullPage:true});
+  await mobile.p.goto(base+'/workspace.html?id=RFQ-001',{waitUntil:'domcontentloaded'});
+  await mobile.p.waitForSelector('#sourceAnalysisBtn',{timeout:12000});
+  await mobile.p.screenshot({path:path.join(out,'mobile-request-workspace.png'),fullPage:true});
+
   if(await mobile.p.locator('body').evaluate(n=>n.classList.contains('nav-open')))throw Error('New request sidebar not closing');
 
   const overflow=await mobile.p.evaluate(()=>({doc:document.documentElement.scrollWidth,window:window.innerWidth}));
