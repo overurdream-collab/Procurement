@@ -1,0 +1,60 @@
+
+/* Executive homepage adopts the Agent-Native dashboard geometry without installing a second app. */
+.executive-home{--ex-ink:#10294d;--ex-sky:#e7f2fd;--ex-accent:#2470bb;--ex-gold:#d2a84a;display:block}
+.executive-home .executive-head{display:flex;align-items:start;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:19px 22px;border-radius:18px;background:linear-gradient(120deg,#142d53,#24568c);color:#f6faff;box-shadow:0 10px 28px rgba(16,40,76,.12);margin-bottom:15px}
+.executive-home .executive-head h2{font-size:clamp(22px,3vw,30px);line-height:1.3;margin:5px 0 8px;color:#fff}
+.executive-home .executive-head p{margin:0;opacity:.86;font-size:12px}
+.executive-home .executive-head .eyebrow{font-size:10px;letter-spacing:1.5px;color:#f4c876}
+.executive-home .executive-actions{display:flex;gap:9px;flex-wrap:wrap}
+.executive-home .executive-actions a{background:#ffffff24;color:#fff;border:1px solid #ffffff5c;border-radius:11px;padding:10px 14px;font-size:12px;font-weight:700}
+.executive-home .executive-actions a:first-child{background:#efc778;border-color:#efc778;color:#10294d}
+.executive-home .executive-tools{display:flex;align-items:end;gap:11px;flex-wrap:wrap;margin:16px 0}
+.executive-home .executive-tools label{display:grid;gap:4px;font-size:11px;color:var(--muted)}
+.executive-home .executive-tools select{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);min-width:150px;max-width:280px}
+.executive-home .executive-message{font-size:12px;color:var(--muted);margin:8px 0 15px;min-height:21px}
+.executive-home .executive-warning{padding:12px;border:1px solid #d0a557;border-radius:10px;color:#a97319;background:#fff4df;margin:10px 0;font-size:12px}
+.executive-home .executive-warning[hidden]{display:none}
+.executive-home .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:10px 0 22px}
+.executive-home .stat{border:1px solid var(--line);border-radius:16px;position:relative;padding:16px;background:var(--card);box-shadow:0 6px 16px rgba(26,56,95,.045);min-height:132px;overflow:hidden;transition:transform .15s,border-color .15s}
+.executive-home .stat:before{content:"";display:block;position:absolute;top:0;right:0;left:0;height:4px;background:var(--accent)}
+.executive-home .stat:hover{transform:translateY(-2px);border-color:var(--accent)}
+.executive-home .stat label{display:block;color:var(--muted);font-size:12px}
+.executive-home .stat strong{display:block;font-size:32px;color:var(--text);line-height:1.3;padding-top:8px}
+.executive-home .stat small{font-size:11px;color:var(--muted);display:block;padding-top:7px}
+.executive-home .stat a{position:absolute;inset:0}
+.executive-home .panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.executive-home .panel{padding:18px;min-height:240px;min-width:0}
+.executive-home .panel h2{font-size:17px;color:var(--text);margin:0 0 6px}
+.executive-home .panel p{font-size:11px;color:var(--muted);margin:0 0 16px}
+.executive-home .funnel{display:grid;gap:13px}
+.executive-home .funnelrow{display:grid;grid-template-columns:100px 1fr 30px;align-items:center;gap:8px;font-size:12px}
+.executive-home .funnelrow a{color:var(--text)}
+.executive-home .funnelrow a:hover{text-decoration:underline}
+.executive-home .funnelrow strong{text-align:left}
+.executive-home .track{background:var(--line);height:9px;overflow:hidden;border-radius:12px}
+.executive-home .fill{height:100%;border-radius:12px}
+.executive-home .piezone{display:flex;gap:22px;align-items:center;justify-content:center;flex-wrap:wrap;min-height:176px}
+.executive-home .donut{border-radius:50%;width:155px;height:155px;display:grid;place-items:center;position:relative}
+.executive-home .donut:after{content:"";position:absolute;inset:21px;border-radius:50%;background:var(--card)}
+.executive-home .center{z-index:1;text-align:center}
+.executive-home .center strong{font-size:33px;display:block}
+.executive-home .center small{color:var(--muted);font-size:10px}
+.executive-home .legend{display:grid;gap:11px}
+.executive-home .legend div{display:flex;gap:9px;align-items:center;font-size:12px}
+.executive-home .legend i{height:11px;width:11px;border-radius:50%}
+.executive-home .legend b{margin-inline-start:auto}
+.executive-home .trend{display:flex;align-items:end;gap:13px;min-height:178px}
+.executive-home .trendcol{display:grid;flex:1;text-align:center;gap:6px}
+.executive-home .trendcol small{color:var(--muted);font-size:10px}
+.executive-home .bars{display:flex;align-items:end;gap:5px;height:140px}
+.executive-home .bars span{flex:1;border-radius:5px 5px 0 0;min-height:1px}
+.executive-home .bars .activity{background:#4598d8}
+.executive-home .bars .quote{background:#d7ad55}
+.executive-home .empty{padding:28px;text-align:center;color:var(--muted)}
+.executive-home .request{display:block;background:var(--card);border:1px solid var(--line);padding:11px;margin-top:9px;border-radius:12px}
+.executive-home .request:hover{border-color:var(--blue)}
+.executive-home .request b{color:var(--text)}
+.executive-home .request small{color:var(--muted);display:block;margin-top:5px}
+.executive-home .executive-foot{margin-top:15px;font-size:11px;color:var(--muted)}
+@media(max-width:950px){.executive-home .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.executive-home .panels{grid-template-columns:1fr}}
+@media(max-width:520px){.executive-home .executive-head{padding:16px}.executive-home .executive-actions{width:100%}.executive-home .executive-actions a{flex:1;text-align:center}.executive-home .stats{gap:8px}.executive-home .stat{min-height:117px;padding:13px}.executive-home .stat strong{font-size:27px}.executive-home .executive-tools label{flex:1}.executive-home .executive-tools select{min-width:0;width:100%}}

@@ -1,0 +1,202 @@
+/* ALHARIR Procurement — unified executive visual system (RTL first).
+   Visual-only override; business operations remain in the existing app. */
+:root{
+ --ux-navy:#0b1e35;--ux-navy2:#122c49;--ux-slate:#62738c;
+ --ux-cream:#f6f7fb;--ux-gold:#d9ad59;--ux-turquoise:#0a988e;
+ --ux-white:#fff;--ux-border:#e2e8f1;--ux-shadow:0 14px 35px rgba(16,39,69,.055);
+}
+html{scroll-behavior:smooth}
+body{background:#f6f8fc!important;background-image:none!important;font-family:Tahoma,"Segoe UI",Arial,sans-serif;color:#1b2e46;letter-spacing:-.1px}
+.app-shell{min-height:100dvh;align-items:stretch;background:#f6f8fc}
+.side-nav{flex-basis:262px;width:262px;padding:28px 16px 22px;background:linear-gradient(168deg,#091a30,#102b49 70%,#0b2038);height:100dvh;border-left:1px solid #223b58;box-shadow:-5px 0 24px #0d224116;top:0}
+.sidebar-brand{padding:5px 8px 29px;gap:13px;border-bottom:1px solid #ffffff1f}
+.sidebar-mark{width:46px;height:46px;border-radius:13px;color:#0a2340;background:linear-gradient(135deg,#fbe1a0,#c79c45);font-family:Georgia,serif;font-size:23px;box-shadow:0 8px 25px #0003}
+.sidebar-brand b{font-family:Georgia,"Segoe UI",sans-serif;font-size:23px;letter-spacing:1.6px;color:#fff}
+.sidebar-brand small{font-size:10px;letter-spacing:1.3px;color:#8db0c8;text-transform:uppercase}
+.sidebar-label{font-size:10px;color:#87a1ba;margin:26px 12px 10px;letter-spacing:.7px}
+.side-links{gap:5px}
+.side-links a{color:#ccdae8;gap:13px;padding:12px 14px;border-radius:11px;font-size:13px;font-weight:550;position:relative;transition:background .18s,transform .18s;border:1px solid transparent}
+.side-links a span{font-size:18px;min-width:22px;color:#a0b9cf}
+.side-links a:hover{background:#ffffff12;transform:translateX(-2px);border-color:#ffffff15}
+.side-links a.is-active{background:linear-gradient(100deg,#204666,#1b3a57);border:1px solid #51728a85;border-right:3px solid #e6bb6b;color:#fff;box-shadow:0 5px 16px #0615254d}
+.side-links a.is-active span{color:#f2c975}
+.sidebar-footer{margin-top:32px;padding:17px 13px;border-top:1px solid #ffffff2a;color:#c2d3e2;font-size:11px;line-height:1.9}
+.sidebar-footer small{color:#84a3bd}
+.app-content{background:radial-gradient(680px 430px at 60% -140px,#e0ecf8 0%,transparent 72%),#f6f8fc;padding:0 clamp(18px,2.55vw,38px) 52px}
+.app-content main{max-width:1510px;margin:auto;padding-bottom:70px}
+.work-toolbar{height:82px;min-height:82px;gap:12px;border-bottom:1px solid #e0e8f0;margin-bottom:28px}
+.toolbar-title{gap:1px}
+.toolbar-title b{font-size:15px;color:#153250;font-weight:800}
+.toolbar-title small{color:#7990a6;font-size:11px}
+.work-toolbar .btn{border-radius:10px;height:39px;color:#1e405d;border:1px solid #dbe5ef;background:#fff}
+.work-toolbar .btn:hover{border-color:#abc2d7}
+.btn{transition:background .15s,border-color .15s,transform .15s;min-height:38px}
+.btn:focus-visible,.side-links a:focus-visible,.executive-home a:focus-visible,.report-toolbar select:focus-visible,.report-toolbar button:focus-visible{outline:3px solid #2e9bd0;outline-offset:3px}
+#view{animation:uxfade .2s ease both}
+@keyframes uxfade{from{opacity:.6;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* Home — cinematic but data-first, avoids invented market values. */
+.executive-home{color:#182f49}
+.executive-home .executive-head{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(290px,.7fr);gap:20px;align-items:stretch;position:relative;overflow:hidden;padding:34px 36px 30px;border-radius:24px;background:radial-gradient(530px 340px at 4% -7%,#245475 0%,transparent 65%),linear-gradient(113deg,#0b1e35 0%,#153756 65%,#0f2a47 100%);color:#fff;box-shadow:0 26px 48px -28px #102b49a9;border:1px solid #28445c}
+.executive-home .executive-head:before{content:"";position:absolute;width:360px;height:360px;left:-110px;top:-165px;border:1px solid #ffffff15;border-radius:50%;box-shadow:0 0 0 45px #ffffff07,0 0 0 105px #ffffff05;pointer-events:none}
+.executive-home .executive-head:after{content:"";position:absolute;inset:auto 0 0;height:3px;background:linear-gradient(90deg,transparent,#e8bb6c,#5bc5b7,transparent)}
+.executive-home .head-copy,.executive-home .head-aside{position:relative;z-index:1}
+.executive-home .executive-head .eyebrow{display:inline-block;background:#ffffff0e;border:1px solid #ffffff22;color:#eed299;border-radius:100px;padding:7px 13px;letter-spacing:1.3px;font-size:10px}
+.executive-home .executive-head h2{font-size:clamp(27px,3.4vw,43px);line-height:1.4;font-weight:900;margin:16px 0 7px;color:#fff;letter-spacing:-1px}
+.executive-home .executive-head p{font-size:13px;max-width:540px;color:#c7d8e5;line-height:2;margin:0 0 21px;opacity:1}
+.executive-home .executive-actions{display:flex;flex-wrap:wrap;gap:8px}
+.executive-home .executive-actions a{background:#ffffff0d;border:1px solid #ffffff39;border-radius:10px;padding:11px 16px;min-height:43px;color:white;font-size:12px;display:inline-flex;align-items:center;gap:8px;font-weight:750;transition:background .2s}
+.executive-home .executive-actions a:hover{background:#ffffff1e}
+.executive-home .executive-actions a:first-child{background:#e5b862;border-color:#e5b862;color:#112a44;box-shadow:0 8px 17px #06192f33}
+.executive-home .head-aside{align-self:stretch;border:1px solid #ffffff26;border-radius:17px;background:#ffffff0c;backdrop-filter:blur(5px);padding:24px;display:flex;flex-direction:column;justify-content:center;min-height:216px}
+.executive-home .head-aside .aside-top{display:flex;align-items:center;gap:8px;color:#f3d28d;font-size:11px;font-weight:800;letter-spacing:.6px}
+.executive-home .head-aside .aside-top i{width:7px;height:7px;border-radius:100%;background:#5de0bf;box-shadow:0 0 0 5px #5de0bf1b}
+.executive-home .head-aside strong{font-size:clamp(38px,4vw,54px);letter-spacing:-2px;color:white;line-height:1.3;margin-top:8px}
+.executive-home .head-aside .aside-sub{color:#b8cedb;font-size:12px}
+.executive-home .head-aside .aside-rule{height:1px;background:#ffffff25;margin:16px 0}
+.executive-home .head-aside .aside-foot{font-size:12px;display:flex;justify-content:space-between;gap:12px}
+.executive-home .head-aside .aside-foot b{color:#f1c56f}
+.executive-home .section-kicker{font-size:10px;color:#8899ae;letter-spacing:1.7px;font-weight:850}
+.executive-home .section-title{font-size:19px;color:#193452;margin:22px 0 6px;letter-spacing:-.4px}
+.executive-home .section-lead{font-size:12px;color:#7b8da4;margin:0 0 13px}
+.executive-home .executive-tools{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:18px 0;padding:13px 17px;background:#fff;border:1px solid #e1e9f0;border-radius:14px;box-shadow:var(--ux-shadow)}
+.executive-home .executive-tools label{display:grid;gap:6px;font-size:11px;font-weight:750;color:#5e738a}
+.executive-home .executive-tools select{min-height:42px;border:1px solid #dfe8f0;padding:10px 13px;border-radius:9px;background:#f8fafc;color:#183955;min-width:160px}
+.executive-home .executive-tools button{height:42px;color:#204567;background:#edf4f9;border:1px solid #d8e6f0;font-weight:750}
+.executive-home .executive-message{color:#647a91;font-size:11px;margin:9px 0}
+.executive-home .executive-warning{color:#815b22;background:#fff9e9;border:1px solid #eedbb0;border-right:4px solid #d6a64f;padding:12px 17px}
+.executive-home .stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:17px 0 29px}
+.executive-home .stat{min-height:156px;padding:21px 20px 19px;border:1px solid #e2e9f1;border-radius:17px;background:#fff;box-shadow:var(--ux-shadow);transition:transform .19s,box-shadow .19s;position:relative;overflow:hidden}
+.executive-home .stat:before{height:4px;background:var(--accent);left:auto;right:21px;width:42px;top:0;border-radius:0 0 6px 6px}
+.executive-home .stat:after{content:"↗";position:absolute;left:18px;top:15px;font-size:16px;color:#98aabe}
+.executive-home .stat:hover{transform:translateY(-4px);box-shadow:0 17px 36px #102a4822}
+.executive-home .stat label{font-size:12px;color:#71839a;font-weight:700}
+.executive-home .stat strong{font-size:clamp(29px,2.7vw,40px);font-family:Arial,Tahoma,sans-serif;margin:13px 0 4px;font-weight:900;letter-spacing:-1px;color:#152b48}
+.executive-home .stat small{font-size:11px;color:#8c9aab}
+.executive-home .panels{grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}
+.executive-home .panel{border:1px solid #e2eaf2;min-height:295px;border-radius:20px;background:#fff;padding:26px;box-shadow:var(--ux-shadow);overflow:hidden}
+.executive-home .panel h2{font-size:17px;font-weight:850;color:#203754;margin-bottom:5px}
+.executive-home .panel p{font-size:11px;color:#8091a6;margin-bottom:22px}
+.executive-home .funnel{gap:18px}
+.executive-home .funnelrow{grid-template-columns:116px 1fr 29px;gap:12px;font-size:12px}
+.executive-home .track{height:10px;border-radius:50px;background:#eaf1f7}
+.executive-home .fill{border-radius:50px}
+.executive-home .funnelrow a{font-weight:700;color:#284360}
+.executive-home .donut{width:174px;height:174px;filter:drop-shadow(0 9px 18px #16345112)}
+.executive-home .donut:after{inset:26px;background:#fff}
+.executive-home .center strong{font-size:40px;color:#1e3650}
+.executive-home .legend{gap:15px}
+.executive-home .legend div{gap:10px;font-size:12px;color:#617890}
+.executive-home .trend{min-height:187px}
+.executive-home .bars{height:147px}
+.executive-home .bars .activity{background:linear-gradient(#5fabe9,#1d628e)}
+.executive-home .bars .quote{background:linear-gradient(#ecd292,#ce9b42)}
+.executive-home .trendcol small{font-size:11px}
+.executive-home .request{border:1px solid #e3ebf2;background:#f8fbff;border-radius:12px;padding:15px 17px;margin:10px 0;transition:background .2s,border-color .2s}
+.executive-home .request:hover{background:#ecf5fd;border-color:#92b9d8}
+.executive-home .request b{color:#203b59;font-size:13px}
+.executive-home .request small{font-size:11px;color:#768a9d}
+.executive-home .executive-foot{border-top:1px solid #e1e8ef;padding:15px 2px;margin-top:28px;font-size:11px;line-height:1.8;color:#788b9e}
+
+/* Reports — one dedicated executive workspace and one consistent document style. */
+#view:has(.reports-page){max-width:1450px}
+.reports-page .page-intro{padding:24px 26px;background:#fff;border:1px solid #e1e9f2;border-radius:19px;margin:0 0 15px;box-shadow:var(--ux-shadow)}
+.reports-page .page-intro .eyebrow{color:#bb8d43;letter-spacing:1.4px;font-size:10px}
+.reports-page .page-intro h2{font-size:clamp(25px,3vw,33px);color:#172f4b;margin:7px 0}
+.reports-page .page-intro p{font-size:12px;color:#768ba2}
+.reports-page .report-toolbar{background:#fff;padding:21px;display:flex;gap:11px;align-items:end;border:1px solid #e0e8ef;box-shadow:var(--ux-shadow);border-radius:17px;margin:0 0 22px}
+.reports-page .report-toolbar label{color:#506780;font-size:11px;font-weight:750;min-width:155px}
+.reports-page .report-toolbar select,.reports-page .report-toolbar input{border:1px solid #dbe4ef;background:#f9fbfd;color:#25415d;min-height:44px;border-radius:9px;padding:10px}
+.reports-page .report-toolbar .btn{min-height:44px;background:#f2f6fa;color:#1f4468;border:1px solid #dfe9f2;border-radius:9px;font-size:12px}
+.reports-page .report-toolbar .btn.primary{background:#173e65;color:#fff;border-color:#173e65}
+.daily-printable{background:#fff;border:1px solid #e0e8ef;border-radius:21px;padding:clamp(18px,3vw,42px);box-shadow:0 15px 45px #1834510c;margin:0 0 20px}
+.daily-heading{background:linear-gradient(112deg,#0d2340,#17446d);color:#fff;padding:24px 27px;border-radius:15px;border:0;position:relative;overflow:hidden;gap:16px}
+.daily-heading:after{content:"";position:absolute;inset:auto 0 0;height:3px;background:linear-gradient(90deg,#e2b963,#77d5cd)}
+.daily-heading .eyebrow{color:#e7c27e;font-size:10px}
+.daily-heading h2{color:white;font-size:clamp(23px,3vw,30px)}
+.daily-heading p{color:#c3d5e4;font-size:12px}
+.daily-heading strong{color:#f0ca7f;font-size:clamp(19px,2.2vw,28px);letter-spacing:1.4px}
+.daily-printable .mini-stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:23px 0}
+.daily-printable .mini-stat{border:1px solid #e0e9f2;border-top:3px solid #d5ab58;background:#f9fbfd;border-radius:13px;padding:16px;box-shadow:none}
+.daily-printable .mini-stat span{font-size:11px;font-weight:700;color:#667d93}
+.daily-printable .mini-stat strong{font-size:28px;line-height:1.55;color:#123858}
+.daily-printable h3{margin:27px 0 12px;color:#1c3b5c;font-size:16px;border-right:3px solid #d5a952;padding:0 11px;line-height:1.7}
+.daily-printable .table-scroll{border:1px solid #e0e9f2;border-radius:13px;box-shadow:none}
+.daily-printable table{width:100%;border-collapse:collapse}
+.daily-printable th{background:#eaf2f9;color:#31506d;font-size:11px;padding:13px 12px;font-weight:800}
+.daily-printable td{font-size:11px;padding:14px 12px;border-bottom:1px solid #edf2f7;vertical-align:middle;color:#35516a}
+.daily-printable tr:last-child td{border-bottom:0}
+.daily-printable tbody tr:nth-child(even){background:#fbfcfe}
+.daily-printable .report-columns{gap:16px;margin-top:13px}
+.daily-printable .report-columns section{background:#f8fbff;border:1px solid #e2ebf3;border-radius:13px;padding:17px 18px}
+.daily-printable .report-columns h3{margin-top:4px}
+.daily-printable li{line-height:2;margin-bottom:6px;color:#365572;font-size:12px}
+.daily-printable .data-warning{border-radius:12px;border:1px solid #f1dfb9;border-right:4px solid #d7a94d;background:#fffbf0;color:#76572b;padding:13px 18px}
+.daily-printable footer{border-top:1px solid #e3eaf0;color:#7d90a6;margin-top:35px;padding-top:15px;font-size:10px;line-height:1.8}
+.reports-page .service-status{margin-top:24px}
+.page-intro:not(.executive-head){margin-bottom:16px}
+
+/* Dark mode retains legible report sheets and sidebar. */
+[data-theme=dark] body{background:#081526!important;color:#eaf4fa}
+[data-theme=dark] .app-shell,[data-theme=dark] .app-content{background:#081526}
+[data-theme=dark] .work-toolbar{border-color:#233e58}
+[data-theme=dark] .toolbar-title b{color:#e2eef9}
+[data-theme=dark] .executive-home .stat,[data-theme=dark] .executive-home .panel{background:#142941;border-color:#2b4963}
+[data-theme=dark] .executive-home .panel h2,[data-theme=dark] .executive-home .stat strong,[data-theme=dark] .executive-home .section-title{color:#e8f4ff}
+[data-theme=dark] .executive-home .stat label,[data-theme=dark] .executive-home .stat small{color:#afc4d5}
+[data-theme=dark] .executive-home .executive-tools{background:#122b44;border-color:#2b4963}
+[data-theme=dark] .executive-home .executive-tools select{background:#0b2037;color:#dbeaf9;border-color:#355773}
+[data-theme=dark] .executive-home .donut:after{background:#142941}
+[data-theme=dark] .executive-home .request{background:#0d223a;border-color:#35516a}
+[data-theme=dark] .executive-home .request b{color:#ecf7ff}
+[data-theme=dark] .reports-page .page-intro,[data-theme=dark] .reports-page .report-toolbar{background:#142941;border-color:#2b4963}
+[data-theme=dark] .reports-page .page-intro h2{color:#eaf3fa}
+[data-theme=dark] .daily-printable{color:#263b50}
+
+@media(max-width:1200px){.executive-home .executive-head{grid-template-columns:1fr}.executive-home .head-aside{min-height:125px}.executive-home .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-printable .mini-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:920px){.side-nav{position:fixed;top:0;right:0;height:100dvh;width:min(312px,86vw);z-index:101;transform:translateX(120%)}body.nav-open .side-nav{transform:translateX(0)}.sidebar-backdrop{z-index:99!important} .app-content{width:100%;padding:0 17px 30px}.work-toolbar{height:67px;min-height:67px;margin-bottom:20px}.work-toolbar .sidebar-toggle{height:42px;display:inline-flex;align-items:center;gap:7px;background:#153758;color:white;border-color:#153758}.executive-home .panels{grid-template-columns:1fr}}
+@media(max-width:620px){.app-content{padding:0 12px 28px}.executive-home .executive-head{padding:25px 21px;gap:18px;border-radius:19px}.executive-home .executive-head h2{font-size:29px}.executive-home .head-aside{padding:16px}.executive-home .executive-actions{display:grid;grid-template-columns:repeat(2,1fr);width:100%}.executive-home .executive-actions a{min-height:45px;font-size:11px;padding:10px 9px;justify-content:center}.executive-home .stats{gap:9px}.executive-home .stat{min-height:141px;padding:15px;border-radius:13px}.executive-home .stat strong{font-size:31px}.executive-home .stat label{font-size:11px}.executive-home .panel{padding:19px;border-radius:15px;min-height:250px}.executive-home .funnelrow{grid-template-columns:89px 1fr 25px}.executive-home .executive-tools label{flex:1 1 150px}.reports-page .page-intro{padding:20px}.reports-page .report-toolbar{padding:15px}.reports-page .report-toolbar label{flex:1 1 45%;min-width:0}.reports-page .report-toolbar .btn{flex:1 1 45%;height:auto;min-height:45px}.daily-printable{padding:14px;border-radius:13px}.daily-heading{padding:18px;gap:6px}.daily-heading strong{font-size:18px}.daily-printable .mini-stats{gap:7px}.daily-printable .mini-stat{padding:11px}.daily-printable .mini-stat strong{font-size:24px}.daily-printable .report-columns{grid-template-columns:1fr}}
+
+/* Native month/date fields have an intrinsic width on iOS: constrain the reports form.
+ * Tables may scroll INSIDE their card, never enlarge the entire viewport. */
+.reports-page,.reports-page .report-toolbar,.reports-page .report-toolbar label,
+.reports-page #dailyReportOutput,.daily-printable,.daily-printable .table-scroll,
+.daily-printable .report-columns,.daily-printable .report-columns section{min-width:0;max-width:100%}
+.reports-page .report-toolbar select,.reports-page .report-toolbar input{
+ box-sizing:border-box;width:100%;min-width:0;max-width:100%;
+}
+.daily-printable .table-scroll{display:block;width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+.daily-printable table{width:100%}
+@media(max-width:620px){
+ .reports-page .report-toolbar{overflow:hidden}
+ .daily-heading>div{min-width:0}
+ .daily-heading h2{overflow-wrap:anywhere}
+ .daily-printable .report-columns,.daily-printable .mini-stats{width:100%}
+}
+
+
+/* Reports become readable field cards on iPhone, preserving desktop/print tables. */
+@media screen and (max-width:620px){
+ .daily-printable .table-scroll{border:0;overflow:visible;border-radius:0;max-width:100%}
+ .daily-printable table{display:block;min-width:0!important;width:100%!important}
+ .daily-printable thead{display:none}
+ .daily-printable tbody{display:grid;gap:10px;min-width:0}
+ .daily-printable tbody tr{display:grid;border:1px solid #e1eaf2;background:#fafcff!important;border-radius:12px;padding:7px 12px}
+ .daily-printable tbody td{display:flex;align-items:center;justify-content:space-between;
+    gap:9px;border:0;border-bottom:1px solid #e7edf4;padding:10px 1px;
+    text-align:left;min-width:0;overflow-wrap:anywhere;color:#203c57}
+ .daily-printable tbody td:last-child{border:0}
+ .daily-printable tbody td::before{content:attr(data-label);font-weight:750;color:#75899e;
+    font-size:11px;flex:0 0 88px;text-align:right}
+}
+
+@media print{
+ body,.app-content{background:white!important;background-image:none!important}
+ .side-nav,.work-toolbar,.sidebar-backdrop,.executive-home,.reports-page .report-toolbar,.reports-page .page-intro,.service-status{display:none!important}
+ .app-shell,.app-content,main,#view,.reports-page,#dailyReportOutput{display:block!important;width:100%!important;max-width:none!important;padding:0!important;margin:0!important}
+ .daily-printable{border:0!important;box-shadow:none!important;border-radius:0!important;padding:0!important}
+ .daily-printable .mini-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .daily-heading{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .daily-printable section,.daily-printable .mini-stat{break-inside:avoid}
+ @page{size:A4;margin:13mm}
+}

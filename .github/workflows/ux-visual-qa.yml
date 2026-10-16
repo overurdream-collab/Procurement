@@ -1,0 +1,47 @@
+name: ALHARIR visual desktop mobile acceptance
+on:
+  push:
+    branches: [alharir-free-hosting-poc]
+    paths:
+      - 'public/index.html'
+      - 'public/ux-overhaul.css'
+      - 'public/executive-home.js'
+      - 'public/executive-home.css'
+      - 'public/agent-native-pilot.js'
+      - 'public/ops-dashboard.js'
+      - 'public/request.html'
+      - 'public/executive-report.css'
+      - 'public/executive-report.js'
+      - 'public/workspace.html'
+      - 'public/workspace-view.css'
+      - 'public/workspace-view.js'
+      - 'public/mail-correspondence.js'
+      - 'test/visual-qa.cjs'
+      - '.github/workflows/ux-visual-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-visual-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated open-source browser test only
+        run: |
+          mkdir -p /tmp/alharir-qa
+          npm install --prefix /tmp/alharir-qa --no-audit --no-fund --silent playwright@1.56.1
+          /tmp/alharir-qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Capture actual responsive RTL screens from synthetic protected server
+        run: NODE_PATH=/tmp/alharir-qa/node_modules node test/visual-qa.cjs
+      - name: Preserve screenshots for QA review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alharir-ui-desktop-mobile-synthetic
+          path: visual-qa-artifacts/*.png
+          retention-days: 7
+          if-no-files-found: warn

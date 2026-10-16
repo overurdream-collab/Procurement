@@ -1,0 +1,114 @@
+name: Protected free-hosting preview tests
+on:
+  push:
+    branches:
+      - fix/evidence-based-market-research-20261015
+      - alharir-free-hosting-poc
+    paths:
+      - 'server.js'
+      - 'staging-access.js'
+      - 'staging-demo-data.json'
+      - 'render.yaml'
+      - 'test/staging-auth.test.js'
+      - 'test/unified-market-search.test.js'
+      - 'market-unified.js'
+      - 'market-leads.js'
+      - 'public/market-outreach.js'
+      - 'test/market-lead-pipeline.test.js'
+      - 'test/market-rfq-http.integration.test.js'
+      - 'procurement-reports.js'
+      - 'public/ops-dashboard.js'
+      - 'test/procurement-reports.test.js'
+      - 'test/daily-dashboard-http.test.js'
+      - 'test/navigation-report.contract.test.js'
+      - 'test/agent-native-dashboard-pilot.test.js'
+      - 'test/home-monthly-integration.test.js'
+      - 'monthly-report.js'
+      - 'public/executive-home.css'
+      - 'public/executive-home.js'
+      - 'public/agent-native-layout.js'
+      - 'public/agent-native-pilot.js'
+      - 'public/agent-native-pilot.html'
+      - 'public/index.html'
+      - 'public/request.html'
+      - 'public/executive-report.js'
+      - 'public/executive-report.css'
+      - 'public/mail-correspondence.js'
+      - 'public/workspace.html'
+      - 'test/request-sourcing-analysis.integration.test.js'
+      - 'public/workspace-view.css'
+      - 'public/workspace-view.js'
+      - 'gmail-request-link.js'
+      - 'test/phase2-procurement.integration.test.js'
+      - 'test/phase2-mail-correspondence.test.js'
+      - '.github/workflows/staging-demo-tests.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'server.js'
+      - 'staging-access.js'
+      - 'staging-demo-data.json'
+      - 'render.yaml'
+      - 'test/staging-auth.test.js'
+      - 'test/unified-market-search.test.js'
+      - 'market-unified.js'
+      - 'market-leads.js'
+      - 'public/market-outreach.js'
+      - 'test/market-lead-pipeline.test.js'
+      - 'test/market-rfq-http.integration.test.js'
+      - 'procurement-reports.js'
+      - 'public/ops-dashboard.js'
+      - 'test/procurement-reports.test.js'
+      - 'test/daily-dashboard-http.test.js'
+      - 'test/navigation-report.contract.test.js'
+      - 'test/agent-native-dashboard-pilot.test.js'
+      - 'test/home-monthly-integration.test.js'
+      - 'monthly-report.js'
+      - 'public/executive-home.css'
+      - 'public/executive-home.js'
+      - 'public/agent-native-layout.js'
+      - 'public/agent-native-pilot.js'
+      - 'public/agent-native-pilot.html'
+      - 'public/index.html'
+      - 'public/request.html'
+      - 'public/executive-report.js'
+      - 'public/executive-report.css'
+      - 'public/mail-correspondence.js'
+      - 'public/workspace.html'
+      - 'test/request-sourcing-analysis.integration.test.js'
+      - 'public/workspace-view.css'
+      - 'public/workspace-view.js'
+      - 'gmail-request-link.js'
+      - 'test/phase2-procurement.integration.test.js'
+      - 'test/phase2-mail-correspondence.test.js'
+      - '.github/workflows/staging-demo-tests.yml'
+permissions:
+  contents: read
+jobs:
+  private-demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax
+        run: |
+          node --check server.js
+          node --check staging-access.js
+          node --check market-unified.js
+          node --check market-leads.js
+          node --check public/market-outreach.js
+          node --check procurement-reports.js
+          node --check public/ops-dashboard.js
+          node --check public/agent-native-layout.js
+          node --check public/agent-native-pilot.js
+          node --check public/executive-home.js
+          node --check monthly-report.js
+          node --check gmail-request-link.js
+          node --check public/executive-report.js
+          node --check public/mail-correspondence.js
+          node --check public/workspace-view.js
+      - name: Test real HTTP authentication and synthetic-only sample
+        run: node --test --test-concurrency=1 test/staging-auth.test.js test/unified-market-search.test.js test/market-lead-pipeline.test.js test/market-rfq-http.integration.test.js test/procurement-reports.test.js test/daily-dashboard-http.test.js test/navigation-report.contract.test.js test/agent-native-dashboard-pilot.test.js test/home-monthly-integration.test.js test/phase2-procurement.integration.test.js test/phase2-mail-correspondence.test.js test/request-sourcing-analysis.integration.test.js
