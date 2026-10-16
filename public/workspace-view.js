@@ -20,7 +20,7 @@ function deriveOverview(st,id,analysis){
 function overviewHtml(record){
  if(!record)return '<p class="muted">الطلب غير موجود.</p>';
  const r=record.request;
- const lines=[['المنتج',r.product],['الكمية',r.quantity],['العملة',r.currency],['أساس التسعير',r.incoterm],['الأسواق المستهدفة',r.targetMarkets],['التاريخ المطلوب',r.neededBy]];
+ const lines=[['عنوان الطلب',r.title],['المنتج',r.product],['الكمية',r.quantity],['العملة',r.currency],['أساس التسعير',r.incoterm],['الأسواق المستهدفة',r.targetMarkets],['التاريخ المطلوب',r.neededBy]];
  return lines.map(([label,value])=>'<div class="detail"><small>'+esc(label)+'</small><b>'+esc(value||'لم يحدد')+'</b></div>').join('')+
   '<div class="detail full"><small>المواصفات الفنية الأساسية</small><b>'+esc(r.specifications||'لم تُسجل المواصفات')+'</b></div>';
 }
