@@ -91,7 +91,7 @@ async function run(){
   await mobile.p.locator('#menu').click();
   if(!await mobile.p.locator('body').evaluate(n=>n.classList.contains('nav-open')))throw Error('New request mobile sidebar not opening');
   await mobile.p.screenshot({path:path.join(out,'mobile-request-sidebar.png')});
-  await mobile.p.locator('#cover').click();
+  await mobile.p.locator('#closeMenu').click();
   if(await mobile.p.locator('body').evaluate(n=>n.classList.contains('nav-open')))throw Error('New request sidebar not closing');
 
   const overflow=await mobile.p.evaluate(()=>({doc:document.documentElement.scrollWidth,window:window.innerWidth}));
