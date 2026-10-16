@@ -316,7 +316,7 @@ if(u.pathname==='/api/requests'&&req.method==='POST'){
  const currency=plain(b.currency||'USD',3).toUpperCase();
  if(title.length<3||product.length<3||!quantity||specs.length<8)
    return json(res,422,{error:'request_fields_required',message:'أكمل عنوان الطلب والمنتج والكمية والمواصفات الفنية.'});
- if(!['FOB','EXW'].includes(terms)||!['USD','CNY','EUR','YER'].includes(currency))
+ if(terms!=='FOB'||!['USD','CNY','EUR','YER'].includes(currency))
    return json(res,422,{error:'invalid_commercial_terms'});
  if(b.neededBy&&!/^\d{4}-\d{2}-\d{2}$/.test(String(b.neededBy)))
    return json(res,422,{error:'invalid_needed_by_date'});
