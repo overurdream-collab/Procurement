@@ -34,12 +34,31 @@ function createStateStore({env=process.env,localFile,oauthFile,pgFactory}={}){
  if(postgres)keyFromEnv(env);
  let pool,setup,closed=false;const revision=new WeakMap();
  function verifiedPgConfig(connectionString){
-  const parsed=new URL(connectionString);
+  let parsed;
+  try{
+   if(typeof connectionString!=='string'||
+      !/^postgres(?:ql)?:\/\//i.test(connectionString)||
+      connectionString.trim()!==connectionString||
+      /[\r\n]/.test(connectionString))throw Error('bad_format');
+   parsed=new URL(connectionString);
+  }catch(_){
+   throw Error('DATABASE_URL_invalid_format: paste ONLY the postgresql:// connection URI from Neon; omit URI: labels, quotes and whitespace');
+  }
   if(!['postgresql:','postgres:'].includes(parsed.protocol))throw Error('DATABASE_URL must be a PostgreSQL URL');
   if(!parsed.hostname||!parsed.username||!parsed.password||parsed.pathname.length<2)
    throw Error('DATABASE_URL must specify host, user, password and database');
   if(!parsed.hostname.endsWith('.neon.tech'))
    throw Error('Database host must belong to the authorized Neon project');
+  // Guard against accidentally connecting this synthetic trial service to the main
+  // branch or an administrative Postgres role. Expected values are non-secret.
+  const expectedHost=String(env.DATABASE_EXPECTED_ENDPOINT||'').trim();
+  const actualEndpoint=parsed.hostname.split('.')[0].replace(/-pooler$/,'');
+  if(expectedHost&&actualEndpoint!==expectedHost)
+   throw Error('DATABASE_URL_wrong_branch_endpoint');
+  if(env.DATABASE_EXPECTED_ROLE&&decodeURIComponent(parsed.username)!==env.DATABASE_EXPECTED_ROLE)
+   throw Error('DATABASE_URL_wrong_database_role');
+  if(env.DATABASE_EXPECTED_NAME&&decodeURIComponent(parsed.pathname.slice(1))!==env.DATABASE_EXPECTED_NAME)
+   throw Error('DATABASE_URL_wrong_database_name');
   if(parsed.searchParams.get('sslmode')==='disable')
    throw Error('Database TLS may not be disabled');
   // Explicit fields prevent connection-string sslmode from weakening certificate validation.
