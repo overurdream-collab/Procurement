@@ -33,10 +33,25 @@ function createStateStore({env=process.env,localFile,oauthFile,pgFactory}={}){
    throw Error('Production requires DATABASE_URL and must not use demo storage');
  if(postgres)keyFromEnv(env);
  let pool,setup,closed=false;const revision=new WeakMap();
+ function verifiedPgConfig(connectionString){
+  const parsed=new URL(connectionString);
+  if(!['postgresql:','postgres:'].includes(parsed.protocol))throw Error('DATABASE_URL must be a PostgreSQL URL');
+  if(!parsed.hostname||!parsed.username||!parsed.password||parsed.pathname.length<2)
+   throw Error('DATABASE_URL must specify host, user, password and database');
+  if(!parsed.hostname.endsWith('.neon.tech'))
+   throw Error('Database host must belong to the authorized Neon project');
+  if(parsed.searchParams.get('sslmode')==='disable')
+   throw Error('Database TLS may not be disabled');
+  // Explicit fields prevent connection-string sslmode from weakening certificate validation.
+  return {host:parsed.hostname,port:Number(parsed.port||5432),user:decodeURIComponent(parsed.username),
+   password:decodeURIComponent(parsed.password),database:decodeURIComponent(parsed.pathname.slice(1)),
+   ssl:{rejectUnauthorized:true}};
+ }
+
  const getPool=()=>{
   if(!pool){const Pool=pgFactory||require('pg').Pool;
-   pool=new Pool({connectionString:env.DATABASE_URL,max:3,idleTimeoutMillis:30000,
-    connectionTimeoutMillis:12000,ssl:{rejectUnauthorized:true}});
+   pool=new Pool({...verifiedPgConfig(env.DATABASE_URL),max:3,idleTimeoutMillis:30000,
+    connectionTimeoutMillis:12000});
   }return pool;
  };
  async function ready(){
