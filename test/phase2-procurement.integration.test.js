@@ -88,6 +88,8 @@ test('protected HTTP create real draft, dedupe retries, serve report design, and
   const body={title:'PIR panels for cold room',product:'PIR 100mm panel',quantity:'100 m²',
    specifications:'PIR 100mm; steel skin 0.5mm; core density 40kg/m3',
    currency:'USD',incoterm:'FOB',clientRequestKey:'phase2-one-time-creation'};
+  r=await send('/api/requests',{...body,incoterm:'EXW',clientRequestKey:'reject-exw'});
+  assert.equal(r.status,422);
   r=await send('/api/requests',body);assert.equal(r.status,201);const request=await r.json();
   assert.match(request.id,/^REQ-[A-F0-9]{12}$/);
   assert.equal(request.incoterm,'FOB');
