@@ -1,9 +1,22 @@
 # ALHARIR — Durable storage and Gmail read-only implementation
-Status: **Implementation branch; not connected to real Gmail or a database. Not production-ready.**
+Status: **Neon Free project and empty tables have been created and SQL-tested. The Procurement app is NOT yet connected to Neon or real Gmail. Not production-ready.**
 
 ## Current infrastructure and decision
 
 The existing Render Free web service stores synthetic demonstration data in ephemeral disk storage. Render Free PostgreSQL expires 30 days after creation and has no backups. Do not move real supplier correspondence to either. Owner-controlled Neon Free PostgreSQL is a potential zero-fee option, subject to current plan limits and account connection.
+
+## Current Neon environment (created 2026-10-16)
+- Organization: **Alharir**, Neon free plan.
+- Project: **ALHARIR Procurement** (ID `autumn-term-62834759`).
+- Region: **aws-eu-central-1 (Frankfurt)**.
+- Default branch: `br-autumn-water-b9gzima9`.
+- Database: `alharir_procurement`.
+- Tables created: `alharir_state` and `alharir_secrets`, columns verified using information_schema.
+- Initial state row (id=1, revision=0) created with empty requests, empty suppliers, empty quotes and empty Gmail replies.
+- Actual database SQL transaction tested successfully with TEMP table create, write, update and read; TEMP table removed automatically.
+- Confirmed business requests=0, quotes=0, messages=0, OAuth secrets=0 after the test. No real data imported.
+- **No application DATABASE_URL is configured anywhere.** Do not copy it into the existing synthetic Render preview.
+- No scheduled database backup/snapshot configured. Added `tools/db-backup.js` for owner-run AES-256-GCM encrypted export / verify without exporting OAuth secrets. Scheduling remains outstanding.
 
 ## Implemented architecture
 
@@ -53,7 +66,7 @@ No paid service or new live instance is created from this branch.
 
 Already implemented: PostgreSQL state revision control, AES-GCM OAuth vault, guarded HTTPS live mode, conservative mail storage and on-demand Gmail message retrieval.
 
-Still outstanding: actual owner Neon connection; verified live database round-trip; separate protected non-demo deployment; Google Cloud OAuth consent; real harmless message/attachment read test; backups/restore drill; employee RBAC.
+Still outstanding: configure application credentials for the newly-created owner Neon project; verify application-driver live database round-trip; separate protected non-demo deployment; Google Cloud OAuth consent; real harmless message/attachment read test; backups/restore drill; employee RBAC.
 
 Official documentation:
 - https://render.com/docs/free
