@@ -130,3 +130,17 @@ test('AES-256-GCM backups are readable only with owner key, never contain raw co
  assert.throws(()=>openBackup(encrypted,{BACKUP_ENCRYPTION_KEY:crypto.randomBytes(32).toString('hex')}));
  assert.throws(()=>openBackup({...encrypted,tag:Buffer.alloc(16).toString('base64')},e));
 });
+
+
+test('Neon certificate verification is preserved and connection-string TLS downgrades are rejected',async()=>{
+ let config;
+ class CapturePool extends FakePool{constructor(options){super();config=options}}
+ const store=createStateStore({env,pgFactory:CapturePool});
+ await store.ready();
+ assert.equal(config.ssl.rejectUnauthorized,true);
+ assert.match(config.host,/\.neon\.tech$/);
+ assert.equal(config.connectionString,undefined);
+ await store.close();
+ const weakened=createStateStore({env:{...env,DATABASE_URL:env.DATABASE_URL.replace('sslmode=require','sslmode=disable')},pgFactory:CapturePool});
+ await assert.rejects(()=>weakened.ready(),/TLS may not be disabled/);
+});
