@@ -18,6 +18,7 @@ const {productionConfig,guardProduction}=require('./commercial-access');
 const {createStateStore}=require('./persistent-store');
 productionConfig();
 const HOSTED_DEMO=process.env.STAGING_HOSTED==='true';
+const LIVE=process.env.PROCUREMENT_PRODUCTION==='true';
 const DATA=HOSTED_DEMO?path.join(require('node:os').tmpdir(),'alharir-procurement-synthetic-demo-'+crypto.randomBytes(8).toString('hex')+'.json'):path.join(__dirname,'data.json');
 if(HOSTED_DEMO && !fs.existsSync(DATA)){
   fs.copyFileSync(path.join(__dirname,'staging-demo-data.json'),DATA);
@@ -87,7 +88,7 @@ async function accessToken(){
   }catch(e){
     let msg=(String(e.message||'')+' '+String(e.oauthError||'')+' '+String(e.oauthDescription||'')).toLowerCase();
     if(msg.includes('invalid_grant')||msg.includes('expired or revoked')||msg.includes('token has been expired or revoked')){
-      if(fs.existsSync(OAUTH))fs.unlinkSync(OAUTH);
+      await clearOauth();
       let x=Error('gmail_token_expired_or_revoked');
       x.code='gmail_token_expired_or_revoked';
       throw x
@@ -174,13 +175,13 @@ async function projectMessageCandidates(st){
   return {messages:[...map.values()],queryCount:Math.min(queries.length,120)};
 }
 async function syncGmail(){
-  let st=await load();ensureVerifiedRfqSuppliers(st);let found=await projectMessageCandidates(st),list=found.messages;st.gmailReplies=(Array.isArray(st.gmailReplies)?st.gmailReplies:[]).filter(x=>!internalSender(x.from));st.correspondence=(st.correspondence||[]).filter(x=>!internalSender(x.from));
+  let st=await load();if(!LIVE)ensureVerifiedRfqSuppliers(st);let found=await projectMessageCandidates(st),list=found.messages;st.gmailReplies=(Array.isArray(st.gmailReplies)?st.gmailReplies:[]).filter(x=>!internalSender(x.from));st.correspondence=(st.correspondence||[]).filter(x=>!internalSender(x.from));
   let byId=new Map(st.gmailReplies.map(x=>[x.messageId,x])),recovered=0;
   for(let old of st.correspondence||[]){let mid=old.messageId||old.id;if(mid&&!byId.has(mid)){let rec={...old,messageId:mid};delete rec.id;const link=matchRequestForEmail(st,rec);rec.requestId=link.requestId;rec.requestMatchMethod=link.method;st.gmailReplies.push(rec);byId.set(mid,rec);recovered++}}
   let relinked=0;for(let rec of st.gmailReplies){let sup=supplierForFrom(st,rec.from||'');if(sup&&rec.supplierId!==sup.id){rec.supplierId=sup.id;rec.supplierName=sup.name;relinked++}
   const link=matchRequestForEmail(st,rec);rec.requestId=link.requestId;rec.requestMatchMethod=link.method;}
   let known=new Set(st.gmailReplies.map(x=>x.messageId)),added=0,matched=0,unmatched=0;
-  for(let it of list){if(known.has(it.id))continue;let m=await gmail('messages/'+it.id+'?format=full'),h=headers(m),from=h.from||'';if(internalSender(from))continue;let sub=h.subject||'',txt=decodePart(m.payload)||m.snippet||'',sup=supplierForFrom(st,from);let matchedRequest=matchRequestForEmail(st,{subject:sub,body:txt,supplierId:sup?.id||null}),relevant=!!matchedRequest.requestId||!!sup||/RFQ-001|cold room|cold rooms|cold storage|refrigeration|fresh produce|冷库|报价|询价|solar|hybrid/i.test(sub+' '+txt);if(!relevant)continue;let receivedAt=m.internalDate&&Number.isFinite(Number(m.internalDate))?new Date(Number(m.internalDate)).toISOString():Number.isFinite(Date.parse(h.date||''))?new Date(h.date).toISOString():null,attachments=attachmentsFromPayload(m.payload),replyType=classifyReply(sub,txt,attachments),rec={messageId:it.id,threadId:m.threadId||'',supplierId:sup?.id||null,supplierName:sup?.name||null,from,to:h.to||'',cc:h.cc||'',subject:sub,body:txt,snippet:m.snippet||'',summary:cleanReplySummary(txt),receivedAt,attachments,replyType};const link=matchRequestForEmail(st,rec);
+  for(let it of list){if(known.has(it.id))continue;let m=await gmail('messages/'+it.id+'?format=full'),h=headers(m),from=h.from||'';if(internalSender(from))continue;let sub=h.subject||'',txt=decodePart(m.payload)||m.snippet||'',sup=supplierForFrom(st,from);let matchedRequest=matchRequestForEmail(st,{subject:sub,body:txt,supplierId:sup?.id||null}),relevant=!!matchedRequest.requestId||!!sup||/RFQ-001|cold room|cold rooms|cold storage|refrigeration|fresh produce|冷库|报价|询价|solar|hybrid/i.test(sub+' '+txt);if(!relevant)continue;let receivedAt=m.internalDate&&Number.isFinite(Number(m.internalDate))?new Date(Number(m.internalDate)).toISOString():Number.isFinite(Date.parse(h.date||''))?new Date(h.date).toISOString():null,attachments=attachmentsFromPayload(m.payload),replyType=classifyReply(sub,txt,attachments),rec={messageId:it.id,threadId:m.threadId||'',supplierId:sup?.id||null,supplierName:sup?.name||null,from,to:h.to||'',cc:h.cc||'',subject:sub,body:LIVE?'':txt,snippet:String(m.snippet||'').slice(0,240),summary:cleanReplySummary(txt),receivedAt,attachments,replyType};const link=matchRequestForEmail(st,rec);
   rec.requestId=link.requestId;rec.requestMatchMethod=link.method;st.gmailReplies.unshift(rec);known.add(it.id);added++;if(sup){matched++;if(replyType==='quote_received')sup.status='عرض مستلم — يحتاج استخراج';else if(replyType==='quote_promised')sup.status='وعد بإرسال العرض';else if(replyType==='technical_reply')sup.status='رد فني + مرفقات للمراجعة';else if(replyType==='info_request')sup.status='رد — يطلب معلومات';else sup.status='رد غير سعري';sup.lastReply=receivedAt;sup.lastSubject=sub}else unmatched++;st.activity.unshift({id:Date.now()+Math.random(),time:receivedAt,type:'gmail_reply',text:'رد جديد: '+(sup?.name||from),messageId:it.id,supplierId:sup?.id||null,requestId:rec.requestId,subject:sub})}
   st.gmailReplies=st.gmailReplies.filter((x,i,a)=>x.messageId&&a.findIndex(y=>y.messageId===x.messageId)===i).slice(0,500);
   for(let rec of st.gmailReplies){if(!rec.supplierId)unmatched++}
@@ -276,6 +277,23 @@ if(u.pathname==='/api/gmail/connect'&&req.method==='GET'){let cfg=oauthConfig();
 if(u.pathname==='/api/gmail/callback'&&req.method==='GET'){let o=await oauth();if(!u.searchParams.get('code')||u.searchParams.get('state')!==o.state)return json(res,400,{error:'invalid_oauth_state'});let t=await formPost('https://oauth2.googleapis.com/token',{code:u.searchParams.get('code'),client_id:GCLIENT,client_secret:GSECRET,redirect_uri:REDIRECT,grant_type:'authorization_code'});await saveOauth({...t,expires_at:Date.now()+t.expires_in*1000});res.writeHead(302,{Location:'/#agent'});return res.end()}
 if(u.pathname==='/api/gmail/disconnect'&&req.method==='POST'){await clearOauth();return json(res,200,{ok:true})}
 if(u.pathname==='/api/gmail/sync'&&req.method==='POST'){let cfg=oauthConfig();if(!cfg.ok)return json(res,400,cfg);if(!await oauth().refresh_token)return json(res,409,{error:'gmail_not_connected',message:'اربط Gmail أولاً ثم أعد المزامنة.'});return json(res,200,await syncGmail());}
+
+if(u.pathname==='/api/gmail/message'&&req.method==='GET'){
+ const messageId=u.searchParams.get('messageId')||'';
+ const st=await load();
+ const matched=(st.gmailReplies||[]).find(x=>x.messageId===messageId);
+ if(!matched)return json(res,404,{error:'email_not_in_procurement'});
+ const mail=await gmail('messages/'+encodeURIComponent(messageId)+'?format=full');
+ const hdr=headers(mail);
+ return json(res,200,{
+  messageId,requestId:matched.requestId||null,
+  subject:hdr.subject||matched.subject,from:hdr.from||matched.from,
+  receivedAt:matched.receivedAt,
+  body:decodePart(mail.payload),
+  attachments:matched.attachments||[],
+  notice:'Message fetched live via read-only Gmail OAuth, not stored permanently.'
+ });
+}
 if(u.pathname==='/api/gmail/attachment'&&req.method==='GET'){
   // Only attachments referenced by an imported message can be accessed.
   // Bytes are fetched through the authorised Gmail connection on demand,
