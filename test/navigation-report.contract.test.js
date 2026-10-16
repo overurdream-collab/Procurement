@@ -20,7 +20,8 @@ test('nine sidebar services are unique and report functions are wired',()=>{
  assert.match(ops,/function updateReportPeriod\(/);
  assert.match(html,/dashboard:executiveHomeView,reports:dailyView/);
  assert.match(html,/if\(view==='dashboard'\)ALHARIRDashboardPilot.init\(\)/);
- assert.match(html,/if\\(view==='reports'\\)\\{/);\n assert.match(html,/loadDailyReport\\(\\)/);
+ assert.match(html,/if\(view==='reports'\)\{/);
+ assert.match(html,/loadDailyReport\(\)/);
  assert.match(ops,/function comparisonView\(/);
  assert.match(ops,/function saveStructuredQuote\(/);
  assert.match(ops,/function loadDailyReport\(/);
