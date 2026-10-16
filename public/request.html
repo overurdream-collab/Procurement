@@ -44,13 +44,14 @@
   result.append(card);return card;
  }
  const anchor=(parent,label,href)=>{const a=document.createElement('a');a.className='btn primary';a.textContent=label;a.href=href;parent.append(a);};
+ const clientRequestKey=window.crypto?.randomUUID?.()||('manual-'+Date.now()+'-'+Math.random().toString(36).slice(2));
  let busy=false;
  f.addEventListener('submit',async e=>{
   e.preventDefault();if(busy)return;
   const submitter=e.submitter,mode=submitter?.dataset.mode||'save';
   if(!f.checkValidity()){f.reportValidity();status.textContent='أكمل الحقول الإلزامية قبل الحفظ.';return}
   if(!document.getElementById('confirm').checked){status.textContent='راجع الإقرار قبل الحفظ.';return}
-  const b=Object.fromEntries(new FormData(f).entries());
+  const b=Object.fromEntries(new FormData(f).entries());b.clientRequestKey=clientRequestKey;
   busy=true;Array.from(f.querySelectorAll('button[type=submit]')).forEach(x=>x.disabled=true);
   status.textContent='جارٍ حفظ الطلب...';
   let id='';
