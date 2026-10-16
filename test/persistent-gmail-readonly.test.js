@@ -144,3 +144,28 @@ test('Neon certificate verification is preserved and connection-string TLS downg
  const weakened=createStateStore({env:{...env,DATABASE_URL:env.DATABASE_URL.replace('sslmode=require','sslmode=disable')},pgFactory:CapturePool});
  await assert.rejects(()=>weakened.ready(),/TLS may not be disabled/);
 });
+
+
+test('Neon trial expects bare PostgreSQL URI, exact endpoint, non-admin role, and database',async()=>{
+ const host='ep-synthetic.eu-central-1.aws.neon.tech';
+ const valid='postgresql://alharir_trial_app:test@'+host+'/alharir_procurement?sslmode=require';
+ const e={...env,DATABASE_URL:valid,DATABASE_EXPECTED_ENDPOINT:'ep-synthetic',
+  DATABASE_EXPECTED_ROLE:'alharir_trial_app',DATABASE_EXPECTED_NAME:'alharir_procurement'};
+ const validStore=createStateStore({env:e,pgFactory:FakePool});
+ fakeDb.state=JSON.parse(JSON.stringify(require('../persistent-store').INITIAL_STATE()));
+ await assert.doesNotReject(()=>validStore.ready());
+ await validStore.close();
+ const wrong=[
+  ['URI: '+valid,/DATABASE_URL_invalid_format/],
+  ["'"+valid+"'",/DATABASE_URL_invalid_format/],
+  [valid+'\nextra',/DATABASE_URL_invalid_format/],
+  [valid.replace('ep-synthetic','ep-other'),/wrong_branch_endpoint/],
+  [valid.replace('alharir_trial_app','alharir_owner'),/wrong_database_role/],
+  [valid.replace('/alharir_procurement','/neondb'),/wrong_database_name/]
+ ];
+ for(const [connectionString,expected] of wrong){
+  const store=createStateStore({env:{...e,DATABASE_URL:connectionString},pgFactory:FakePool});
+  await assert.rejects(()=>store.ready(),expected);
+  await store.close();
+ }
+});
