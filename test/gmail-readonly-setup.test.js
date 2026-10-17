@@ -22,7 +22,7 @@ test('Backend grants strictly Gmail read-only, revocable encrypted credentials a
  assert.match(source,/readOnly:true,redirectUri:REDIRECT/);
  assert.match(source,/return json\(res,409,\{error:'gmail_not_connected'/);
  assert.match(source,/await clearOauth\(\)/);
- assert.match(source,/requestMatchMethod:link\.method/);
+ assert.match(source,/rec\.requestMatchMethod=link\.method/);
  assert.match(source,/importedAsVerifiedQuotes:0/);
  assert.match(source,/attachment_exceeds_preview_limit/);
 });
