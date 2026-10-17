@@ -71,20 +71,19 @@ async function run(){
   await desktop.p.getByText('فتح مساحة الطلب',{exact:true}).click();
   await desktop.p.waitForSelector('#requestMailCard',{timeout:18000});
   await desktop.p.waitForSelector('#requestMailList',{timeout:10000});
+  await desktop.p.waitForFunction(()=>document.querySelector('#title')?.textContent.includes('REQ-')&&
+    document.querySelectorAll('#requestStats .stat').length===4,{timeout:15000});
+  if(!await desktop.p.locator('#errorMessage').isHidden())throw Error('Request cockpit reported an error');
   await desktop.p.screenshot({path:path.join(out,'desktop-request-workspace-email.png'),fullPage:true});
-  await desktop.p.locator('#sourceAnalysisBtn').click();
-  await desktop.p.waitForSelector('#unifiedMarketResults .approval-details',{timeout:18000});
-  if(!desktop.p.url().includes('#market'))throw Error('Source analysis did not open unified Market Intelligence');
-  const searchStatus=await desktop.p.locator('#unifiedMarketStatus').innerText();
-  if(!searchStatus.includes('غير مفعّل'))throw Error('Did not explain missing automatic search provider: '+searchStatus);
-  const searchQuery=await desktop.p.locator('#unifiedMarketQuery').inputValue();
-  if(!searchQuery.includes('100mm PIR'))throw Error('Search lost created product context');
-  await desktop.p.screenshot({path:path.join(out,'desktop-sourcing-market.png'),fullPage:true});
-  await desktop.p.locator('#marketManualUrls').fill('https://www.alibaba.com/product-detail/fixture-one');
-  await desktop.p.getByRole('button',{name:'إضافة الروابط إلى قائمة الشركات المرشحة'}).click();
-  await desktop.p.waitForSelector('#ml-convert',{timeout:15000});
-  if(!await desktop.p.locator('#ml-attach-existing').isChecked())throw Error('Supplier shortlist would silently create duplicate RFQ');
-  await desktop.p.screenshot({path:path.join(out,'desktop-supplier-selection.png'),fullPage:true});
+  await desktop.p.locator('#findSuppliers').click();
+  await desktop.p.waitForSelector('#unifiedMarketQuery',{timeout:15000});
+  if(!await desktop.p.locator('#unifiedMarketQuery').inputValue().then(x=>x.includes('100mm PIR')))throw Error('Linked supplier search did not prefill request product');
+  await desktop.p.screenshot({path:path.join(out,'desktop-request-supplier-search.png'),fullPage:true});
+  await desktop.p.locator('.side-links [data-view=quotes]').click();
+  await desktop.p.waitForSelector('#comparisonScope',{timeout:15000});
+  const quoteScope=await desktop.p.locator('#comparisonScope').inputValue();
+  if(!quoteScope.startsWith('REQ-'))throw Error('Quote analysis lost current RFQ selection');
+  await desktop.p.screenshot({path:path.join(out,'desktop-request-quote-analysis.png'),fullPage:true});
   await desktop.c.close();
   const mobile=await context('mobile',390,844,true);
   await mobile.p.goto(base+'/#dashboard',{waitUntil:'domcontentloaded'});
@@ -105,15 +104,16 @@ async function run(){
   if(!await mobile.p.locator('body').evaluate(n=>n.classList.contains('nav-open')))throw Error('New request mobile sidebar not opening');
   await mobile.p.screenshot({path:path.join(out,'mobile-request-sidebar.png')});
   await mobile.p.locator('#closeMenu').click();
-  await mobile.p.goto(base+'/?requestId=RFQ-001&scan=1#market',{waitUntil:'domcontentloaded'});
-  await mobile.p.waitForSelector('#unifiedMarketResults .approval-details',{timeout:18000});
-  await mobile.p.screenshot({path:path.join(out,'mobile-sourcing-market.png'),fullPage:true});
-  await mobile.p.goto(base+'/workspace.html?id=RFQ-001',{waitUntil:'domcontentloaded'});
-  await mobile.p.waitForSelector('#sourceAnalysisBtn',{timeout:12000});
-  await mobile.p.screenshot({path:path.join(out,'mobile-request-workspace.png'),fullPage:true});
-
   if(await mobile.p.locator('body').evaluate(n=>n.classList.contains('nav-open')))throw Error('New request sidebar not closing');
 
+  await mobile.p.goto(base+'/workspace.html?id=RFQ-001',{waitUntil:'domcontentloaded'});
+  await mobile.p.waitForFunction(()=>document.querySelector('#title')?.textContent.includes('RFQ-001')&&
+   document.querySelector('#requestStats')?.querySelectorAll('.stat').length===4,{timeout:17000});
+  await mobile.p.screenshot({path:path.join(out,'mobile-request-workspace.png'),fullPage:true});
+  await mobile.p.locator('#mobileNav').click();
+  if(!await mobile.p.locator('body').evaluate(n=>n.classList.contains('nav-open')))throw Error('Workspace navigation failed to open');
+  await mobile.p.locator('#navBackdrop').click({force:true});
+  if(await mobile.p.locator('body').evaluate(n=>n.classList.contains('nav-open')))throw Error('Workspace navigation failed to close');
   const overflow=await mobile.p.evaluate(()=>({doc:document.documentElement.scrollWidth,window:window.innerWidth}));
   if(overflow.doc>overflow.window+4)throw Error('Mobile horizontal overflow '+JSON.stringify(overflow));
   await mobile.c.close();

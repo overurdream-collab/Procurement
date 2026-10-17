@@ -1,7 +1,7 @@
 name: Durable storage and Gmail read-only gate
 on:
   push:
-    branches: [feat/durable-storage-gmail-readonly]
+    branches: [integration/procurement-neon-workflow, feat/durable-storage-gmail-readonly]
     paths:
       - 'server.js'
       - 'persistent-store.js'

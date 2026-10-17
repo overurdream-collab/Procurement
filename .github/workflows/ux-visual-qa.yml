@@ -1,7 +1,7 @@
 name: ALHARIR visual desktop mobile acceptance
 on:
   push:
-    branches: [alharir-free-hosting-poc, feat/durable-storage-gmail-readonly]
+    branches: [integration/procurement-neon-workflow, alharir-free-hosting-poc, feat/durable-storage-gmail-readonly]
     paths:
       - 'public/index.html'
       - 'public/ux-overhaul.css'
@@ -16,6 +16,8 @@ on:
       - 'public/request-workspace.css'
       - 'public/market-outreach.js'
       - 'test/sourcing-request-flow.integration.test.js'
+      - 'public/workspace-view.css'
+      - 'public/workspace-view.js'
       - 'public/mail-correspondence.js'
       - 'test/visual-qa.cjs'
       - '.github/workflows/ux-visual-qa.yml'

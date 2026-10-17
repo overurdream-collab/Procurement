@@ -181,7 +181,13 @@ function activeMarketRequestId(){
  if(!all.some(x=>x.id===selectedMarketRequestId))selectedMarketRequestId=(all[0]||{}).id||'';
  return selectedMarketRequestId;
 }
-function setMarketRequest(id){selectedMarketRequestId=id;show('market')}
+function setMarketRequest(id){
+ selectedMarketRequestId=id;
+ const url=new URL(location.href);
+ if(id)url.searchParams.set('requestId',id);else url.searchParams.delete('requestId');
+ history.replaceState(null,'',url.pathname+url.search+'#market');
+ render('market');
+}
 function selectedMarketRequest(){return (st.requests||[]).find(x=>x.id===activeMarketRequestId())||null}
 async function analyzeSelectedRequest(){
  const req=selectedMarketRequest();if(!req)return toast('أنشئ طلبًا أولًا');
@@ -215,9 +221,25 @@ const A='/api/';async function load(){let saved=localStorage.getItem('procuremen
  if(workspace)workspace.href='/workspace.html?id='+encodeURIComponent(activeMarketRequestId()||'RFQ-001');
  closeSideNav();
  if(view==='dashboard')ALHARIRDashboardPilot.init();
- if(view==='reports')loadDailyReport();
- if(view==='quotes')loadComparisons();
- if(view==='market')marketOnNavigate();
+ if(view==='reports'){
+  const requested=new URLSearchParams(location.search).get('requestId');
+  const scope=document.getElementById('dailyScope');
+  if(requested&&scope&&[...scope.options].some(x=>x.value===requested))scope.value=requested;
+  loadDailyReport();
+ }
+ if(view==='market'){
+  marketOnNavigate();
+  const r=(st.requests||[]).find(x=>x.id===new URLSearchParams(location.search).get('requestId'));
+  const input=document.getElementById('unifiedMarketQuery');
+  if(r&&input&&!input.value)input.value=r.product||r.title||'';
+ }
+ if(view==='quotes'){
+  const requested=new URLSearchParams(location.search).get('requestId');
+  const scope=document.getElementById('comparisonScope');
+  if(requested&&scope&&[...scope.options].some(x=>x.value===requested))scope.value=requested;
+  loadComparisons();
+ }
+
  window.scrollTo({top:0,behavior:'instant'});
 }
 function toggleSideNav(){

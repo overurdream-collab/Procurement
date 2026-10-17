@@ -450,6 +450,42 @@ if(u.pathname==='/api/market-intelligence/convert'&&req.method==='POST'){
     attachedToExistingRequest,drafts:outreachDrafts(request,draft.suppliers),
     sentCount:0,persistence:HOSTED_DEMO?'temporary-demo':store.durable?'postgres':'local-file'});
 }
+
+let attachMarketRoute=u.pathname.match(/^\/api\/requests\/([^/]+)\/market-suppliers$/);
+if(attachMarketRoute&&req.method==='POST'){
+ const st=await load(),request=(st.requests||[]).find(r=>r.id===attachMarketRoute[1]);
+ if(!request)return json(res,404,{error:'request_not_found'});
+ if(String(request.incoterm||'FOB').toUpperCase()!=='FOB')
+  return json(res,422,{error:'request_requires_FOB',message:'لا يمكن إضافة عروض FOB إلى طلب أساسه التجاري مختلف دون مراجعة الطلب.'});
+ const input=await body(req);
+ const draft=prepareConversion({...input,details:{
+  product:request.product||request.title,quantity:request.quantity,
+  specifications:request.specifications,incoterm:'FOB'
+ }});
+ if(!draft.ok)return json(res,draft.status,{error:draft.error,message:draft.message||draft.error});
+ st.suppliers=Array.isArray(st.suppliers)?st.suppliers:[];
+ st.activity=Array.isArray(st.activity)?st.activity:[];
+ request.selectedSupplierIds=Array.isArray(request.selectedSupplierIds)?request.selectedSupplierIds:[];
+ const added=[],already=[];
+ for(const incoming of draft.suppliers){
+  const found=st.suppliers.find(s=>s.associatedRequestId===request.id&&
+   String(s.name||'').trim().toLowerCase()===incoming.name.toLowerCase()&&
+   s.sourceUrl===incoming.sourceUrl);
+  if(found){already.push(found.id);continue}
+  incoming.associatedRequestId=request.id;
+  incoming.status='مرشح لهذا الطلب — يحتاج التحقق من الشركة والبريد';
+  st.suppliers.push(incoming);
+  request.selectedSupplierIds.push(incoming.id);
+  added.push(incoming);
+ }
+ if(added.length)st.activity.unshift({time:new Date().toISOString(),type:'rfq_supplier_shortlist',
+  requestId:request.id,text:'أضيف '+added.length+' موردًا مرشحًا إلى '+request.id+' دون إرسال مراسلات'});
+ await save(st);
+ return json(res,200,{ok:true,requestId:request.id,request,suppliers:added,added,alreadyExists:already,
+  linkedSuppliers:request.selectedSupplierIds.length,sentCount:0,
+  drafts:outreachDrafts(request,added),persistence:HOSTED_DEMO?'temporary-demo':store.durable?'postgres':'local-file',
+  warning:'هذه ترشيحات بحث ولم تُتحقق هويات الشركات أو عناوين البريد آليًا.'});
+}
 let outreachRoute=u.pathname.match(/^\/api\/requests\/([^/]+)\/outreach-drafts$/);
 if(outreachRoute&&req.method==='GET'){
   const st=await load(),request=(st.requests||[]).find(x=>x.id===outreachRoute[1]);

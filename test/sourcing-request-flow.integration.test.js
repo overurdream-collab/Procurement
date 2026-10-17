@@ -17,13 +17,13 @@ test('all sourcing buttons lead to one consistent UI and explicitly selected RFQ
  assert.doesNotMatch(html,/selectedMarketRequestId=\(all\.find\(x=>x\.id==='RFQ-001'/);
  assert.match(form,/\\?requestId=/);
  assert.match(form,/scan=1#market/);
- assert.match(workspace,/request-workspace\.css/);
- assert.match(workspace,/id="sourceAnalysisBtn"/);
+ assert.match(workspace,/workspace-view\.css/);
+ assert.match(workspace,/id="findSuppliers"/);
  assert.match(workspace,/id="requestMailCard"/);
- assert.match(workspace,/id="advancedWorkspace"/);
- assert.match(workspace,/تفاصيل طلب/);
+ assert.match(workspace,/id="workspaceMain"/);
+ assert.match(workspace,/مساحة طلب/);
  assert.match(outreach,/targetRequestId/);
- assert.match(outreach,/attachedToExistingRequest/);
+ assert.match(outreach,/alreadyExists/);
  for(const x of [html,form,workspace]){
   for(const [,part] of x.matchAll(/<script>([\s\S]*?)<\/script>/g))new Function(part);
  }
@@ -88,10 +88,10 @@ test('protected HTTP: manual sourcing attaches just one chosen supplier to the e
   r=await fetch(base+'/workspace.html?id='+encodeURIComponent(request.id),{headers});
   assert.equal(r.status,200);
   const page=await r.text();
-  assert.match(page,/request-workspace\.css/);
-  assert.match(page,/sourceAnalysisBtn/);
-  assert.match(page,/مراسلات هذا الطلب|المراسلات والمرفقات/);
-  r=await fetch(base+'/request-workspace.css',{headers});
+  assert.match(page,/workspace-view\.css/);
+  assert.match(page,/findSuppliers/);
+  assert.match(page,/مراسلات الموردين ومرفقاتهم/);
+  r=await fetch(base+'/workspace-view.css',{headers});
   assert.equal(r.status,200);
  }finally{child.kill('SIGTERM')}
 });

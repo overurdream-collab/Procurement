@@ -1,89 +1,25 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1934"><title>ALHARIR | تفاصيل طلب المشتريات</title><link rel="stylesheet" href="/request-workspace.css"></head><body>
-<div class="shell">
-<aside id="sidebar" class="side" aria-label="قائمة ALHARIR الجانبية">
- <button id="navClose" class="btn navClose" aria-label="إغلاق القائمة" type="button">✕ إغلاق القائمة</button>
- <div class="brand"><div class="mark">A</div><div><strong>ALHARIR</strong><small>PROCUREMENT OS</small></div></div>
- <div class="sidelabel">إدارة المشتريات</div>
- <a href="/#dashboard">◫　الرئيسية</a>
- <a href="/#rfq" class="active">▤　طلبات الشراء</a>
- <a href="/#market" id="sourceLink">⌕　البحث عن الموردين</a>
- <a href="/#quotes">⚖　مقارنة عروض الأسعار</a>
- <a href="/#reports">▧　التقارير</a>
- <a href="/#gmail">✉　مراسلات الموردين</a>
- <div class="sidebarFoot">نسخة ALHARIR المحمية<br>لا توجد مراسلات تلقائية عند تحليل المصادر.</div>
-</aside><button class="navBackdrop" id="navBackdrop" type="button" aria-label="إغلاق القائمة"></button>
-<main class="main">
- <div class="topbar"><div style="display:flex;align-items:center;gap:10px"><button type="button" class="btn menu" id="navBtn" aria-expanded="false" aria-controls="sidebar">☰ القائمة</button><span class="crumb">ALHARIR / الطلبات / تفاصيل طلب شراء</span></div><div class="backlinks"><a class="btn" href="/#rfq">جميع الطلبات</a></div></div>
- <header class="intro"><div><span class="eyebrow">REQUEST INTELLIGENCE / SOURCING</span><h1 id="title">جارٍ تحميل الطلب...</h1><p id="sub">بيانات الطلب والموردين والمراسلات والتحليل في واجهة واحدة متناسقة.</p></div><span id="reqStatus" class="pill">قيد التحميل</span></header>
- <section class="summary" aria-label="ملخص أمر الشراء"><div class="metric"><small>المنتج المطلوب</small><strong id="reqProduct">—</strong></div><div class="metric"><small>الكمية</small><strong id="reqQuantity">—</strong></div><div class="metric"><small>شروط السعر</small><strong id="reqTerms">FOB</strong></div></section>
- <nav class="actions" aria-label="الخطوات التالية للطلب">
-   <a id="sourceAnalysisBtn" class="btn gold" href="/#market">⌕ تحليل المصادر والبحث عن موردين</a>
-   <a class="btn primary" href="/#quotes">⚖ مراجعة عروض الأسعار</a>
-   <a class="btn" href="#requestMailCard">✉ مراسلات ومرفقات هذا الطلب</a>
-   <a class="btn" href="/#reports">▧ إعداد تقرير</a>
- </nav>
- <section class="card" aria-label="مراحل طلب المشتريات"><div class="row panelHead"><div><h2>ما الخطوة التالية؟</h2><p class="muted">ابحث عن الشركات، حدد المرشحين، راجع عروضهم ثم اعتمد المقارنة على أدلة موثقة.</p></div><span class="badge">FOB · Evidence First</span></div>
-  <div class="summary" style="margin:0"><div class="metric"><small>01 · اكتشاف السوق</small><strong>البحث والمصادر</strong></div><div class="metric"><small>02 · التواصل</small><strong>اختيار الموردين</strong></div><div class="metric"><small>03 · القرار</small><strong>تحليل العروض</strong></div></div>
-  <p class="notice">نتائج الإنترنت معلومات أولية فقط؛ لا تتحول إلى عرض سعر معتمد حتى يقدم المورد مستندًا واضحًا وتُراجع مواصفاته وFOB.</p>
- </section>
- <section class="card" id="requestMailCard" aria-label="المراسلات المرتبطة بالطلب">
-   <div class="row panelHead"><div><h2>المراسلات والمرفقات</h2><p class="muted">التاريخ الأصلي للرسالة بتوقيت صنعاء. تُفتح المرفقات المرتبطة بالطلب من النظام عند توفر Gmail.</p></div><button type="button" class="btn" id="refreshMail">↻ تحديث السجل</button></div>
-   <div id="requestMailList" role="status" aria-live="polite" class="muted">جارٍ تحميل مراسلات الطلب...</div>
- </section>
- <details class="advanced" id="advancedWorkspace"><summary>إعدادات وملاحظات الطلب المتقدمة — افتح للتعديل</summary><p class="advancedIntro">تحتوي على المواصفات والشروط والقرارات والملاحظات الموجودة سابقًا. هذه السجلات محفوظة ولم تُحذف.</p>
- <div class="advancedGrid">
-  <section><div class="row"><h2 id="sectionTitle" style="font-size:16px">مواصفات الطلب</h2><span class="badge">سجل المراجعة</span></div>
-   <div class="tabs" id="tabs"></div>
-   <div id="items"></div>
-   <div id="workspaceEditor" class="formGrid"><label for="status">تصنيف المعلومة</label><select id="status"><option>Confirmed Decision</option><option>Verified Fact</option><option>Supplier Claim</option><option>AI Estimate</option><option>Pending Verification</option></select>
-   <label for="value">التفاصيل</label><textarea id="value" rows="3" placeholder="معلومة أو قاعدة أو مواصفة جديدة"></textarea><button type="button" class="btn primary" id="add">حفظ المعلومة</button></div>
-  </section>
-  <aside><h2 style="font-size:16px">مساعد الاستعلام الداخلي</h2><p class="muted">يقرأ المعلومات المتاحة في سجل النظام ولا يُعتمد بديلًا عن مراجعة الموردين.</p>
-   <div class="chat" id="chat"></div><div class="composer"><textarea id="message" rows="3" placeholder="مثال: ما مواصفات هذا الطلب؟"></textarea><button type="button" class="btn" id="send">استعلام</button></div>
-  </aside>
- </div></details>
-</main></div>
-<script src="/mail-correspondence.js"></script><script>
-const id=new URLSearchParams(location.search).get('id')||'',defs={specifications:'المواصفات',analysisRules:'آلية التحليل',commercialTerms:'الشروط التجارية',supplierStrategy:'استراتيجية الموردين',scenarios:'السيناريوهات',facts:'المعلومات والقرارات',aiInstructions:'تعليمات AI',changeHistory:'سجل التغييرات'};let data,section='specifications';
-const tabs=document.getElementById('tabs'),items=document.getElementById('items'),sectionTitle=document.getElementById('sectionTitle'),chat=document.getElementById('chat'),message=document.getElementById('message'),value=document.getElementById('value'),statusPicker=document.getElementById('status'),add=document.getElementById('add'),send=document.getElementById('send');
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function load(){let r=await fetch('/api/requests/'+encodeURIComponent(id)+'/workspace');data=await r.json();if(!r.ok){document.getElementById('title').textContent='الطلب غير موجود';document.getElementById('sub').textContent='تأكد من رقم الطلب من صفحة طلبات المشتريات.';return}document.getElementById('title').textContent=data.request.title||data.request.product||data.request.id;
- document.getElementById('sub').textContent='الرقم المرجعي: '+data.request.id+' · المواصفات والموردون والتقارير في مكان واحد';
- document.getElementById('reqProduct').textContent=data.request.product||'غير محدد';
- document.getElementById('reqQuantity').textContent=data.request.quantity||'غير محدد';
- document.getElementById('reqTerms').textContent=data.request.incoterm||'FOB';
- document.getElementById('reqStatus').textContent=data.request.status||'قيد المتابعة';
- const target='/?requestId='+encodeURIComponent(id)+'&scan=1#market';
- document.getElementById('sourceAnalysisBtn').href=target;
- document.getElementById('sourceLink').href=target;
- render();await loadCorrespondence()}
-function render(){tabs.innerHTML=Object.entries(defs).map(([k,v])=>'<button class="tab '+(k===section?'active':'')+'" data-k="'+k+'">'+v+'</button>').join('');tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>{section=b.dataset.k;render()});sectionTitle.textContent=defs[section];let a=data.workspace[section]||[];items.innerHTML=a.length?a.map(x=>'<div class="item">'+esc(x.value||x.text)+'<div class="meta">'+esc(x.status||x.kind||'')+' · '+esc(x.source||'')+' · '+esc(x.updatedAt||x.time||'')+'</div></div>').join(''):'<p class="muted">لا توجد عناصر بعد.</p>';document.getElementById('workspaceEditor').hidden=section==='changeHistory';chat.innerHTML=(data.workspace.chat||[]).map(x=>'<div class="msg '+esc(x.role)+'">'+esc(x.text)+'</div>').join('');chat.scrollTop=chat.scrollHeight}
-async function loadCorrespondence(){
- const target=document.getElementById('requestMailList');if(!target)return;
- target.textContent='جارٍ تحميل المراسلات والمرفقات...';
- try{
-  const r=await fetch('/api/requests/'+encodeURIComponent(id)+'/correspondence');
-  const result=await r.json();
-  if(!r.ok){target.textContent='تعذر تحميل السجل: '+String(result.error||'خطأ');return}
-  const records=Array.isArray(result.records)?result.records:[];
-  target.innerHTML=records.length?records.map(rec=>ALHARIRMailUI.messageHtml(rec,{
-   disabled:result.integrationAvailable===false
-  })).join(''):'لم تُسجّل رسائل مرتبطة بهذا الطلب حتى الآن.';
-  if(result.unassigned>0){
-   const note=document.createElement('p');note.className='muted';
-   note.textContent='توجد '+result.unassigned+' مراسلات غير مرتبطة بطلب؛ يلزم مراجعتها من قسم البريد دون نسبتها تلقائيًا لهذا الطلب.';
-   target.append(note);
-  }
-  if(result.notice){const note=document.createElement('p');note.className='muted';note.textContent=result.notice;target.append(note)}
- }catch(e){target.textContent='تعذر الاتصال بسجل المراسلات.'}
-}
-document.getElementById('refreshMail').onclick=loadCorrespondence;
-
-add.onclick=async()=>{if(!value.value.trim())return;let r=await fetch('/api/requests/'+id+'/workspace',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({section,value:value.value,status:statusPicker.value,source:'Manual UI'})});let x=await r.json();if(r.ok){data.workspace=x.workspace;value.value='';render()}else alert(x.error)}
-send.onclick=async()=>{let m=message.value.trim();if(!m)return;message.value='';let r=await fetch('/api/requests/'+id+'/copilot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:m})});let x=await r.json();if(r.ok){data.workspace=x.workspace;render()}else alert(x.error)}
-const navBtn=document.getElementById('navBtn'),navClose=document.getElementById('navClose'),backdrop=document.getElementById('navBackdrop');
-function toggleMenu(open){document.body.classList.toggle('nav-open',open);navBtn.setAttribute('aria-expanded',String(open))}
-navBtn.onclick=()=>toggleMenu(!document.body.classList.contains('nav-open'));
-navClose.onclick=()=>toggleMenu(false);backdrop.onclick=()=>toggleMenu(false);
-if(id)load();else {document.getElementById('title').textContent='اختر طلب مشتريات أولًا';document.getElementById('sub').textContent='افتح الطلب من قائمة طلبات المشتريات.';}
-</script></body></html>
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#112940"><title>ALHARIR | مساحة طلب المشتريات</title><link rel="stylesheet" href="/workspace-view.css"></head>
+<body><div class="app">
+<aside class="sidebar" id="workspaceSidebar"><div class="brand"><span class="brand-mark">A</span><div><b>ALHARIR</b><small>PROCUREMENT OS</small></div></div><p class="nav-label">المشتريات</p>
+<a href="/#dashboard">◫ الرئيسية</a><a href="/#rfq">▤ كل الطلبات</a><a class="active" href="#" aria-current="page">▣ مساحة الطلب</a><a id="sideSearch" href="/#market">⌕ البحث عن الموردين</a><a id="sideQuotes" href="/#quotes">⚖ مقارنة العروض</a><a id="sideReport" href="/#reports">▥ التقارير التنفيذية</a>
+<div class="side-note">مساحة موحدة لكل طلب<br>بيانات الموردين والعروض لا تُخلط بين الطلبات.</div></aside>
+<button id="navBackdrop" class="backdrop" aria-label="إغلاق القائمة"></button>
+<main class="content"><div class="toolbar"><button class="btn mobile-only" id="mobileNav" type="button" aria-controls="workspaceSidebar" aria-expanded="false">☰ القائمة</button><span class="breadcrumb">ALHARIR / أوامر الشراء / <b>مساحة الطلب</b></span><a href="/#rfq" class="btn muted-btn">العودة إلى الطلبات</a></div>
+<header class="hero"><div class="hero-copy"><span class="eyebrow">REQUEST INTELLIGENCE WORKSPACE</span><h1 id="title">جارٍ فتح الطلب...</h1><p id="sub">تتبع المواصفات والموردين ومراسلاتهم، ثم راجع العروض الموثقة للمقارنة.</p><div id="requestMeta" class="meta-list"></div></div><div class="hero-badge">RFQ<br><strong>360°</strong></div></header>
+<div id="errorMessage" role="alert" class="error" hidden></div>
+<div id="workspaceMain">
+<section class="steps" aria-label="مراحل دورة المشتريات"><span class="step active"><b>01</b> بيانات الطلب</span><span class="step"><b>02</b> البحث عن الموردين</span><span class="step"><b>03</b> استلام العروض</span><span class="step"><b>04</b> التحليل والتقرير</span></section>
+<section class="stats" id="requestStats" aria-label="مؤشرات الطلب"><div class="stat"><small>الموردون المستهدفون</small><b>—</b></div><div class="stat"><small>عروض الأسعار</small><b>—</b></div><div class="stat"><small>العروض الموثقة</small><b>—</b></div><div class="stat"><small>المقارنات المؤهلة</small><b>—</b></div></section>
+<nav class="quick-actions" aria-label="الانتقال بين مراحل الطلب"><a id="findSuppliers" class="action primary" href="/#market">⌕ بحث عن موردين لهذا الطلب</a><a id="analyzeQuotes" class="action" href="/#quotes">⚖ تحليل عروض هذا الطلب</a><a id="viewReport" class="action" href="/#reports">▥ تقرير هذا الطلب</a><button id="refreshOverview" class="action" type="button">↻ تحديث البيانات</button></nav>
+<div class="two-col">
+<section class="surface"><div class="section-head"><div><span class="eyebrow">PURCHASE REQUEST</span><h2>بيانات الطلب والموردون</h2></div><span class="tag" id="requestStatus">بانتظار التحميل</span></div>
+<div id="requestDetails" class="details"></div><h3>الموردون المستهدفون</h3><div id="requestSuppliers" class="items muted" role="status">جارٍ تحميل الموردين...</div>
+<h3>تحليل العروض</h3><div id="requestAnalysis" class="items muted" role="status">جارٍ تحميل نتيجة المقارنة...</div></section>
+<section class="surface"><div class="section-head"><div><span class="eyebrow">SHARED REQUEST CONTEXT</span><h2>المواصفات والقرارات</h2></div></div>
+<div class="tabs" id="tabs" aria-label="أقسام الطلب"></div><h3 id="sectionTitle">المواصفات</h3><div id="items" class="context-list"></div>
+<form id="contextForm" class="context-form"><label for="status">تصنيف المعلومة</label><select id="status"><option>Confirmed Decision</option><option>Verified Fact</option><option>Supplier Claim</option><option>AI Estimate</option><option>Pending Verification</option></select><label for="value">المعلومة أو القرار</label><textarea id="value" rows="3" maxlength="4000" placeholder="اكتب المعلومة مع مصدرها، أو قرارًا معتمدًا لهذا الطلب..."></textarea><button class="action primary" id="add" type="submit">حفظ في مساحة الطلب</button><p class="form-status" id="contextFeedback" aria-live="polite"></p></form></section>
+</div>
+<section class="surface mail-section" id="requestMailCard"><div class="section-head"><div><span class="eyebrow">MAIL & EVIDENCE</span><h2>مراسلات الموردين ومرفقاتهم</h2><p>تاريخ الاستلام بتوقيت صنعاء، والملفات المتاحة للفتح من داخل النظام.</p></div><button class="action" id="refreshMail" type="button">تحديث المراسلات</button></div><div id="requestMailList" role="status" aria-live="polite">جارٍ تحميل سجل المراسلات...</div></section>
+<section class="surface assistant-section"><div class="section-head"><div><span class="eyebrow">PROCUREMENT ASSISTANT</span><h2>مساعد قراءة السجل</h2><p>يجيب من المعلومات المسجلة فقط؛ بعض التعليمات المدعومة قد تحفظ تغييرات في مساحة الطلب، فراجعها قبل الإرسال.</p></div></div><div id="chat" class="chat" aria-live="polite"></div><form class="assistant-compose" id="assistantForm"><label for="message" class="sr-only">رسالتك إلى المساعد</label><textarea id="message" rows="2" placeholder="مثال: ما المواصفات الناقصة في هذا الطلب؟"></textarea><button class="action primary" id="send" type="submit">إرسال</button></form><p id="assistantFeedback" aria-live="polite" class="form-status"></p></section>
+</div></main></div>
+<script src="/mail-correspondence.js"></script><script src="/workspace-view.js"></script></body></html>
