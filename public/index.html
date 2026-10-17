@@ -390,7 +390,40 @@ function market(){
  unifiedSearchPanel();
 }
 async function marketScan(){await analyzeSelectedRequest()}
-function gmailView(){let g=st.gmail||{},rr=st.gmailReplies||[],unmatched=rr.filter(x=>!x.supplierId).length,z=st.gmailSyncStatus||null;let diag=z?'<div class="approval-details" style="display:block;margin-top:14px"><b>آخر مزامنة: '+esc(z.time||'—')+'</b><p>استعلامات Gmail: <b>'+esc(z.queries??'—')+'</b> · مرشحون: <b>'+esc(z.candidates??'—')+'</b> · أضيفت: <b>'+esc(z.added??'—')+'</b></p><p>أعيد ربطها: <b>'+esc(z.relinked??0)+'</b> · استعيدت من السجل السابق: <b>'+esc(z.recovered??0)+'</b> · إجمالي الردود: <b>'+esc(z.totalReplies??rr.length)+'</b> · غير مرتبطة: <b>'+esc(z.unmatched??unmatched)+'</b> · غير مرتبطة بطلب: <b>'+esc(z.unassignedToRequest??'—')+'</b></p></div>':'';return panel('Gmail — مزامنة مراسلات الموردين',icon('reply'),'<div class="approval-details" style="display:block"><h3>الحالة: '+esc(g.connected?'متصل':g.configured?'جاهز للربط':'يحتاج إعداد OAuth')+'</h3><p>الردود المحفوظة: <b>'+rr.length+'</b> · غير مرتبطة: <b>'+unmatched+'</b></p><p class="muted">تتم مطابقة عناوين المشروع وكل عناوين الموردين المعروفة، ثم إعادة ربط السجل القديم قبل حساب الردود.</p></div><div class="actions"><button class="btn primary" onclick="connectGmail()">ربط / إعادة ربط Gmail</button><button class="btn ai" onclick="sync()">مزامنة الآن</button><button class="btn" onclick="show(\'responses\')">عرض ردود الموردين</button></div>'+diag)}
+function gmailView(){
+ const g=st.gmail||{},rr=st.gmailReplies||[],z=st.gmailSyncStatus||null;
+ const unmatched=rr.filter(x=>!x.supplierId).length,unassigned=rr.filter(x=>!x.requestId).length;
+ const state=g.connected?'متصل وجاهز للمزامنة':g.configured?'إعداد Google جاهز — يحتاج موافقتك':'إعداد Google OAuth غير مكتمل';
+ const diag=z?'<div class="approval-details" style="display:block;margin-top:14px">'+
+  '<b>آخر مزامنة: '+esc(z.time||'—')+'</b>'+
+  '<p>استعلامات: '+esc(z.queries??0)+' · الرسائل المرشحة: '+esc(z.candidates??0)+
+  ' · المضافة: '+esc(z.added??0)+' · إجمالي السجل: '+esc(z.totalReplies??rr.length)+'</p>'+
+  '<p>مجهولة المورد: '+esc(z.unmatched??unmatched)+' · تحتاج ربط طلب: '+esc(z.unassignedToRequest??unassigned)+'</p></div>':'';
+ const text='<div class="approval-details" style="display:block"><h3>حالة البريد: '+esc(state)+'</h3>'+
+  '<p>رسائل محفوظة في النظام: <b>'+rr.length+'</b> · غير مرتبطة بطلب: <b>'+unassigned+'</b></p>'+
+  '<p class="muted">الربط للقراءة فقط: لا إرسال ولا حذف. تُحفظ تواريخ الاستلام الأصلية بتوقيت صنعاء، وتُفتح الرسائل والمرفقات عند الطلب من Gmail.</p></div>';
+ const setup=!g.configured?
+  '<div class="data-warning" style="margin-top:12px"><b>إعداد مطلوب في خدمة Render الجديدة:</b>'+
+  '<p>فعّل Gmail API وأنشئ Google OAuth Client من نوع Web application. أضف GOOGLE_CLIENT_ID وGOOGLE_CLIENT_SECRET إلى Environment الخاص بخدمة Procurement المحمية. استخدم عنوان إعادة التوجيه:</p>'+
+  '<code>https://alharir-procurement-neon-trial.onrender.com/api/gmail/callback</code>'+
+  '<p>لا تضع مفاتيح أو رموز الدخول داخل الدردشة أو GitHub.</p></div>':'';
+ return panel('Gmail — مزامنة المراسلات والمرفقات',icon('reply'),text+setup+
+ '<div class="actions"><button class="btn" onclick="checkGmailReadiness()">فحص جاهزية Google</button>'+
+ '<button class="btn primary" '+(!g.configured?'disabled ':'')+'onclick="connectGmail()">موافقة Google وربط الحساب</button>'+
+ '<button class="btn ai" '+(!g.connected?'disabled ':'')+'onclick="sync()">مزامنة بريد الموردين الآن</button>'+
+ '<button class="btn" onclick="show(\'responses\')">عرض ردود الموردين</button></div>'+
+ '<p id="gmailPreflight" class="muted" role="status" aria-live="polite"></p>'+diag);
+}
+async function checkGmailReadiness(){
+ const el=document.getElementById('gmailPreflight');if(el)el.textContent='جارٍ فحص الاتصال...';
+ try{const res=await fetch(A+'gmail/status',{cache:'no-store'}),d=await res.json();
+  if(!res.ok)throw Error(d.message||d.error||'تعذر الفحص');
+  const message=!d.configured?'Google OAuth غير مهيأ في Render — افتح إعدادات Environment وأضف بيانات تطبيق Google.':
+   !d.connected?'التطبيق جاهز. اضغط «موافقة Google وربط الحساب» وأكمل التفويض بنفسك.':
+   'Gmail متصل بصلاحية القراءة فقط. يمكنك تشغيل المزامنة ثم مراجعة الرسائل غير المرتبطة.';
+  if(el)el.textContent=message+' · إعادة التوجيه: '+(d.redirectUri||'غير محددة');
+ }catch(e){if(el)el.textContent='تعذر فحص Gmail: '+e.message}
+}
 function agent(){let g=st.gmail||{},safe=st.settings?.dryRun||st.settings?.requirePerMessageApproval;return '<div class="grid">'+panel('Procurement AI Assistant',icon('spark'),'<div class="safe">🛡 '+(safe?'وضع الحماية مفعل — لا يوجد إرسال جماعي':'تحذير: راجع إعدادات الإرسال')+'</div><div style="margin-top:12px">Gmail: <b>'+(g.connected?'متصل':g.configured?'جاهز للربط':'يحتاج إعداد OAuth')+'</b></div><div class="actions" style="margin-top:14px"><button class="btn primary" onclick="connectGmail()">ربط Gmail</button><button class="btn" onclick="sync()">مزامنة RFQ-001</button><button class="btn" onclick="followup()">متابعة الموردين</button></div>')+panel('صلاحيات الوكيل',icon('shield'),Object.entries(st.settings).map(([k,v])=>'<label style="display:flex;justify-content:space-between;padding:9px 0"><span>'+k+'</span><input type="checkbox" '+(v?'checked':'')+' onchange="setting(\''+k+'\',this.checked)"></label>').join(''))+'</div>'}
 async function approve(id,status){let r=await fetch(A+'approvals/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});if(!r.ok)return toast('تعذر تحديث الموافقة');await load();show('approvals');toast(status==='approved'?'تمت الموافقة':'تم الرفض')}async function exclude(id,excluded){await fetch(A+'suppliers/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({excluded})});await load()}async function setting(k,v){await fetch(A+'settings',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({[k]:v})});await load()}function connectGmail(){location.href=A+'gmail/connect'}async function sync(){let r=await fetch(A+'gmail/sync',{method:'POST'}),x=await r.json();if(!r.ok)return toast(x.message||x.error||'فشل المزامنة');await load();show('gmail');toast('ردود جديدة: '+x.added+' · مرتبطة: '+x.matched+' · غير مرتبطة: '+x.unmatched)}async function followup(){let r=await fetch(A+'agent/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'followup'})}),x=await r.json();if(!r.ok)return toast(x.message||x.error);await load();toast('تمت المتابعة: '+x.sent.length)}</script><script src="/mail-correspondence.js"></script><script src="/executive-report.js"></script><script src="/ops-dashboard.js"></script><script src="/market-outreach.js"></script>
 <script src="/agent-native-layout.js"></script><script src="/agent-native-pilot.js"></script>
