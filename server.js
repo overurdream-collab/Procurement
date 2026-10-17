@@ -271,6 +271,7 @@ function rateLimitUnifiedSearch(res){
 }
 
 
+let syncInProgress=false;
 const server=http.createServer(async(req,res)=>{try{if(!guardHostedRequest(req,res)||!guardProduction(req,res))return;
 res.setHeader('X-Content-Type-Options','nosniff');
 res.setHeader('X-Frame-Options','DENY');
@@ -308,7 +309,14 @@ if(u.pathname==='/api/gmail/callback'&&req.method==='GET'){let o=await oauth();i
  }catch(e){await clearOauth();throw e}
  res.writeHead(302,{Location:'/#gmail'});return res.end()}
 if(u.pathname==='/api/gmail/disconnect'&&req.method==='POST'){await clearOauth();return json(res,200,{ok:true})}
-if(u.pathname==='/api/gmail/sync'&&req.method==='POST'){let cfg=oauthConfig();if(!cfg.ok)return json(res,400,cfg);if(!(await oauth()).refresh_token)return json(res,409,{error:'gmail_not_connected',message:'اربط Gmail أولاً ثم أعد المزامنة.'});return json(res,200,await syncGmail());}
+if(u.pathname==='/api/gmail/sync'&&req.method==='POST'){
+ const cfg=oauthConfig();if(!cfg.ok)return json(res,400,cfg);
+ if(!(await oauth()).refresh_token)return json(res,409,{error:'gmail_not_connected',message:'اربط Gmail أولاً ثم أعد المزامنة.'});
+ if(syncInProgress)return json(res,409,{error:'gmail_sync_in_progress'});
+ await verifyCompanyMailbox();
+ syncInProgress=true;
+ try{return json(res,200,await syncGmail())}finally{syncInProgress=false}
+}
 
 if(u.pathname==='/api/gmail/message'&&req.method==='GET'){
  const messageId=u.searchParams.get('messageId')||'';
@@ -677,4 +685,18 @@ if(file.includes('..')||file.includes('\\')||path.isAbsolute(file))return json(r
    json(res,500,{error:e.message})
 }});store.ready().then(()=>{
  server.listen(process.env.PORT||8787,()=>console.log('Procurement V2 listening on port '+(process.env.PORT||8787)));
+ if(LIVE&&process.env.GMAIL_AUTO_SYNC==='true'){
+  const timer=setInterval(async()=>{
+   if(syncInProgress)return;
+   syncInProgress=true;
+   try{
+    if(!oauthConfig().ok||!(await oauth()).refresh_token)return;
+    await verifyCompanyMailbox();
+    const report=await syncGmail();
+    console.log('Gmail read-only sync: queries='+report.queries+', added='+report.added);
+   }catch(e){console.error('Gmail read-only sync failed:',e.code||e.message)}
+   finally{syncInProgress=false}
+  },30*60*1000);
+  timer.unref();
+ }
 }).catch(e=>{console.error('Persistent state startup failed:',e.message);process.exitCode=1;});
