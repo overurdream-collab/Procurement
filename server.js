@@ -685,6 +685,13 @@ if(file.includes('..')||file.includes('\\')||path.isAbsolute(file))return json(r
    json(res,500,{error:e.message})
 }});store.ready().then(()=>{
  server.listen(process.env.PORT||8787,()=>console.log('Procurement V2 listening on port '+(process.env.PORT||8787)));
+  // Operational diagnostics only. Never log tokens, email addresses or OAuth secrets.
+  oauth().then(tokens=>console.log('Gmail readiness (no secrets): clientConfigured='+Boolean(GCLIENT&&GSECRET)+
+    ',expectedMailboxConfigured='+Boolean(process.env.GMAIL_EXPECTED_EMAIL)+
+    ',tokenStored='+Boolean(tokens.refresh_token)+
+    ',autoSyncEnabled='+(LIVE&&process.env.GMAIL_AUTO_SYNC==='true')))
+    .catch(e=>console.error('Gmail readiness check failed: '+(e.code||'oauth_store_unavailable')));
+
  if(LIVE&&process.env.GMAIL_AUTO_SYNC==='true'){
   const timer=setInterval(async()=>{
    if(syncInProgress)return;
