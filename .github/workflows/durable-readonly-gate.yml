@@ -10,6 +10,7 @@ on:
       - 'test/persistent-gmail-readonly.test.js'
       - 'test/staging-auth.test.js'
       - 'test/phase2-mail-correspondence.test.js'
+      - 'test/gmail-readonly-setup.test.js'
       - 'public/index.html'
       - 'public/request.html'
       - 'public/workspace.html'
@@ -43,6 +44,7 @@ jobs:
             test/persistent-gmail-readonly.test.js \
             test/staging-auth.test.js \
             test/phase2-mail-correspondence.test.js \
+            test/gmail-readonly-setup.test.js \
             test/phase2-procurement.integration.test.js \
             test/procurement-reports.test.js \
             test/daily-dashboard-http.test.js \
