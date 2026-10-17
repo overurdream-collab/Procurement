@@ -14,5 +14,17 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --ignore-scripts
+      - run: node --check server.js && node --check public/market-outreach.js
       - run: node --test test/request-intelligence.test.js
+      - name: Diagnostically start demo server without real data
+        env:
+          STAGING_HOSTED: 'true'
+          STAGING_DEMO: 'true'
+          HOSTED_ACCESS_USER: ci-smoke
+          HOSTED_ACCESS_PASSWORD: temporary-long-test-password-2026
+          PORT: '45932'
+        run: |
+          timeout 4s node server.js > /tmp/server-startup.log 2>&1 && true || status=$?
+          cat /tmp/server-startup.log
+          if grep -Eq "SyntaxError|Error:|failed" /tmp/server-startup.log; then exit 1; fi
       - run: node --test test/market-rfq-http.integration.test.js test/phase2-procurement.integration.test.js
