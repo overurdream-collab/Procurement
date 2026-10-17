@@ -29,6 +29,15 @@ function supplierHtml(record){
  return record.suppliers.map(s=>'<div class="supplier-row"><div><b>'+esc(s.name||'مورد غير مسمى')+'</b><small>'+esc(s.country||s.sourcePlatform||'المصدر غير محدد')+' · '+esc(s.contactStatus||s.status||'بانتظار التحقق')+'</small></div>'+
  (s.sourceUrl?'<a href="'+esc(s.sourceUrl)+'" rel="noopener noreferrer" target="_blank">مصدر الترشيح ↗</a>':'<span class="muted">المصدر غير مسجل</span>')+'</div>').join('');
 }
+function requestIntelligenceHtml(a){
+ const n=a.normalized||{},list=x=>x.length?'<ul>'+x.map(v=>'<li>'+esc(v)+'</li>').join('')+'</ul>':'<p class="muted">لا توجد نواقص معروفة.</p>';
+ return '<div class="context-item"><b>تحليل قواعدي موثق — وليس AI توليديًا</b>'+
+ '<p>المنتج: '+esc(n.product||'—')+' · '+esc(n.quantity||'—')+'</p>'+
+ '<p>فئة المورد المطلوبة: '+esc((a.supplierCategories||[]).join('، '))+'</p>'+
+ '<p>بحث مقترح: '+esc(a.searchQuery||'—')+'</p><h4>النواقص الفنية</h4>'+
+ list(a.missingTechnical||[])+'<h4>أسئلة تجارية للموردين</h4>'+
+ list(a.missingCommercial||[])+'</div>';
+}
 function analysisHtml(record){
  if(!record)return '<p class="empty">البيانات غير متاحة.</p>';
  if(!record.comparable.length)return '<div class="empty"><b>لا توجد مقارنة متكافئة موثقة حتى الآن.</b><p>يجب إدخال عروض الموردين ومراجعتها، ثم مطابقة المواصفات والكمية والعملة ووحدة البيع وميناء FOB. نتائج الإنترنت ليست عروض شراء موثقة.</p></div>';
@@ -73,9 +82,11 @@ function init(){
    qs('requestMeta').textContent=(workspace.request.quantity||'الكمية غير محددة')+' · '+(workspace.request.incoterm||'الأساس غير محدد')+
      ' · '+(workspace.request.currency||'');
    render();
-   const [st,a]=await Promise.all([
-    http('/api/state'),http('/api/price-comparison?requestId='+encodeURIComponent(id))
+   const [st,a,requestIntel]=await Promise.all([
+    http('/api/state'),http('/api/price-comparison?requestId='+encodeURIComponent(id)),
+    http('/api/requests/'+encodeURIComponent(id)+'/analysis')
    ]);
+   qs('requestIntelligence').innerHTML=requestIntelligenceHtml(requestIntel);
    const record=deriveOverview(st,id,a);
    if(record){
     renderCounts(record);

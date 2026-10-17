@@ -251,6 +251,7 @@ function copilotPlan(message){
 function gate(st,action){let map={followup:'autoFollowup',send:'autoSend',exclude:'autoExclude',award:'autoAward'},key=map[action];if(key&&st.settings?.[key])return true;return st.approvals.some(a=>a.type===action&&a.status==='approved')}
 
 const {marketScan}=require('./market-scan');
+const {analyzeRequest}=require('./request-intelligence');
 const {priceAnalysis,dailyReport}=require('./procurement-reports');
 const {matchRequestForEmail}=require('./gmail-request-link');
 const {monthlyReport,validateMonth}=require('./monthly-report');
@@ -403,7 +404,319 @@ if(u.pathname==='/api/requests'&&req.method==='POST'){
  st.activity.unshift({time:x.createdAt,type:'request',requestId:x.id,text:'إنشاء '+x.id});
  await save(st);return json(res,201,x);
 }
-let mm=u.pathname.match(new RegExp('^/api/requests/([^/]+)/market-scan$'));if(mm&&req.method==='POST'){let st=await load(),b=await body(req),x=(st.requests||[]).find(x=>x.id===mm[1]);if(!x)return json(res,404,{error:'request_not_found'});let scan=await marketScan(st,{...x,sourceObservations:b.sourceObservations||[]});st.marketScans=st.marketScans||[];st.marketScans.unshift(scan);x.marketScanId=scan.id;x.marketStatus=scan.resultStatus;st.activity.unshift({time:new Date().toISOString(),type:'market_scan',text:'Market Intelligence '+x.id+' — '+scan.sourceCount+' sources'});await save(st);return json(res,200,scan)}
+// Read-only, source-grounded request analysis; no LLM claims, emails or state changes.
+let analysisRoute=u.pathname.match(/^\/api\/requests\/([^/]+)\/analysis$/);
+if(analysisRoute&&req.method==='GET'){
+ const st=await load(),record=(st.requests||[]).find(x=>x.id===analysisRoute[1]);
+ if(!record)return json(res,404,{error:'request_not_found'});
+ const analysis=analyzeRequest(record),provider=configuredProvider();
+ return json(res,200,{...analysis,liveSearch:{configured:provider!=='none',provider},
+   requiresHumanVerification:true});
+}
+let mm=u.pathname.match(new RegExp('^/api/requests/([^/]+)/market-scanif(mm&&req.method==='POST'){let st=await load(),b=await body(req),x=(st.requests||[]).find(x=>x.id===mm[1]);if(!x)return json(res,404,{error:'request_not_found'});let scan=await marketScan(st,{...x,sourceObservations:b.sourceObservations||[]});st.marketScans=st.marketScans||[];st.marketScans.unshift(scan);x.marketScanId=scan.id;x.marketStatus=scan.resultStatus;st.activity.unshift({time:new Date().toISOString(),type:'market_scan',text:'Market Intelligence '+x.id+' — '+scan.sourceCount+' sources'});await save(st);return json(res,200,scan)}
+if(u.pathname==='/api/market-scans'&&req.method==='GET'){let st=await load();return json(res,200,st.marketScans||[])}
+
+if(u.pathname==='/api/market-intelligence/search'&&req.method==='POST'){
+  const input=await body(req);
+  if(!validateSearchInput(input?.query))
+    return json(res,422,{error:'invalid_product_query',message:'اسم المنتج يجب أن يكون من 2 إلى 160 حرفًا.'});
+  if(rateLimitUnifiedSearch(res))return;
+  const result=await unifiedMarketSearch(input);
+  // Keep result pointers ephemeral for intentional supplier shortlisting; no supplier auto-import.
+  if(result.ok){
+    const snapshot=registerSearch(result.results,result.query);
+    result.searchId=snapshot.searchId;
+    result.results=snapshot.results.map(x=>{
+      const original=result.results.find(z=>z.url===x.url);
+      return {...original,index:x.index};
+    });
+  }
+  return json(res,result.status,result);
+}
+
+
+
+if(u.pathname==='/api/market-intelligence/manual-leads'&&req.method==='POST'){
+  const input=await body(req),query=validateSearchInput(input?.query);
+  if(!query)return json(res,422,{error:'invalid_product_query'});
+  const urls=Array.isArray(input?.urls)?input.urls:[];
+  if(urls.length<1||urls.length>12)return json(res,422,{error:'one_to_twelve_source_urls_required'});
+  const items=[];
+  for(const raw of urls){
+    const url=publicUrl(raw);
+    if(!url)return json(res,422,{error:'invalid_public_source_url'});
+    const host=new URL(url).hostname;
+    if(!items.some(x=>x.url===url))
+      items.push({source:'Operator-supplied public link',title:'مصدر أدخله الموظف — '+host,
+        snippet:'لم يتحقق النظام من هوية الشركة أو السعر أو البريد.',url});
+  }
+  const snapshot=registerSearch(items,query);
+  return json(res,200,{ok:true,query,searchId:snapshot.searchId,
+    count:snapshot.results.length,results:snapshot.results.map(x=>({...x,prices:[]})),
+    searchConfigured:false,provider:'manual-reviewed-links',manual:true,
+    warning:'روابط أدخلها المستخدم، غير متحقق منها آليًا، وتحتاج مراجعة بشرية قبل مراسلة الشركات.'});
+}
+if(u.pathname==='/api/market-intelligence/contacts'&&req.method==='POST'){
+  const input=await body(req);
+  if(rateLimitUnifiedSearch(res))return;
+  const result=await researchContact(input);
+  return json(res,result.status,result);
+}
+if(u.pathname==='/api/market-intelligence/convert'&&req.method==='POST'){
+  const input=await body(req),draft=prepareConversion(input);
+  if(!draft.ok)return json(res,draft.status,{error:draft.error,message:draft.message||draft.error});
+  const st=await load();
+  st.requests=Array.isArray(st.requests)?st.requests:[];
+  st.suppliers=Array.isArray(st.suppliers)?st.suppliers:[];
+  st.activity=Array.isArray(st.activity)?st.activity:[];
+  const targetId=typeof input.targetRequestId==='string'?input.targetRequestId.trim():'';
+  let request=draft.request,attachedToExistingRequest=false;
+  if(targetId){
+    const existing=st.requests.find(x=>x.id===targetId);
+    if(!existing)return json(res,404,{error:'target_request_not_found'});
+    if(existing.incoterm!=='FOB')return json(res,422,{error:'target_request_requires_FOB'});
+    if([existing.product,existing.quantity,existing.specifications].some((v,i)=>
+      String(v||'').trim()!==String([draft.request.product,draft.request.quantity,draft.request.specifications][i]||'').trim()))
+      return json(res,409,{error:'request_details_changed',
+        message:'بيانات الطلب لا تطابق البحث الحالي. حدث الصفحة وأعد اختيار طلب الشراء الصحيح.'});
+    const attached=new Set(existing.selectedSupplierIds||[]);
+    const duplicates=draft.suppliers.filter(s=>st.suppliers.some(prev=>
+      attached.has(prev.id)&&prev.name?.trim().toLowerCase()===s.name.trim().toLowerCase()));
+    if(duplicates.length)return json(res,409,{error:'supplier_already_selected',
+      message:'يوجد مورد مختار مسبقًا بالاسم نفسه داخل هذا الطلب. راجع الموردين قبل إعادة الإضافة.'});
+    for(const supplier of draft.suppliers){supplier.associatedRequestId=targetId;attached.add(supplier.id)}
+    existing.selectedSupplierIds=[...attached];
+    existing.outreachStatus='draft_review_required';
+    request=existing;attachedToExistingRequest=true;
+  }else{
+    st.requests.unshift(draft.request);
+  }
+  st.suppliers.push(...draft.suppliers);
+  st.activity.unshift({time:new Date().toISOString(),type:'rfq_draft_created',requestId:request.id,
+    text:(attachedToExistingRequest?'أضيفت شركات مستهدفة إلى ':'أنشئت مسودة ')+request.id+
+      ' مع '+draft.suppliers.length+' مورّدين مختارين — لم تُرسل أي رسائل'});
+  await save(st);
+  return json(res,attachedToExistingRequest?200:201,{request,suppliers:draft.suppliers,
+    attachedToExistingRequest,drafts:outreachDrafts(request,draft.suppliers),
+    sentCount:0,persistence:HOSTED_DEMO?'temporary-demo':store.durable?'postgres':'local-file'});
+}
+
+let attachMarketRoute=u.pathname.match(/^\/api\/requests\/([^/]+)\/market-suppliers$/);
+if(attachMarketRoute&&req.method==='POST'){
+ const st=await load(),request=(st.requests||[]).find(r=>r.id===attachMarketRoute[1]);
+ if(!request)return json(res,404,{error:'request_not_found'});
+ if(String(request.incoterm||'FOB').toUpperCase()!=='FOB')
+  return json(res,422,{error:'request_requires_FOB',message:'لا يمكن إضافة عروض FOB إلى طلب أساسه التجاري مختلف دون مراجعة الطلب.'});
+ const input=await body(req);
+ const draft=prepareConversion({...input,details:{
+  product:request.product||request.title,quantity:request.quantity,
+  specifications:request.specifications,incoterm:'FOB'
+ }});
+ if(!draft.ok)return json(res,draft.status,{error:draft.error,message:draft.message||draft.error});
+ st.suppliers=Array.isArray(st.suppliers)?st.suppliers:[];
+ st.activity=Array.isArray(st.activity)?st.activity:[];
+ request.selectedSupplierIds=Array.isArray(request.selectedSupplierIds)?request.selectedSupplierIds:[];
+ const added=[],already=[];
+ for(const incoming of draft.suppliers){
+  const found=st.suppliers.find(s=>s.associatedRequestId===request.id&&
+   String(s.name||'').trim().toLowerCase()===incoming.name.toLowerCase()&&
+   s.sourceUrl===incoming.sourceUrl);
+  if(found){already.push(found.id);continue}
+  incoming.associatedRequestId=request.id;
+  incoming.status='مرشح لهذا الطلب — يحتاج التحقق من الشركة والبريد';
+  st.suppliers.push(incoming);
+  request.selectedSupplierIds.push(incoming.id);
+  added.push(incoming);
+ }
+ if(added.length)st.activity.unshift({time:new Date().toISOString(),type:'rfq_supplier_shortlist',
+  requestId:request.id,text:'أضيف '+added.length+' موردًا مرشحًا إلى '+request.id+' دون إرسال مراسلات'});
+ await save(st);
+ return json(res,200,{ok:true,requestId:request.id,request,suppliers:added,added,alreadyExists:already,
+  linkedSuppliers:request.selectedSupplierIds.length,sentCount:0,
+  drafts:outreachDrafts(request,added),persistence:HOSTED_DEMO?'temporary-demo':store.durable?'postgres':'local-file',
+  warning:'هذه ترشيحات بحث ولم تُتحقق هويات الشركات أو عناوين البريد آليًا.'});
+}
+let outreachRoute=u.pathname.match(/^\/api\/requests\/([^/]+)\/outreach-drafts$/);
+if(outreachRoute&&req.method==='GET'){
+  const st=await load(),request=(st.requests||[]).find(x=>x.id===outreachRoute[1]);
+  if(!request)return json(res,404,{error:'request_not_found'});
+  const chosen=(st.suppliers||[]).filter(x=>(request.selectedSupplierIds||[]).includes(x.id));
+  return json(res,200,{requestId:request.id,status:request.outreachStatus||'unknown',
+    drafts:outreachDrafts(request,chosen),sentCount:0});
+}
+
+if(u.pathname==='/api/market-search'&&req.method==='POST'){
+  let b=await body(req);
+  let r=await fetch('http://localhost:8790/api/market-search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+  let x=await r.json().catch(()=>({error:'invalid_alibaba_api_response'}));
+  return json(res,r.status,x)
+}
+let msearch=u.pathname.match(/^\/api\/market-search\/([^/]+)$/);
+if(msearch&&req.method==='GET'){
+  let r=await fetch('http://localhost:8790/api/market-search/'+encodeURIComponent(msearch[1]));
+  let x=await r.json().catch(()=>({error:'invalid_alibaba_api_response'}));
+  return json(res,r.status,x)
+}
+if(u.pathname==='/api/made-in-china-search'&&req.method==='POST'){
+  let b=await body(req);
+  let r=await fetch('http://localhost:8791/api/market-search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+  let x=await r.json().catch(()=>({error:'invalid_made_in_china_api_response'}));
+  return json(res,r.status,x)
+}
+let micsearch=u.pathname.match(/^\/api\/made-in-china-search\/([^/]+)$/);
+if(micsearch&&req.method==='GET'){
+  let r=await fetch('http://localhost:8791/api/market-search/'+encodeURIComponent(micsearch[1]));
+  let x=await r.json().catch(()=>({error:'invalid_made_in_china_api_response'}));
+  return json(res,r.status,x)
+}
+let wm=u.pathname.match(/^\/api\/requests\/([^/]+)\/workspace$/);
+if(wm&&req.method==='GET'){let st=await load(),x=(st.requests||[]).find(x=>x.id===wm[1]);if(!x)return json(res,404,{error:'request_not_found'});return json(res,200,{request:x,workspace:ensureWorkspace(x)})}
+if(wm&&req.method==='PATCH'){let st=await load(),b=await body(req),x=(st.requests||[]).find(x=>x.id===wm[1]);if(!x)return json(res,404,{error:'request_not_found'});let w=ensureWorkspace(x),allowed=['specifications','analysisRules','commercialTerms','supplierStrategy','scenarios','facts','aiInstructions'];if(!allowed.includes(b.section))return json(res,400,{error:'invalid_workspace_section'});let item=addWorkspaceItem(x,b.section,b.value,b.status||'Confirmed Decision',b.source||'Manual UI');await save(st);return json(res,200,{item,workspace:w})}
+let cm=u.pathname.match(/^\/api\/requests\/([^/]+)\/copilot$/);
+if(cm&&req.method==='POST'){let st=await load(),b=await body(req),base=(st.requests||[]).find(x=>x.id===cm[1]);if(!base)return json(res,404,{error:'request_not_found'});let message=String(b.message||'').trim();if(!message)return json(res,400,{error:'message_required'});let x=requestRef(st,message,cm[1])||base,w=ensureWorkspace(x);w.chat.push({role:'user',text:message,time:new Date().toISOString()});let actions=copilotPlan(message),executed=[];for(const a of actions){if(a.type==='add_context')executed.push(addWorkspaceItem(x,a.section,a.value,'Confirmed Decision','AI Copilot from user instruction'))}let read=copilotRead(st,x,message),reply;if(executed.length){reply='تم تنفيذ '+executed.length+' تحديث على '+x.id+'.\n'+executed.map(z=>'✓ '+z.value).join('\n');let after=copilotRead(st,x,message);if(after&&after.answer)reply+='\n\n'+after.answer}else if(read){reply=read.answer+'\n\nالمصدر: '+read.source}else{reply='أستطيع الاستعلام من بيانات الطلبات والموردين والعروض والمواصفات والشروط وسجل البريد، أو تنفيذ تحديثات على Workspace. لم أجد بعد استعلامًا مدعومًا بشكل موثوق في هذه الصياغة، لذلك لم أغيّر أي بيانات.'}w.chat.push({role:'assistant',text:reply,time:new Date().toISOString(),requestId:x.id,executed:executed.map(z=>z.id)});auditWorkspace(x,executed.length?'copilot_action':'copilot_query',message,'AI Copilot',null,{requestId:x.id,executed:executed.map(z=>z.id)});await save(st);return json(res,200,{reply,requestId:x.id,intent:executed.length?'act':read?'ask':'unknown',executed,workspace:w})}
+let sm=u.pathname.match(/^\/api\/suppliers\/([^/]+)$/);if(sm&&req.method==='PATCH'){let st=await load(),b=await body(req),x=st.suppliers.find(x=>x.id===sm[1]);if(!x)return json(res,404,{error:'not_found'});Object.assign(x,b);await save(st);return json(res,200,x)}
+let am=u.pathname.match(/^\/api\/approvals\/([^/]+)$/);if(am&&req.method==='PATCH'){let st=await load(),b=await body(req),x=st.approvals.find(x=>x.id===am[1]);if(!x)return json(res,404,{error:'not_found'});x.status=b.status||x.status;x.updatedAt=new Date().toISOString();await save(st);return json(res,200,x)}
+if(u.pathname==='/api/settings'&&req.method==='PATCH'){let st=await load(),b=await body(req);st.settings={...st.settings,...b};await save(st);return json(res,200,st.settings)}
+
+
+if(u.pathname==='/api/system-status'&&req.method==='GET'){
+ const provider=configuredProvider();
+ const availableMail=!!(GCLIENT&&GSECRET)&&!!(await oauth()).refresh_token;
+ const serviceList=[
+  {id:'private-access',name:'الدخول المحمي',status:'available',detail:HOSTED_DEMO?'دخول إداري واحد للتجربة؛ ليست صلاحيات فردية':'بوابة محمية'},
+  {id:'market-page',name:'صفحة بحث المنتج والموردين',status:'available',detail:'تشغيل الواجهة وإنشاء قائمة مرشحين'},
+  {id:'live-search',name:'بحث السوق الحي',status:provider==='none'?'not-configured':'configured',detail:provider==='none'?'لا يوجد محرك بحث مفعل على الخادم':provider},
+  {id:'manual-leads',name:'إضافة روابط الموردين يدويًا',status:'available',detail:'مع التحقق اليدوي من الهوية'},
+  {id:'rfq-drafts',name:'إنشاء مسودات RFQ',status:'available',detail:'لا إرسال تلقائي'},
+  {id:'quote-analysis',name:'التحليل المالي للعروض',status:'available',detail:'مقارنة مقيدة بالأدلة والمواصفات والعملة وFOB'},
+  {id:'daily-report',name:'لوحة وتقارير الإدارة والمشتري',status:'available',detail:'تحميل HTML، طباعة/PDF، مشاركة يدوية'},
+  {id:'email',name:'ربط ومزامنة Gmail',status:HOSTED_DEMO?'disabled-in-demo':availableMail?'configured':'not-configured',detail:HOSTED_DEMO?'غير متاح في النسخة التجريبية':'يتطلب إعداد OAuth وربط حساب'},
+  {id:'wechat',name:'إرسال تلقائي إلى WeChat',status:'not-integrated',detail:'المتاح مشاركة الملف يدويًا عبر الجهاز'},
+  {id:'storage',name:'تخزين مستمر للبيانات',status:HOSTED_DEMO?'temporary-demo':'local-file',detail:HOSTED_DEMO?'بيانات وهمية تزول عند إعادة تشغيل الخدمة':'ملف محلي، ليس قاعدة بيانات مؤسسية'},
+  {id:'quote-ingestion',name:'استخراج تلقائي لعروض PDF والبريد',status:'not-integrated',detail:'الإدخال المنظم متاح والمرفقات تحتاج مراجعة'}
+ ];
+ return json(res,200,{checkedAt:new Date().toISOString(),staging:HOSTED_DEMO,services:serviceList});
+}
+if(u.pathname==='/api/price-comparison'&&req.method==='GET'){
+  const st=await load(),requestId=u.searchParams.get('requestId')||null;
+  if(requestId&&!(st.requests||[]).some(x=>x.id===requestId))return json(res,404,{error:'request_not_found'});
+  return json(res,200,priceAnalysis(st,{requestId}));
+}
+if(u.pathname==='/api/monthly-report'&&req.method==='GET'){
+  const st=await load(),requestId=u.searchParams.get('requestId')||null,
+    audience=u.searchParams.get('audience')||'management',rawMonth=u.searchParams.get('month');
+  if(requestId&&!(st.requests||[]).some(x=>x.id===requestId))return json(res,404,{error:'request_not_found'});
+  if(!['buyer','management'].includes(audience))return json(res,422,{error:'audience_not_supported'});
+  if(rawMonth&&!validateMonth(rawMonth))return json(res,422,{error:'invalid_month'});
+  return json(res,200,monthlyReport(st,{month:rawMonth,requestId,audience}));
+}
+if(u.pathname==='/api/daily-report'&&req.method==='GET'){
+  const st=await load(),requestId=u.searchParams.get('requestId')||null,
+    audience=u.searchParams.get('audience')||'management',
+    requestedDay=u.searchParams.get('date')||null;
+  if(requestId&&!(st.requests||[]).some(x=>x.id===requestId))return json(res,404,{error:'request_not_found'});
+  if(!['buyer','management'].includes(audience))return json(res,422,{error:'audience_not_supported'});
+  if(requestedDay&&!/^\d{4}-\d{2}-\d{2}$/.test(requestedDay))
+    return json(res,422,{error:'date_invalid'});
+  return json(res,200,dailyReport(st,{requestId,date:requestedDay,audience}));
+}
+// Quote registration is deliberately "received/unverified". Staff must review real evidence
+// and explicitly verify each line before it can affect the benchmark.
+if(u.pathname==='/api/quotes/structured'&&req.method==='POST'){
+  const b=await body(req),st=await load(),supplier=(st.suppliers||[]).find(x=>x.id===b.supplierId),
+    request=(st.requests||[]).find(x=>x.id===b.requestId);
+  if(!supplier||!request)return json(res,422,{error:'known_request_and_supplier_required'});
+  if(supplier.associatedRequestId&&supplier.associatedRequestId!==b.requestId)
+    return json(res,422,{error:'supplier_not_assigned_to_request'});
+  if(!['USD','CNY','EUR','YER'].includes(String(b.currency||'')))
+    return json(res,422,{error:'unsupported_currency'});
+  if(typeof b.basis!=='string'||b.basis.trim().length<3||b.basis.length>160)
+    return json(res,422,{error:'quote_basis_required'});
+  if(!Array.isArray(b.items)||!b.items.length||b.items.length>30)
+    return json(res,422,{error:'quote_items_required'});
+  const items=[];
+  for(const item of b.items){
+    if(typeof item.description!=='string'||item.description.trim().length<3||item.description.length>260||
+      !['m²','sqm','piece','set','kg','unit'].includes(item.unit)||
+      !Number.isFinite(Number(item.unitPrice))||Number(item.unitPrice)<=0||
+      !Number.isFinite(Number(item.quantity))||Number(item.quantity)<=0)
+      return json(res,422,{error:'invalid_quotation_line'});
+    items.push({description:item.description.trim(),unit:item.unit,unitPrice:Number(item.unitPrice),
+      quantity:Number(item.quantity),comparisonKey:String(item.comparisonKey||'').trim().slice(0,140),
+      specifications:String(item.specifications||'').trim().slice(0,400)});
+  }
+  const evidenceRef=String(b.evidenceRef||'').trim().slice(0,500);
+  if(evidenceRef.length<6)return json(res,422,{error:'evidence_reference_required'});
+  const quote={id:'Q-'+crypto.randomBytes(8).toString('hex'),supplierId:supplier.id,requestId:request.id,
+    category:supplier.category||'unclassified',evidenceClass:'Received Quote — Pending Review',status:'awaiting_review',
+    basis:b.basis.trim(),currency:b.currency,items,evidenceRef,
+    technical:typeof b.technical==='object'&&b.technical&&!Array.isArray(b.technical)?b.technical:{},
+    commercial:typeof b.commercial==='object'&&b.commercial&&!Array.isArray(b.commercial)?b.commercial:{},
+    missing:Array.isArray(b.missing)?b.missing.map(x=>String(x).slice(0,130)).slice(0,30):[],
+    receivedAt:new Date().toISOString()};
+  st.quotes=st.quotes||[];st.quotes.unshift(quote);
+  st.activity=st.activity||[];st.activity.unshift({type:'quote_received',time:quote.receivedAt,
+    requestId:quote.requestId,text:'عرض جديد '+quote.id+' — يحتاج فحص المستند والتحقق'});
+  await save(st);return json(res,201,quote);
+}
+let verifyQuote=u.pathname.match(/^\/api\/quotes\/([^/]+)\/verify$/);
+if(verifyQuote&&req.method==='POST'){
+  const st=await load(),q=(st.quotes||[]).find(x=>x.id===verifyQuote[1]),
+    b=await body(req);
+  if(!q)return json(res,404,{error:'quote_not_found'});
+  if(q.evidenceClass==='Verified Quote')return json(res,409,{error:'already_verified'});
+  if(String(q.evidenceRef||'').trim().length<6||
+    !Array.isArray(q.items)||q.items.some(i=>!(i.unitPrice>0&&i.quantity>0)))
+    return json(res,422,{error:'complete_document_and_line_check_required'});
+  if(b.confirmVerified!==true||String(b.reviewNote||'').trim().length<12)
+    return json(res,422,{error:'explicit_review_confirmation_and_note_required'});
+  // The hosted shared-admin demo is not an employee-scoped signature.
+  q.evidenceClass='Verified Quote';q.status='reviewed';q.reviewNote=b.reviewNote.trim().slice(0,500);
+  q.verifiedAt=new Date().toISOString();q.verifiedBy=HOSTED_DEMO?'demo-admin-review':'authorized-operator';
+  st.activity=st.activity||[];st.activity.unshift({type:'quote_verified',time:q.verifiedAt,
+    requestId:q.requestId,text:'تم توثيق '+q.id+' بعد مراجعة بشرية: '+q.reviewNote});
+  await save(st);return json(res,200,{id:q.id,evidenceClass:q.evidenceClass,
+    comparison:priceAnalysis(st,{requestId:q.requestId})});
+}
+
+if(u.pathname==='/api/quotes'&&req.method==='POST')return json(res,410,{error:'legacy_unverified_quote_write_disabled',message:'استخدم الإدخال المنظم /api/quotes/structured حتى لا تدخل أسعار دون إثبات.'});
+if(u.pathname==='/api/agent/run'&&req.method==='POST'){let st=await load(),b=await body(req);if(b.action==='followup'&&st.settings?.dryRun)return json(res,409,{error:'dry_run_enabled',message:'وضع الحماية مفعل: لا يسمح بإرسال متابعة جماعية فعلية.'});if(b.action==='followup'&&st.settings?.requirePerMessageApproval)return json(res,409,{error:'per_message_approval_required',message:'يلزم اعتماد كل رسالة ومستلم بشكل منفصل قبل الإرسال.'});if(b.action==='followup'&&!gate(st,'followup'))return json(res,409,{error:'approval_required',message:'تحتاج موافقة قبل الإرسال'});if(b.action==='followup'){let targets=st.suppliers.filter(s=>!['رد','تم الرد — ننتظر العرض'].includes(s.status)&&!s.excluded&&s.email);let sent=[];for(let s of targets){await sendMail(s.email,'Follow-up: RFQ-001 – Cold Storage Project, Sana’a','Dear '+s.name+',\n\nThis is a follow-up regarding RFQ-001 for our cold storage project in Sana’a, Yemen. Please send your technical and commercial quotation, including cooling load, equipment brands/models, daily pull-down capacity, 24h power consumption, panel specifications, FOB price/port, CBM/gross weight, lead time, warranty and payment terms.\n\nBest regards,\nAlharir shipping and export');sent.push(s.name)}st.activity.unshift({time:new Date().toISOString(),type:'agent',text:'تم إرسال متابعة إلى '+sent.length+' مورد'});await save(st);return json(res,200,{ok:true,sent})}st.activity.unshift({time:new Date().toISOString(),type:'agent',text:'تشغيل الوكيل: '+(b.action||'analyze')});await save(st);return json(res,200,{ok:true,action:b.action||'analyze'})}
+let rw=u.pathname.match(/^\/requests\/([^/]+)$/);if(rw&&req.method==='GET'){res.writeHead(302,{Location:'/workspace.html?id='+encodeURIComponent(rw[1])});return res.end()}
+let file=u.pathname==='/'?'index.html':u.pathname.replace(/^\//,'');
+if(file.includes('..')||file.includes('\\')||path.isAbsolute(file))return json(res,400,{error:'invalid_path'});let fp=path.join(PUB,file);if(fp.startsWith(PUB)&&fs.existsSync(fp)){let ext=path.extname(fp);res.writeHead(200,{'Content-Type':({'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.json':'application/json; charset=utf-8','.png':'image/png','.webp':'image/webp','.ico':'image/x-icon'}[ext]||'application/octet-stream'),'X-Content-Type-Options':'nosniff','Cache-Control':HOSTED_DEMO?'private, no-store':'no-cache','Vary':'Authorization'});return fs.createReadStream(fp).pipe(res)}res.writeHead(404);res.end('Not found')
+}catch(e){
+  if(e&&e.message==='gmail_token_expired_or_revoked')return json(res,401,{error:'gmail_token_expired_or_revoked',message:'انتهت أو أُلغيت صلاحية Gmail. أعد ربط Gmail من صفحة الوكيل مرة واحدة لإنشاء Refresh Token جديد.'});
+  if(e&&e.message==='gmail_not_connected')return json(res,401,{error:'gmail_not_connected',message:'Gmail غير مرتبط حاليًا. استخدم زر ربط Gmail ثم أعد المحاولة.'});
+  if(e&&e.code==='STATE_CONFLICT')return json(res,409,{error:'state_revision_conflict',message:'تم تحديث البيانات بالتزامن. حدّث الصفحة وأعد المحاولة.'});
+   if(process.env.PROCUREMENT_PRODUCTION==='true'){
+     console.error('Production request failed',e.message);
+     return json(res,500,{error:'internal_error',message:'تعذر إكمال العملية، راجع سجلات النظام.'});
+   }
+   json(res,500,{error:e.message})
+}});store.ready().then(()=>{
+ server.listen(process.env.PORT||8787,()=>console.log('Procurement V2 listening on port '+(process.env.PORT||8787)));
+  // Operational diagnostics only. Never log tokens, email addresses or OAuth secrets.
+  oauth().then(tokens=>console.log('Gmail readiness (no secrets): clientConfigured='+Boolean(GCLIENT&&GSECRET)+
+    ',expectedMailboxConfigured='+Boolean(process.env.GMAIL_EXPECTED_EMAIL)+
+    ',tokenStored='+Boolean(tokens.refresh_token)+
+    ',autoSyncEnabled='+(LIVE&&process.env.GMAIL_AUTO_SYNC==='true')))
+    .catch(e=>console.error('Gmail readiness check failed: '+(e.code||'oauth_store_unavailable')));
+
+ if(LIVE&&process.env.GMAIL_AUTO_SYNC==='true'){
+  const timer=setInterval(async()=>{
+   if(syncInProgress)return;
+   syncInProgress=true;
+   try{
+    if(!oauthConfig().ok||!(await oauth()).refresh_token)return;
+    await verifyCompanyMailbox();
+    const report=await syncGmail();
+    console.log('Gmail read-only sync: queries='+report.queries+', added='+report.added);
+   }catch(e){console.error('Gmail read-only sync failed:',e.code||e.message)}
+   finally{syncInProgress=false}
+  },30*60*1000);
+  timer.unref();
+ }
+}).catch(e=>{console.error('Persistent state startup failed:',e.message);process.exitCode=1;});));if(mm&&req.method==='POST'){let st=await load(),b=await body(req),x=(st.requests||[]).find(x=>x.id===mm[1]);if(!x)return json(res,404,{error:'request_not_found'});let scan=await marketScan(st,{...x,sourceObservations:b.sourceObservations||[]});st.marketScans=st.marketScans||[];st.marketScans.unshift(scan);x.marketScanId=scan.id;x.marketStatus=scan.resultStatus;st.activity.unshift({time:new Date().toISOString(),type:'market_scan',text:'Market Intelligence '+x.id+' — '+scan.sourceCount+' sources'});await save(st);return json(res,200,scan)}
 if(u.pathname==='/api/market-scans'&&req.method==='GET'){let st=await load();return json(res,200,st.marketScans||[])}
 
 if(u.pathname==='/api/market-intelligence/search'&&req.method==='POST'){
