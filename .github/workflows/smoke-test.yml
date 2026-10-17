@@ -2,12 +2,14 @@ name: Procurement Smoke Test
 on:
   workflow_dispatch:
   push:
-    branches: ["alharir-free-hosting-poc"]
+    branches: [integration/procurement-neon-workflow, "alharir-free-hosting-poc"]
     paths:
       - 'server.js'
       - 'public/index.html'
       - 'public/request.html'
       - 'public/workspace.html'
+      - 'public/workspace-view.js'
+      - 'public/workspace-view.css'
       - 'public/executive-report.js'
       - 'public/mail-correspondence.js'
       - 'procurement-reports.js'
@@ -36,13 +38,14 @@ jobs:
           node --check public/ops-dashboard.js
           node --check public/executive-report.js
           node --check public/mail-correspondence.js
+          node --check public/workspace-view.js
           node --check public/agent-native-pilot.js
           node - <<'NODE'
           const fs=require('fs');
           for(const file of ['public/index.html','public/request.html','public/workspace.html']){
             const src=fs.readFileSync(file,'utf8');
             const scripts=[...src.matchAll(/<script>([\s\S]*?)<\/script>/g)];
-            if(!scripts.length)throw Error('Missing inline script: '+file);
+            if(!scripts.length&&!src.includes('src="/workspace-view.js"'))throw Error('Missing page script: '+file);
             for(const [,script] of scripts)new Function(script);
           }
           NODE
