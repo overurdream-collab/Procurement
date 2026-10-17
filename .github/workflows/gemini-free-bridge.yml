@@ -1,0 +1,38 @@
+name: Gemini Free Agent Bridge
+on:
+  push:
+    branches: [feat/procurement-gemini-free-agent]
+  pull_request:
+    paths:
+      - procurement-gemini-free.js
+      - server.js
+      - public/workspace.html
+      - public/workspace-view.js
+      - test/procurement-gemini-free.test.js
+      - test/procurement-gemini-http.test.js
+      - .github/workflows/gemini-free-bridge.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: JS syntax checks
+        run: |
+          node --check procurement-gemini-free.js
+          node --check server.js
+          node --check public/workspace-view.js
+          node --check test/procurement-gemini-free.test.js
+          node --check test/procurement-gemini-http.test.js
+      - name: Gemini tool-calling mocks and protected HTTP
+        run: node --test test/procurement-gemini-free.test.js test/procurement-gemini-http.test.js
+      - name: Existing project tests
+        run: npm test

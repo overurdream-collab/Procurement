@@ -144,6 +144,27 @@ function init(){
    feedback.textContent=e.message==='agent_preview_disabled'?'المعاينة غير مفعلة على الخادم؛ لم يتم تنفيذ أي شيء.':'تعذّر إجراء المعاينة: '+e.message;
   }finally{button.disabled=false;}
  });
+ qs('runFreeGemini').addEventListener('click',async()=>{
+  const button=qs('runFreeGemini'),feedback=qs('freeGeminiFeedback'),box=qs('freeGeminiOutput');
+  button.disabled=true;box.replaceChildren();feedback.textContent='جارٍ استدعاء Gemini ضمن البيانات التجريبية فقط...';
+  try{
+   const r=await http('/api/requests/'+encodeURIComponent(id)+'/agent/free-ai',{
+    method:'POST',headers:{'Content-Type':'application/json','X-ALHARIR-Model-Action':'demo'},
+    body:JSON.stringify({task:qs('freeGeminiTask').value})});
+   feedback.textContent=r.model+' · '+r.modelRequests+' استدعاءات نموذج · '+r.invokedTools.length+' أدوات قراءة · لا رسائل أو تعديلات.';
+   const summary=document.createElement('p');summary.textContent=r.answer;summary.style.whiteSpace='pre-wrap';box.append(summary);
+   const list=document.createElement('ul');
+   for(const item of r.invokedTools){
+    const li=document.createElement('li');li.textContent=item.tool+' — '+item.status+' — دون أثر جانبي';list.append(li);
+   }
+   box.append(list);
+   if(r.partial){const p=document.createElement('p');p.textContent='تنبيه: توقفت الإجابة عند الحد المسموح.';box.append(p);}
+  }catch(e){
+   feedback.textContent=e.message==='free_model_not_configured_or_demo_only'?
+   'لا يزال النموذج غير مفعّل. يلزم حساب Gemini API مجاني وخادم بيانات وهمية فقط.':
+   'لم تكتمل مهمة النموذج: '+e.message;
+  }finally{button.disabled=false;}
+ });
  qs('refreshOverview').addEventListener('click',()=>Promise.all([loadAll(),loadMail()]));
  qs('refreshMail').addEventListener('click',loadMail);
  const toggle=open=>{document.body.classList.toggle('nav-open',open);qs('mobileNav').setAttribute('aria-expanded',String(open))};

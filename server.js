@@ -253,6 +253,7 @@ function gate(st,action){let map={followup:'autoFollowup',send:'autoSend',exclud
 const {marketScan}=require('./market-scan');
 const {analyzeRequest}=require('./request-intelligence');
 const {previewWorkflow,AgentPreviewError}=require('./procurement-agent-tools');
+const {runFreeGemini,enabled:freeGeminiEnabled,FreeModelError}=require('./procurement-gemini-free');
 const {priceAnalysis,dailyReport}=require('./procurement-reports');
 const {matchRequestForEmail}=require('./gmail-request-link');
 const {monthlyReport,validateMonth}=require('./monthly-report');
@@ -404,6 +405,25 @@ if(u.pathname==='/api/requests'&&req.method==='POST'){
  st.requests.unshift(x);
  st.activity.unshift({time:x.createdAt,type:'request',requestId:x.id,text:'إنشاء '+x.id});
  await save(st);return json(res,201,x);
+}
+// Explicit, password-protected FREE Gemini tool calling; synthetic staged data ONLY.
+let freeAgentRoute=u.pathname.match(/^\/api\/requests\/([^/]+)\/agent\/free-ai$/);
+if(freeAgentRoute&&req.method==='POST'){
+ res.setHeader('Cache-Control','private, no-store');
+ if(!freeGeminiEnabled(process.env))return json(res,404,{error:'free_model_not_configured_or_demo_only'});
+ if(req.headers['x-alharir-model-action']!=='demo'||!String(req.headers['content-type']||'').startsWith('application/json'))
+  return json(res,403,{error:'explicit_demo_action_required'});
+ if(Number(req.headers['content-length']||0)>1024)return json(res,413,{error:'request_too_large'});
+ try{
+  const payload=await body(req);
+  if(!payload||typeof payload!=='object'||Array.isArray(payload)||Object.keys(payload).some(k=>k!=='task'))
+   return json(res,422,{error:'only_preset_task_supported'});
+  const result=await runFreeGemini(await load(),{requestId:freeAgentRoute[1],task:payload.task||'overview'});
+  return json(res,200,result);
+ }catch(e){
+  if(e instanceof FreeModelError||e instanceof AgentPreviewError)return json(res,e.status,{error:e.code});
+  return json(res,500,{error:'free_agent_failed'});
+ }
 }
 // Phase 1: explicit opt-in, authenticated, scripted agent tool preview.
 // No LLM call, external search, mail send, stored approvals, or state mutation.
