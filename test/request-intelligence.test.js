@@ -38,3 +38,10 @@ test('source keeps analysis inside original app and does not spoof LLM results',
  assert.match(server,/\/analysis\$\/\)/);assert.match(ui,/requestIntelligence/);
  assert.match(ui,/runUnifiedMarketSearch/);assert.match(ui,/تحليل أولي بقواعد صريحة/);
 });
+
+test('a complete cold room with PIR wall panels selects system manufacturers, not panel-only vendors',()=>{
+ const a=analyzeRequest({id:'R-FULL',product:'Complete cold storage room',quantity:'1 set',
+  specifications:'Cold room 4x5x3 m, temperature +2°C, PIR panel walls 100mm, 10 ton load',incoterm:'FOB',currency:'USD'});
+ assert.equal(a.productType,'complete_cold_room');assert.equal(a.supplierCategories[0],'cold_room_manufacturer');
+ assert.equal(a.normalized.panelThicknessMm,100);
+});
