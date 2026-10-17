@@ -251,6 +251,7 @@ function copilotPlan(message){
 function gate(st,action){let map={followup:'autoFollowup',send:'autoSend',exclude:'autoExclude',award:'autoAward'},key=map[action];if(key&&st.settings?.[key])return true;return st.approvals.some(a=>a.type===action&&a.status==='approved')}
 
 const {marketScan}=require('./market-scan');
+const {analyzeRequest}=require('./request-intelligence');
 const {priceAnalysis,dailyReport}=require('./procurement-reports');
 const {matchRequestForEmail}=require('./gmail-request-link');
 const {monthlyReport,validateMonth}=require('./monthly-report');
@@ -402,6 +403,15 @@ if(u.pathname==='/api/requests'&&req.method==='POST'){
  st.requests.unshift(x);
  st.activity.unshift({time:x.createdAt,type:'request',requestId:x.id,text:'إنشاء '+x.id});
  await save(st);return json(res,201,x);
+}
+// Request-scoped, read-only procurement specification analysis. No external calls.
+let analysisRoute=u.pathname.match(/^\/api\/requests\/([^/]+)\/analysis$/);
+if(analysisRoute&&req.method==='GET'){
+ const st=await load(),record=(st.requests||[]).find(x=>x.id===analysisRoute[1]);
+ if(!record)return json(res,404,{error:'request_not_found'});
+ const analysis=analyzeRequest(record),provider=configuredProvider();
+ return json(res,200,{...analysis,liveSearch:{configured:provider!=='none',provider},
+   requiresHumanVerification:true});
 }
 let mm=u.pathname.match(new RegExp('^/api/requests/([^/]+)/market-scan$'));if(mm&&req.method==='POST'){let st=await load(),b=await body(req),x=(st.requests||[]).find(x=>x.id===mm[1]);if(!x)return json(res,404,{error:'request_not_found'});let scan=await marketScan(st,{...x,sourceObservations:b.sourceObservations||[]});st.marketScans=st.marketScans||[];st.marketScans.unshift(scan);x.marketScanId=scan.id;x.marketStatus=scan.resultStatus;st.activity.unshift({time:new Date().toISOString(),type:'market_scan',text:'Market Intelligence '+x.id+' — '+scan.sourceCount+' sources'});await save(st);return json(res,200,scan)}
 if(u.pathname==='/api/market-scans'&&req.method==='GET'){let st=await load();return json(res,200,st.marketScans||[])}

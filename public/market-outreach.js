@@ -119,17 +119,28 @@ function chooseLeadEmail(i,k,e){
  leadField(i,'evidence').value=c.pageUrl;
  document.getElementById('ml-feedback-'+i).textContent='تم اقتراح البريد. افتح صفحة الدليل وتأكد منه بنفسك قبل المراسلة.';
 }
+let reviewedDrafts=[];
+function openReviewedDraft(index){
+ const draft=reviewedDrafts[index];
+ const box=document.getElementById('review-rfq-'+index);
+ if(!draft||!draft.to||!box?.checked){alert('راجع النص وبريد المستلم وأكّد الموافقة قبل فتح الرسالة.');return;}
+ // This opens the local mail client; the Procurement server NEVER sends messages.
+ const uri='mailto:'+encodeURIComponent(draft.to)+'?subject='+encodeURIComponent(draft.subject)+'&body='+encodeURIComponent(draft.body);
+ window.location.href=uri;
+}
 function marketDraftHtml(drafts){
  if(!drafts?.length)return '<p>لا توجد مسودات.</p>';
- return '<div class="approval-details" style="display:block"><b>لم تُرسل أي رسالة.</b>'+
- '<p>راجع رسالة كل مورد، ثم افتح برنامج بريدك لإرسالها يدويًا بعد الموافقة.</p></div>'+
- drafts.map(x=>{
-  const mail=x.to?'mailto:'+encodeURIComponent(x.to)+'?subject='+encodeURIComponent(x.subject)+'&body='+encodeURIComponent(x.body):null;
+ reviewedDrafts=drafts;
+ return '<div class="approval-details" style="display:block"><b>المسودات فقط — لم تُرسل أي رسالة.</b>'+
+ '<p>لكل مورد: تحقق من البريد والمصدر، اقرأ النص الكامل ثم وافق صراحة. فتح برنامج البريد لا يعني الإرسال.</p></div>'+
+ drafts.map((x,i)=>{
   return '<div class="approval"><b>'+mEsc(x.company)+'</b> — '+mEsc(x.to||'لا يوجد بريد')+
-   '<p class="muted">الهوية والبريد ما زالا بحاجة إلى تحقق يدوي.</p>'+
-   '<details><summary>معاينة مسودة المراسلة</summary><pre style="direction:ltr;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere">'+mEsc(x.body)+'</pre></details>'+
-   (mail?'<p><a href="'+mEsc(mail)+'" class="btn primary">فتح الرسالة لهذا المورد فقط</a></p>':
-     '<p class="muted">لا يمكن تجهيز إرسال لهذا المورد دون بريد تواصل.</p>')+'</div>';
+   '<p class="muted">هوية الشركة والبريد تحتاج تحققًا بشريًا من المصدر الرسمي.</p>'+
+   '<p><b>الموضوع: </b>'+mEsc(x.subject)+'</p>'+
+   '<details open><summary>النص الكامل — مطلوب مراجعته</summary><pre style="direction:ltr;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere">'+mEsc(x.body)+'</pre></details>'+
+   (x.to?'<p><label><input id="review-rfq-'+i+'" type="checkbox"> أوافق صراحة على هذا النص وعنوان المستلم بعد التحقق منهما</label></p>'+
+   '<button type="button" class="btn primary" onclick="openReviewedDraft('+i+')">فتح المسودة المعتمدة في برنامجي البريدي</button>':
+     '<p class="muted">لا يمكن فتح رسالة للمورد دون عنوان بريد.</p>')+'</div>';
  }).join('');
 }
 

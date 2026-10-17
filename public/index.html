@@ -189,12 +189,44 @@ function setMarketRequest(id){
  render('market');
 }
 function selectedMarketRequest(){return (st.requests||[]).find(x=>x.id===activeMarketRequestId())||null}
+function requestAnalysisView(a){
+ const list=x=>x.length?'<ul>'+x.map(v=>'<li>'+esc(v)+'</li>').join('')+'</ul>':'<p class="muted">لا توجد نواقص مسجلة في هذا الجزء.</p>';
+ const n=a.normalized||{};
+ return '<div class="approval-details" style="display:block;margin:12px 0;padding:16px">'+
+ '<b>تحليل أولي بقواعد صريحة — ليس تحليل AI توليديًا</b>'+
+ '<p>نوع الطلب: <strong>'+esc(a.productType||'')+'</strong> · الكمية: '+esc(n.quantity||'—')+
+ ' · FOB: '+esc(n.incoterm||'غير محدد')+'</p>'+
+ '<p>البيانات التقنية المستخرجة: '+esc(n.panelThicknessMm==null?'—':n.panelThicknessMm+'mm')+
+ ' · كثافة: '+esc(n.coreDensityKgM3==null?'—':n.coreDensityKgM3+'kg/m³')+
+ ' · صاج: '+esc(n.steelSkinMm==null?'—':n.steelSkinMm+'mm')+'</p>'+
+ '<h3>نواقص فنية قبل مخاطبة الموردين</h3>'+list(a.missingTechnical||[])+
+ '<h3>شروط تجارية للتأكد منها</h3>'+list(a.missingCommercial||[])+
+ (a.missingCritical?.length?'<h3>معلومات أساسية ناقصة</h3>'+list(a.missingCritical):'')+
+ '<p>فئات الموردين المستهدفة: '+esc((a.supplierCategories||[]).join('، '))+'</p>'+
+ '<p><b>صيغة البحث المقترحة:</b> '+esc(a.searchQuery||'—')+'</p>'+
+ '<p class="muted">النتائج المفهرسة لا تثبت أن المصدر مصنع ولا تؤكد البريد أو السعر. مطلوب تدقيق بشري.</p>'+
+ '</div>';
+}
 async function analyzeSelectedRequest(){
  const req=selectedMarketRequest();if(!req)return toast('أنشئ طلبًا أولًا');
- const box=document.getElementById('unifiedMarketQuery');
- if(!box)return show('market');
- box.value=req.product||req.title||'';
- await runUnifiedMarketSearch();
+ const destination=document.getElementById('requestIntelligence');
+ if(!destination)return show('market');
+ destination.textContent='جارٍ تحليل المواصفات والشروط...';
+ try{
+  const res=await fetch('/api/requests/'+encodeURIComponent(req.id)+'/analysis',{cache:'no-store'});
+  const a=await res.json();
+  if(!res.ok){destination.textContent=a.message||a.error||'تعذر التحليل';return;}
+  destination.innerHTML=requestAnalysisView(a);
+  const box=document.getElementById('unifiedMarketQuery');
+  if(box)box.value=a.searchQuery||req.product||req.title||'';
+  if(!a.canSearch){destination.innerHTML+='<p class="muted">البحث موقوف حتى استكمال معلومات الطلب الأساسية.</p>';return;}
+  if(!a.liveSearch?.configured){
+   const status=document.getElementById('unifiedMarketStatus');
+   if(status)status.textContent='التحليل متاح؛ البحث الخارجي غير مفعل على الخادم. استخدم روابط البحث اليدوي، دون اعتبارها نتائج مورّدين موثقة.';
+  }
+  // Clicking Analyze authorizes a single bounded search, never sends emails.
+  await runUnifiedMarketSearch();
+ }catch(e){destination.textContent='تعذر إجراء تحليل الطلب: '+e.message;}
 }
 function marketOnNavigate(){
  const u=new URL(location.href),auto=u.searchParams.get('scan')==='1';
@@ -386,7 +418,7 @@ function market(){
  '<button class="btn" onclick="viewSelectedRfqDrafts()">عرض مسودات الموردين</button></div>'+
  (request?'<p class="muted">المنتج: <b>'+esc(request.product||'')+'</b> · الكمية: '+esc(request.quantity||'')+
  ' · أساس السعر: '+esc(request.incoterm||'FOB')+'</p>':'<p>لا يوجد طلب محدد؛ يمكنك البحث العام عن منتج.</p>')+
- '<div id="marketExistingRfqDrafts"></div>')+
+ '<div id="requestIntelligence" role="status" aria-live="polite"></div><div id="marketExistingRfqDrafts"></div>')+
  unifiedSearchPanel();
 }
 async function marketScan(){await analyzeSelectedRequest()}
