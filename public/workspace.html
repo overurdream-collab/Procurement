@@ -24,6 +24,15 @@
 <div id="agentPreviewFeedback" class="form-status" role="status" aria-live="polite">غير مفعّل افتراضيًا؛ يحتاج تفعيلًا صريحًا على الخادم. لا يتصل بأي خدمة مدفوعة.</div>
 <div id="agentPreviewOutput" class="items" aria-live="polite"></div>
 </section>
+<section class="surface" id="freeGeminiSection"><div class="section-head"><div><span class="eyebrow">GEMINI 3.1 FLASH-LITE · FREE API</span>
+<h2>الوكيل الذكي المجاني — بيانات تجريبية فقط</h2>
+<p>يستدعي النموذج أدوات المشتريات الفعلية، لكن على بيانات وهمية فقط. محتوى طلبات الفئة المجانية لدى Google قد يُستخدم لتحسين منتجاتها؛ لا تُدخل بيانات تجارية أو مراسلات حقيقية.</p></div></div>
+<div class="quick-actions"><label for="freeGeminiTask">المهمة التجريبية
+<select id="freeGeminiTask"><option value="overview">تحليل الطلب والنواقص</option><option value="sourcing">تجهيز خطة الموردين ومسودات RFQ</option><option value="quotations">فحص العروض والتقرير</option></select></label>
+<button type="button" class="action primary" id="runFreeGemini">استدعاء Gemini التجريبي</button></div>
+<p id="freeGeminiFeedback" class="form-status" role="status" aria-live="polite">غير مفعل حتى تضع مفتاح Gemini من مشروع Google مجاني غير مربوط بفوترة، وتفعله على خادم تجريبي محمي.</p>
+<div id="freeGeminiOutput" class="items" aria-live="polite"></div>
+</section>
 <section class="surface mail-section" id="requestMailCard"><div class="section-head"><div><span class="eyebrow">MAIL & EVIDENCE</span><h2>مراسلات الموردين ومرفقاتهم</h2><p>تاريخ الاستلام بتوقيت صنعاء، والملفات المتاحة للفتح من داخل النظام.</p></div><button class="action" id="refreshMail" type="button">تحديث المراسلات</button></div><div id="requestMailList" role="status" aria-live="polite">جارٍ تحميل سجل المراسلات...</div></section>
 <section class="surface assistant-section"><div class="section-head"><div><span class="eyebrow">PROCUREMENT ASSISTANT</span><h2>مساعد قراءة السجل</h2><p>يجيب من المعلومات المسجلة فقط؛ بعض التعليمات المدعومة قد تحفظ تغييرات في مساحة الطلب، فراجعها قبل الإرسال.</p></div></div><div id="chat" class="chat" aria-live="polite"></div><form class="assistant-compose" id="assistantForm"><label for="message" class="sr-only">رسالتك إلى المساعد</label><textarea id="message" rows="2" placeholder="مثال: ما المواصفات الناقصة في هذا الطلب؟"></textarea><button class="action primary" id="send" type="submit">إرسال</button></form><p id="assistantFeedback" aria-live="polite" class="form-status"></p></section>
 </div></main></div>
