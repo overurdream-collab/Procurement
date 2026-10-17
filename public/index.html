@@ -401,26 +401,36 @@ function gmailView(){
   '<p>مجهولة المورد: '+esc(z.unmatched??unmatched)+' · تحتاج ربط طلب: '+esc(z.unassignedToRequest??unassigned)+'</p></div>':'';
  const text='<div class="approval-details" style="display:block"><h3>حالة البريد: '+esc(state)+'</h3>'+
   '<p>رسائل محفوظة في النظام: <b>'+rr.length+'</b> · غير مرتبطة بطلب: <b>'+unassigned+'</b></p>'+
-  '<p class="muted">الربط للقراءة فقط: لا إرسال ولا حذف. تُحفظ تواريخ الاستلام الأصلية بتوقيت صنعاء، وتُفتح الرسائل والمرفقات عند الطلب من Gmail.</p></div>';
+  '<p class="muted">الربط للقراءة فقط: لا إرسال ولا حذف. تواريخ الاستلام أصلية بتوقيت صنعاء، والمرفقات تُفتح عند الطلب.</p>'+
+  '<p class="muted">مزامنة كل 30 دقيقة أثناء تشغيل الخادم إذا فُعّلت من إعدادات Render. الخدمة المجانية قد تنام، لذا شغّل المزامنة اليدوية بعد التفويض.</p></div>';
  const setup=!g.configured?
   '<div class="data-warning" style="margin-top:12px"><b>إعداد مطلوب في خدمة Render الجديدة:</b>'+
-  '<p>فعّل Gmail API وأنشئ Google OAuth Client من نوع Web application. أضف GOOGLE_CLIENT_ID وGOOGLE_CLIENT_SECRET إلى Environment الخاص بخدمة Procurement المحمية. استخدم عنوان إعادة التوجيه:</p>'+
+  '<p>استخدم تطبيق Google OAuth القديم إذا كان مملوكًا لكم، أو أنشئ Web application جديدًا. أضف GOOGLE_CLIENT_ID وGOOGLE_CLIENT_SECRET وGMAIL_EXPECTED_EMAIL (عنوان بريد الشركة الصحيح) إلى Environment على خدمة Render الجديدة، ثم أضف رابط إعادة التوجيه:</p>'+
   '<code>https://alharir-procurement-neon-trial.onrender.com/api/gmail/callback</code>'+
   '<p>لا تضع مفاتيح أو رموز الدخول داخل الدردشة أو GitHub.</p></div>':'';
  return panel('Gmail — مزامنة المراسلات والمرفقات',icon('reply'),text+setup+
  '<div class="actions"><button class="btn" onclick="checkGmailReadiness()">فحص جاهزية Google</button>'+
  '<button class="btn primary" '+(!g.configured?'disabled ':'')+'onclick="connectGmail()">موافقة Google وربط الحساب</button>'+
  '<button class="btn ai" '+(!g.connected?'disabled ':'')+'onclick="sync()">مزامنة بريد الموردين الآن</button>'+
+  '<button class="btn" '+(!g.connected?'disabled ':'')+'onclick="verifyGmailAccount()">التحقق من هوية حساب Gmail</button>'+
  '<button class="btn" onclick="show(\'responses\')">عرض ردود الموردين</button></div>'+
  '<p id="gmailPreflight" class="muted" role="status" aria-live="polite"></p>'+diag);
+}
+async function verifyGmailAccount(){
+ const el=document.getElementById('gmailPreflight');if(el)el.textContent='جارٍ التحقق من الحساب عبر Gmail API...';
+ try{
+  const r=await fetch(A+'gmail/verify',{cache:'no-store'}),x=await r.json();
+  if(!r.ok)throw Error(x.message||x.error||'تعذر التحقق');
+  if(el)el.textContent='الحساب المتصل: '+x.account+' — تم التحقق من صلاحية القراءة فقط.';
+ }catch(e){if(el)el.textContent='تعذر التحقق: '+e.message}
 }
 async function checkGmailReadiness(){
  const el=document.getElementById('gmailPreflight');if(el)el.textContent='جارٍ فحص الاتصال...';
  try{const res=await fetch(A+'gmail/status',{cache:'no-store'}),d=await res.json();
   if(!res.ok)throw Error(d.message||d.error||'تعذر الفحص');
-  const message=!d.configured?'Google OAuth غير مهيأ في Render — افتح إعدادات Environment وأضف بيانات تطبيق Google.':
+  const message=!d.configured?(d.message||'Google OAuth غير مهيأ في Render — افتح إعدادات Environment وأضف بيانات تطبيق Google.'):
    !d.connected?'التطبيق جاهز. اضغط «موافقة Google وربط الحساب» وأكمل التفويض بنفسك.':
-   'Gmail متصل بصلاحية القراءة فقط. يمكنك تشغيل المزامنة ثم مراجعة الرسائل غير المرتبطة.';
+   'Gmail متصل بصلاحية القراءة فقط. الحساب: '+(d.verifiedAccount||'لم يتحقق بعد')+'، آخر مزامنة: '+(d.lastSync?.time||'لم تُنفذ')+'. المزامنة التلقائية: '+(d.autoSyncEnabled?'مفعلة أثناء تشغيل الخدمة':'غير مفعلة')+'.';
   if(el)el.textContent=message+' · إعادة التوجيه: '+(d.redirectUri||'غير محددة');
  }catch(e){if(el)el.textContent='تعذر فحص Gmail: '+e.message}
 }
