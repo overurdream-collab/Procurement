@@ -122,6 +122,28 @@ function init(){
    qs('message').value='';data.workspace=x.workspace;render();feedback.textContent=x.intent==='act'?'تم حفظ التحديث في السجل.':'تمت الإجابة من السجلات المتاحة.';}
   catch(err){feedback.textContent=err.message}finally{qs('send').disabled=false}
  });
+ qs('runAgentPreview').addEventListener('click',async()=>{
+  const button=qs('runAgentPreview'),feedback=qs('agentPreviewFeedback'),box=qs('agentPreviewOutput');
+  const plan=qs('agentPreviewPlan').value;
+  button.disabled=true;feedback.textContent='جارٍ تنفيذ معاينة أدوات القراءة فقط...';box.replaceChildren();
+  try{
+   const result=await http('/api/requests/'+encodeURIComponent(id)+'/agent/preview?task='+encodeURIComponent(plan));
+   feedback.textContent='نجحت '+result.toolsRun+' خطوات — لا AI متصل، لا بريد مرسل، لا تغيير بيانات.';
+   const summary=document.createElement('p');
+   summary.textContent='المسار: '+result.plan+' · إرسال: '+result.effects.mailSent+
+    ' · تحديثات قاعدة البيانات: '+result.effects.databaseWrites+' · بحث خارجي: '+result.effects.externalSearchCalls;
+   box.appendChild(summary);
+   for(const step of result.trace){
+    const details=document.createElement('details'),head=document.createElement('summary'),body=document.createElement('pre');
+    head.textContent=step.tool+' — '+step.status+' (read-only)';
+    body.textContent=JSON.stringify(result.outputs[step.tool],null,2);
+    body.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;direction:ltr;text-align:left;max-height:260px;overflow:auto;';
+    details.append(head,body);box.appendChild(details);
+   }
+  }catch(e){
+   feedback.textContent=e.message==='agent_preview_disabled'?'المعاينة غير مفعلة على الخادم؛ لم يتم تنفيذ أي شيء.':'تعذّر إجراء المعاينة: '+e.message;
+  }finally{button.disabled=false;}
+ });
  qs('refreshOverview').addEventListener('click',()=>Promise.all([loadAll(),loadMail()]));
  qs('refreshMail').addEventListener('click',loadMail);
  const toggle=open=>{document.body.classList.toggle('nav-open',open);qs('mobileNav').setAttribute('aria-expanded',String(open))};

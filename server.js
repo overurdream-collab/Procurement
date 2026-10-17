@@ -252,6 +252,7 @@ function gate(st,action){let map={followup:'autoFollowup',send:'autoSend',exclud
 
 const {marketScan}=require('./market-scan');
 const {analyzeRequest}=require('./request-intelligence');
+const {previewWorkflow,AgentPreviewError}=require('./procurement-agent-tools');
 const {priceAnalysis,dailyReport}=require('./procurement-reports');
 const {matchRequestForEmail}=require('./gmail-request-link');
 const {monthlyReport,validateMonth}=require('./monthly-report');
@@ -403,6 +404,23 @@ if(u.pathname==='/api/requests'&&req.method==='POST'){
  st.requests.unshift(x);
  st.activity.unshift({time:x.createdAt,type:'request',requestId:x.id,text:'إنشاء '+x.id});
  await save(st);return json(res,201,x);
+}
+// Phase 1: explicit opt-in, authenticated, scripted agent tool preview.
+// No LLM call, external search, mail send, stored approvals, or state mutation.
+let agentPreviewRoute=u.pathname.match(/^\/api\/requests\/([^/]+)\/agent\/preview$/);
+if(agentPreviewRoute&&req.method==='GET'){
+ res.setHeader('Cache-Control','private, no-store');
+ if(process.env.AGENT_TOOL_PREVIEW_ENABLED!=='true')
+   return json(res,404,{error:'agent_preview_disabled'});
+ let st=await load();
+ try{
+  const task=u.searchParams.get('task')||'overview';
+  const result=previewWorkflow(st,{requestId:agentPreviewRoute[1],task});
+  return json(res,200,result);
+ }catch(e){
+  if(e instanceof AgentPreviewError)return json(res,e.status,{error:e.code});
+  return json(res,500,{error:'agent_preview_failed'});
+ }
 }
 // Request-scoped, read-only procurement specification analysis. No external calls.
 let analysisRoute=u.pathname.match(/^\/api\/requests\/([^/]+)\/analysis$/);
