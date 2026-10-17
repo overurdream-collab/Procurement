@@ -2,7 +2,24 @@
 (function(root,factory){
  const api=factory();
  if(typeof module==='object'&&module.exports)module.exports=api;
- else root.ALHARIRMailUI=api;
+ else {
+  root.ALHARIRMailUI=api;
+  if(root.document)root.document.addEventListener('click',async event=>{
+   const button=event.target.closest?.('.mail-show-original');
+   if(!button||button.disabled)return;
+   const div=button.nextElementSibling;
+   if(!div)return;
+   button.disabled=true;div.textContent='جارٍ تحميل الرسالة الأصلية من Gmail...';
+   try{
+    const r=await fetch('/api/gmail/message?messageId='+encodeURIComponent(button.dataset.mailId),{cache:'no-store'});
+    const d=await r.json();
+    if(!r.ok)throw Error(d.message||d.error||'تعذر تحميل الرسالة');
+    div.textContent=d.body||'الرسالة لا تحتوي على نص قابل للعرض.';
+    div.style.whiteSpace='pre-wrap';div.style.overflowWrap='anywhere';
+   }catch(e){div.textContent='تعذر قراءة الرسالة: '+e.message;}
+   finally{button.disabled=false}
+  });
+ }
 })(typeof globalThis==='object'?globalThis:this,function(){
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  function receivedAtText(record){
@@ -38,7 +55,8 @@
    '<span class="mail-date">تاريخ الاستلام: '+esc(receivedAtText(message))+'</span></div>'+
    '<div class="muted">المرسل: '+esc(message.from||'غير مسجل')+
    (message.requestId?' · الطلب: '+esc(message.requestId):' · لم يُحدد الطلب بعد')+'</div>'+
-   '<details><summary>محتوى الرسالة</summary><p class="mail-body">'+esc(message.body||message.snippet||'نص غير متاح')+'</p></details>'+
+   '<details><summary>ملخص الرسالة</summary><p class="mail-body">'+esc(message.body||message.snippet||'نص غير متاح')+'</p></details>'+
+   ((!opts.disabled&&message.messageId)?'<button type="button" class="btn mail-show-original" data-mail-id="'+esc(message.messageId)+'">قراءة الرسالة الأصلية</button><div class="mail-original" aria-live="polite"></div>':'')+
    '<div class="mail-attachments-label">المرفقات ('+(message.attachments||[]).length+')</div>'+
    attachmentHtml(message,opts)+'</article>';
  }

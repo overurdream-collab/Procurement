@@ -63,19 +63,11 @@
    let card=report('تم إنشاء الطلب '+id+' بنجاح',false);
    const p=document.createElement('p');p.textContent='تم حفظ بيانات الطلب. لا توجد مراسلات أرسلت للموردين.';card.append(p);
    anchor(card,'فتح مساحة الطلب','/workspace.html?id='+encodeURIComponent(id));
+   anchor(card,'تحليل المصادر والبحث عن الموردين','/?requestId='+encodeURIComponent(id)+'&scan=1#market');
    if(mode==='scan'){
-    status.textContent='تم الحفظ. جارٍ فحص مصادر السوق المتاحة...';
-    const s=await fetch('/api/requests/'+encodeURIComponent(id)+'/market-scan',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
-    const d=await s.json();
-    if(!s.ok){const n=document.createElement('p');n.textContent='تم حفظ الطلب، لكن تعذر تحليل السوق: '+(d.message||d.error||'غير معروف');card.append(n);}
-    else{
-     const n=document.createElement('p');n.textContent=d.resultStatus==='search-not-configured'?'البحث المباشر غير مفعّل حاليًا؛ لا توجد نتائج حية مؤكدة. يمكنك متابعة البحث اليدوي من Market Intelligence.':
-      'حالة تحليل السوق: '+(d.resultStatus||'بانتظار المراجعة')+' · عدد المصادر: '+(d.sourceCount??0);
-     card.append(n);
-     const validPrice=(d.benchmark?.low!=null&&d.benchmark?.high!=null&&d.resultStatus!=='search-not-configured');
-     if(validPrice){const c=document.createElement('p');c.textContent='المؤشر السعري الاسترشادي: '+d.benchmark.low+' – '+d.benchmark.high+' '+b.currency+' (غير موثق كعرض مورد)';card.append(c);}
-    }
-    anchor(card,'فتح البحث عن الموردين','/#market');
+    status.textContent='تم حفظ الطلب. جارٍ فتح صفحة البحث والتحليل الموحّدة...';
+    location.assign('/?requestId='+encodeURIComponent(id)+'&scan=1#market');
+    return;
    }
    status.textContent='اكتمل الحفظ. انتقل للطلب أو راجع نتائج السوق.';
   }catch(err){

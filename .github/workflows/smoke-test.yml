@@ -2,7 +2,7 @@ name: Procurement Smoke Test
 on:
   workflow_dispatch:
   push:
-    branches: ["alharir-free-hosting-poc"]
+    branches: [integration/procurement-neon-workflow, "alharir-free-hosting-poc"]
     paths:
       - 'server.js'
       - 'public/index.html'

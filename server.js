@@ -14,14 +14,20 @@ if(fs.existsSync(ENVFILE)){
 }
 const {guardHostedRequest,requireHostedAccessConfig}=require('./staging-access');
 requireHostedAccessConfig();
+const {productionConfig,guardProduction}=require('./commercial-access');
+const {createStateStore}=require('./persistent-store');
+productionConfig();
 const HOSTED_DEMO=process.env.STAGING_HOSTED==='true';
+const LIVE=process.env.PROCUREMENT_PRODUCTION==='true';
 const DATA=HOSTED_DEMO?path.join(require('node:os').tmpdir(),'alharir-procurement-synthetic-demo-'+crypto.randomBytes(8).toString('hex')+'.json'):path.join(__dirname,'data.json');
 if(HOSTED_DEMO && !fs.existsSync(DATA)){
   fs.copyFileSync(path.join(__dirname,'staging-demo-data.json'),DATA);
 }
 const GCLIENT=(process.env.GOOGLE_CLIENT_ID||'').trim(),GSECRET=(process.env.GOOGLE_CLIENT_SECRET||'').trim(),BASE=(process.env.APP_BASE_URL||'http://localhost:'+(process.env.PORT||8787)).replace(/\/$/,''),REDIRECT=BASE+'/api/gmail/callback';
 const oauthConfig=()=>{
-  if(!GCLIENT||!GSECRET)return {ok:false,error:'missing_google_oauth_config',message:'إعداد Gmail غير مكتمل. أضف GOOGLE_CLIENT_ID و GOOGLE_CLIENT_SECRET في ملف .env ثم أعد تشغيل الخادم.'};
+  if(!GCLIENT||!GSECRET)return {ok:false,error:'missing_google_oauth_config',message:'إعداد Gmail غير مكتمل. أضف GOOGLE_CLIENT_ID و GOOGLE_CLIENT_SECRET في متغيرات البيئة الخاصة بخدمة Render المحمية.'};
+  if(LIVE && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(process.env.GMAIL_EXPECTED_EMAIL||''))
+    return {ok:false,error:'missing_expected_mailbox',message:'حدد GMAIL_EXPECTED_EMAIL لضمان ربط حساب الشركة الصحيح فقط.'};
   if(!/^[0-9]+-[a-z0-9_-]+\.apps\.googleusercontent\.com$/i.test(GCLIENT))return {ok:false,error:'invalid_google_client_id',message:'GOOGLE_CLIENT_ID غير صالح. استخدم OAuth Client ID من نوع Web application والمنتهي بـ apps.googleusercontent.com.'};
   if(!/^https?:\/\//i.test(BASE))return {ok:false,error:'invalid_app_base_url',message:'APP_BASE_URL غير صالح.'};
   return {ok:true};
@@ -68,23 +74,23 @@ function ensureRecentSuppliers(st){
   }
   return changed
 }
-const load=()=>{let st=JSON.parse(fs.readFileSync(DATA,'utf8'));if(!HOSTED_DEMO&&ensureRecentSuppliers(st))fs.writeFileSync(DATA,JSON.stringify(st,null,2));return st},save=x=>fs.writeFileSync(DATA,JSON.stringify(x,null,2));
-const oauth=()=>fs.existsSync(OAUTH)?JSON.parse(fs.readFileSync(OAUTH,'utf8')):{},saveOauth=x=>fs.writeFileSync(OAUTH,JSON.stringify(x,null,2),{mode:0o600});
+const store=createStateStore({localFile:DATA,oauthFile:OAUTH});
+const load=store.load,save=store.save,oauth=store.oauth,saveOauth=store.saveOauth,clearOauth=store.clearOauth;
 const json=(r,s,x)=>{r.writeHead(s,{'Content-Type':'application/json; charset=utf-8'});r.end(JSON.stringify(x))},body=req=>new Promise((ok,no)=>{let d='';req.on('data',c=>d+=c);req.on('end',()=>{try{ok(d?JSON.parse(d):{})}catch(e){no(e)}})});
 async function formPost(url,obj){let r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(obj)}),t=await r.json();if(!r.ok){let e=Error(t.error_description||t.error||'oauth_error');e.oauthError=t.error||null;e.oauthDescription=t.error_description||null;throw e}return t}
 async function accessToken(){
-  let o=oauth();
+  let o=await oauth();
   if(o.access_token&&o.expires_at>Date.now()+60000)return o.access_token;
   if(!o.refresh_token)throw Error('gmail_not_connected');
   try{
     let t=await formPost('https://oauth2.googleapis.com/token',{client_id:GCLIENT,client_secret:GSECRET,refresh_token:o.refresh_token,grant_type:'refresh_token'});
     o={...o,...t,expires_at:Date.now()+t.expires_in*1000};
-    saveOauth(o);
+    await saveOauth(o);
     return o.access_token
   }catch(e){
     let msg=(String(e.message||'')+' '+String(e.oauthError||'')+' '+String(e.oauthDescription||'')).toLowerCase();
     if(msg.includes('invalid_grant')||msg.includes('expired or revoked')||msg.includes('token has been expired or revoked')){
-      if(fs.existsSync(OAUTH))fs.unlinkSync(OAUTH);
+      await clearOauth();
       let x=Error('gmail_token_expired_or_revoked');
       x.code='gmail_token_expired_or_revoked';
       throw x
@@ -93,8 +99,15 @@ async function accessToken(){
   }
 }
 async function gmail(endpoint,opt={}){let token=await accessToken(),r=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/'+endpoint,{...opt,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',...(opt.headers||{})}}),t=await r.json();if(!r.ok)throw Error(t.error?.message||'gmail_error');return t}
+async function verifyCompanyMailbox(){
+ const p=await gmail('profile'),address=String(p.emailAddress||'').trim().toLowerCase();
+ if(!address)throw Error('gmail_profile_missing_email');
+ const expected=String(process.env.GMAIL_EXPECTED_EMAIL||'').trim().toLowerCase();
+ if(expected&&address!==expected)throw Error('gmail_account_mismatch');
+ return {emailAddress:address,messagesTotal:Number(p.messagesTotal||0)};
+}
 const b64url=s=>Buffer.from(s).toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-async function sendMail(to,subject,text){let raw=['To: '+to,'Subject: =?UTF-8?B?'+Buffer.from(subject).toString('base64')+'?=','MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','',''+text].join('\r\n');return gmail('messages/send',{method:'POST',body:JSON.stringify({raw:b64url(raw)})})}
+async function sendMail(to,subject,text){if(process.env.PRODUCTION_READONLY_MAIL==='true')throw Error('gmail_outbound_disabled_in_readonly_mode');let raw=['To: '+to,'Subject: =?UTF-8?B?'+Buffer.from(subject).toString('base64')+'?=','MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','',''+text].join('\r\n');return gmail('messages/send',{method:'POST',body:JSON.stringify({raw:b64url(raw)})})}
 function headers(m){return Object.fromEntries((m.payload?.headers||[]).map(h=>[h.name.toLowerCase(),h.value]))}
 function decodePart(p){if(p?.body?.data)return Buffer.from(p.body.data.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8');for(let x of p?.parts||[]){let v=decodePart(x);if(v)return v}return ''}
 function emailDomain(v){let m=String(v||'').toLowerCase().match(/@([a-z0-9.-]+)/);return m?m[1]:''}
@@ -171,13 +184,13 @@ async function projectMessageCandidates(st){
   return {messages:[...map.values()],queryCount:Math.min(queries.length,120)};
 }
 async function syncGmail(){
-  let st=load();ensureVerifiedRfqSuppliers(st);let found=await projectMessageCandidates(st),list=found.messages;st.gmailReplies=(Array.isArray(st.gmailReplies)?st.gmailReplies:[]).filter(x=>!internalSender(x.from));st.correspondence=(st.correspondence||[]).filter(x=>!internalSender(x.from));
+  let st=await load();if(!LIVE)ensureVerifiedRfqSuppliers(st);let found=await projectMessageCandidates(st),list=found.messages;st.gmailReplies=(Array.isArray(st.gmailReplies)?st.gmailReplies:[]).filter(x=>!internalSender(x.from));st.correspondence=(st.correspondence||[]).filter(x=>!internalSender(x.from));
   let byId=new Map(st.gmailReplies.map(x=>[x.messageId,x])),recovered=0;
   for(let old of st.correspondence||[]){let mid=old.messageId||old.id;if(mid&&!byId.has(mid)){let rec={...old,messageId:mid};delete rec.id;const link=matchRequestForEmail(st,rec);rec.requestId=link.requestId;rec.requestMatchMethod=link.method;st.gmailReplies.push(rec);byId.set(mid,rec);recovered++}}
   let relinked=0;for(let rec of st.gmailReplies){let sup=supplierForFrom(st,rec.from||'');if(sup&&rec.supplierId!==sup.id){rec.supplierId=sup.id;rec.supplierName=sup.name;relinked++}
   const link=matchRequestForEmail(st,rec);rec.requestId=link.requestId;rec.requestMatchMethod=link.method;}
   let known=new Set(st.gmailReplies.map(x=>x.messageId)),added=0,matched=0,unmatched=0;
-  for(let it of list){if(known.has(it.id))continue;let m=await gmail('messages/'+it.id+'?format=full'),h=headers(m),from=h.from||'';if(internalSender(from))continue;let sub=h.subject||'',txt=decodePart(m.payload)||m.snippet||'',sup=supplierForFrom(st,from);let matchedRequest=matchRequestForEmail(st,{subject:sub,body:txt,supplierId:sup?.id||null}),relevant=!!matchedRequest.requestId||!!sup||/RFQ-001|cold room|cold rooms|cold storage|refrigeration|fresh produce|冷库|报价|询价|solar|hybrid/i.test(sub+' '+txt);if(!relevant)continue;let receivedAt=m.internalDate&&Number.isFinite(Number(m.internalDate))?new Date(Number(m.internalDate)).toISOString():Number.isFinite(Date.parse(h.date||''))?new Date(h.date).toISOString():null,attachments=attachmentsFromPayload(m.payload),replyType=classifyReply(sub,txt,attachments),rec={messageId:it.id,threadId:m.threadId||'',supplierId:sup?.id||null,supplierName:sup?.name||null,from,to:h.to||'',cc:h.cc||'',subject:sub,body:txt,snippet:m.snippet||'',summary:cleanReplySummary(txt),receivedAt,attachments,replyType};const link=matchRequestForEmail(st,rec);
+  for(let it of list){if(known.has(it.id))continue;let m=await gmail('messages/'+it.id+'?format=full'),h=headers(m),from=h.from||'';if(internalSender(from))continue;let sub=h.subject||'',txt=decodePart(m.payload)||m.snippet||'',sup=supplierForFrom(st,from);let matchedRequest=matchRequestForEmail(st,{subject:sub,body:txt,supplierId:sup?.id||null}),relevant=!!matchedRequest.requestId||!!sup||/RFQ-001|cold room|cold rooms|cold storage|refrigeration|fresh produce|冷库|报价|询价|solar|hybrid/i.test(sub+' '+txt);if(!relevant)continue;let receivedAt=m.internalDate&&Number.isFinite(Number(m.internalDate))?new Date(Number(m.internalDate)).toISOString():Number.isFinite(Date.parse(h.date||''))?new Date(h.date).toISOString():null,attachments=attachmentsFromPayload(m.payload),replyType=classifyReply(sub,txt,attachments),rec={messageId:it.id,threadId:m.threadId||'',supplierId:sup?.id||null,supplierName:sup?.name||null,from,to:h.to||'',cc:h.cc||'',subject:sub,body:LIVE?'':txt,snippet:String(m.snippet||'').slice(0,240),summary:cleanReplySummary(txt),receivedAt,attachments,replyType};const link=matchRequestForEmail(st,rec);
   rec.requestId=link.requestId;rec.requestMatchMethod=link.method;st.gmailReplies.unshift(rec);known.add(it.id);added++;if(sup){matched++;if(replyType==='quote_received')sup.status='عرض مستلم — يحتاج استخراج';else if(replyType==='quote_promised')sup.status='وعد بإرسال العرض';else if(replyType==='technical_reply')sup.status='رد فني + مرفقات للمراجعة';else if(replyType==='info_request')sup.status='رد — يطلب معلومات';else sup.status='رد غير سعري';sup.lastReply=receivedAt;sup.lastSubject=sub}else unmatched++;st.activity.unshift({id:Date.now()+Math.random(),time:receivedAt,type:'gmail_reply',text:'رد جديد: '+(sup?.name||from),messageId:it.id,supplierId:sup?.id||null,requestId:rec.requestId,subject:sub})}
   st.gmailReplies=st.gmailReplies.filter((x,i,a)=>x.messageId&&a.findIndex(y=>y.messageId===x.messageId)===i).slice(0,500);
   for(let rec of st.gmailReplies){if(!rec.supplierId)unmatched++}
@@ -185,7 +198,7 @@ async function syncGmail(){
   st.gmailSyncStatus={time:new Date().toISOString(),queries:found.queryCount,candidates:list.length,added,matched,relinked,recovered,totalReplies:st.gmailReplies.length,unmatched:st.gmailReplies.filter(x=>!x.supplierId).length,
     unassignedToRequest:st.gmailReplies.filter(x=>!x.requestId).length,
     importedAsVerifiedQuotes:0};
-  save(st);return st.gmailSyncStatus
+  await save(st);return st.gmailSyncStatus
 }
 function ensureWorkspace(x){
   x.workspace=x.workspace||{};
@@ -238,6 +251,7 @@ function copilotPlan(message){
 function gate(st,action){let map={followup:'autoFollowup',send:'autoSend',exclude:'autoExclude',award:'autoAward'},key=map[action];if(key&&st.settings?.[key])return true;return st.approvals.some(a=>a.type===action&&a.status==='approved')}
 
 const {marketScan}=require('./market-scan');
+const {analyzeRequest}=require('./request-intelligence');
 const {priceAnalysis,dailyReport}=require('./procurement-reports');
 const {matchRequestForEmail}=require('./gmail-request-link');
 const {monthlyReport,validateMonth}=require('./monthly-report');
@@ -258,23 +272,74 @@ function rateLimitUnifiedSearch(res){
 }
 
 
-const server=http.createServer(async(req,res)=>{try{if(!guardHostedRequest(req,res))return;
+let syncInProgress=false;
+const server=http.createServer(async(req,res)=>{try{if(!guardHostedRequest(req,res)||!guardProduction(req,res))return;
 res.setHeader('X-Content-Type-Options','nosniff');
 res.setHeader('X-Frame-Options','DENY');
 res.setHeader('Referrer-Policy','no-referrer');
 res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');
 res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
-let u=new URL(req.url,'http://localhost');if(u.pathname==='/api/state'&&req.method==='GET'){let st=load();st.gmail={connected:!!oauth().refresh_token,configured:!!(GCLIENT&&GSECRET),demoDisabled:HOSTED_DEMO};return json(res,200,st)}
-if(u.pathname==='/api/gmail/status'&&req.method==='GET'){let cfg=oauthConfig();return json(res,200,{connected:!!oauth().refresh_token,configured:cfg.ok,redirectUri:REDIRECT,error:cfg.ok?null:cfg.error,message:cfg.ok?null:cfg.message});}
-if(u.pathname==='/api/gmail/connect'&&req.method==='GET'){let cfg=oauthConfig();if(!cfg.ok)return json(res,400,cfg);let state=crypto.randomBytes(18).toString('hex');saveOauth({...oauth(),state});let q=new URLSearchParams({client_id:GCLIENT,redirect_uri:REDIRECT,response_type:'code',scope:'https://www.googleapis.com/auth/gmail.readonly',access_type:'offline',prompt:'consent',state});res.writeHead(302,{Location:'https://accounts.google.com/o/oauth2/v2/auth?'+q});return res.end()}
-if(u.pathname==='/api/gmail/callback'&&req.method==='GET'){let o=oauth();if(!u.searchParams.get('code')||u.searchParams.get('state')!==o.state)return json(res,400,{error:'invalid_oauth_state'});let t=await formPost('https://oauth2.googleapis.com/token',{code:u.searchParams.get('code'),client_id:GCLIENT,client_secret:GSECRET,redirect_uri:REDIRECT,grant_type:'authorization_code'});saveOauth({...t,expires_at:Date.now()+t.expires_in*1000});res.writeHead(302,{Location:'/#agent'});return res.end()}
-if(u.pathname==='/api/gmail/disconnect'&&req.method==='POST'){if(fs.existsSync(OAUTH))fs.unlinkSync(OAUTH);return json(res,200,{ok:true})}
-if(u.pathname==='/api/gmail/sync'&&req.method==='POST'){let cfg=oauthConfig();if(!cfg.ok)return json(res,400,cfg);if(!oauth().refresh_token)return json(res,409,{error:'gmail_not_connected',message:'اربط Gmail أولاً ثم أعد المزامنة.'});return json(res,200,await syncGmail());}
+let u=new URL(req.url,'http://localhost');if(u.pathname==='/api/state'&&req.method==='GET'){let st=await load();st.gmail={connected:!!(await oauth()).refresh_token,configured:!!(GCLIENT&&GSECRET),demoDisabled:HOSTED_DEMO};return json(res,200,st)}
+if(u.pathname==='/api/storage/status'&&req.method==='GET'){
+ const status=await store.diagnostics();return json(res,200,status);
+}
+if(u.pathname==='/api/gmail/status'&&req.method==='GET'){
+ const cfg=oauthConfig(),tokens=await oauth(),st=await load();
+ return json(res,200,{connected:!!tokens.refresh_token,configured:cfg.ok,readOnly:true,
+ verifiedAccount:tokens.verifiedEmail||null,lastSync:st.gmailSyncStatus||null,
+ autoSyncEnabled:LIVE&&process.env.GMAIL_AUTO_SYNC==='true',
+ autoSyncMode:'best-effort-while-service-awake',
+ redirectUri:REDIRECT,error:cfg.ok?null:cfg.error,message:cfg.ok?null:cfg.message});
+}
+if(u.pathname==='/api/gmail/verify'&&req.method==='GET'){
+ const cfg=oauthConfig();if(!cfg.ok)return json(res,409,cfg);
+ if(!(await oauth()).refresh_token)return json(res,409,{error:'gmail_not_connected'});
+ const p=await verifyCompanyMailbox();
+ return json(res,200,{ok:true,account:p.emailAddress,readOnly:true,messagesTotal:p.messagesTotal});
+}
+if(u.pathname==='/api/gmail/connect'&&req.method==='GET'){let cfg=oauthConfig();if(!cfg.ok)return json(res,400,cfg);let state=crypto.randomBytes(18).toString('hex');await saveOauth({...(await oauth()),state});let q=new URLSearchParams({client_id:GCLIENT,redirect_uri:REDIRECT,response_type:'code',scope:'https://www.googleapis.com/auth/gmail.readonly',access_type:'offline',prompt:'consent',state});res.writeHead(302,{Location:'https://accounts.google.com/o/oauth2/v2/auth?'+q});return res.end()}
+if(u.pathname==='/api/gmail/callback'&&req.method==='GET'){let o=await oauth();if(!u.searchParams.get('code')||u.searchParams.get('state')!==o.state)return json(res,400,{error:'invalid_oauth_state'});let t=await formPost('https://oauth2.googleapis.com/token',{code:u.searchParams.get('code'),client_id:GCLIENT,client_secret:GSECRET,redirect_uri:REDIRECT,grant_type:'authorization_code'});
+ const scopes=String(t.scope||'').split(/\s+/).filter(Boolean);
+ if(!scopes.includes('https://www.googleapis.com/auth/gmail.readonly')||
+    scopes.some(v=>/gmail\.(?:send|modify)/.test(v)))
+   return json(res,403,{error:'unexpected_oauth_scope',message:'التفويض لا يطابق صلاحية Gmail للقراءة فقط.'});
+ if(!t.refresh_token)return json(res,409,{error:'google_refresh_token_missing'});
+ await saveOauth({...t,state:null,expires_at:Date.now()+t.expires_in*1000});
+ try{
+  const p=await verifyCompanyMailbox();await saveOauth({...await oauth(),verifiedEmail:p.emailAddress});
+ }catch(e){await clearOauth();throw e}
+ res.writeHead(302,{Location:'/#gmail'});return res.end()}
+if(u.pathname==='/api/gmail/disconnect'&&req.method==='POST'){await clearOauth();return json(res,200,{ok:true})}
+if(u.pathname==='/api/gmail/sync'&&req.method==='POST'){
+ const cfg=oauthConfig();if(!cfg.ok)return json(res,400,cfg);
+ if(!(await oauth()).refresh_token)return json(res,409,{error:'gmail_not_connected',message:'اربط Gmail أولاً ثم أعد المزامنة.'});
+ if(syncInProgress)return json(res,409,{error:'gmail_sync_in_progress'});
+ await verifyCompanyMailbox();
+ syncInProgress=true;
+ try{return json(res,200,await syncGmail())}finally{syncInProgress=false}
+}
+
+if(u.pathname==='/api/gmail/message'&&req.method==='GET'){
+ const messageId=u.searchParams.get('messageId')||'';
+ const st=await load();
+ const matched=(st.gmailReplies||[]).find(x=>x.messageId===messageId);
+ if(!matched)return json(res,404,{error:'email_not_in_procurement'});
+ const mail=await gmail('messages/'+encodeURIComponent(messageId)+'?format=full');
+ const hdr=headers(mail);
+ return json(res,200,{
+  messageId,requestId:matched.requestId||null,
+  subject:hdr.subject||matched.subject,from:hdr.from||matched.from,
+  receivedAt:matched.receivedAt,
+  body:decodePart(mail.payload),
+  attachments:matched.attachments||[],
+  notice:'Message fetched live via read-only Gmail OAuth, not stored permanently.'
+ });
+}
 if(u.pathname==='/api/gmail/attachment'&&req.method==='GET'){
   // Only attachments referenced by an imported message can be accessed.
   // Bytes are fetched through the authorised Gmail connection on demand,
   // never from arbitrary external URLs.
-  const st=load(),messageId=u.searchParams.get('messageId')||'',
+  const st=await load(),messageId=u.searchParams.get('messageId')||'',
     attachmentId=u.searchParams.get('attachmentId')||'';
   const rec=(st.gmailReplies||[]).find(x=>x.messageId===messageId);
   const att=rec&&(rec.attachments||[]).find(x=>x.attachmentId===attachmentId);
@@ -295,7 +360,7 @@ if(u.pathname==='/api/gmail/attachment'&&req.method==='GET'){
   return res.end(buf);
 }
 if(/^\/api\/requests\/[^/]+\/correspondence$/.test(u.pathname)&&req.method==='GET'){
- const requestId=decodeURIComponent(u.pathname.split('/')[3]),st=load();
+ const requestId=decodeURIComponent(u.pathname.split('/')[3]),st=await load();
  if(!(st.requests||[]).some(x=>x.id===requestId))return json(res,404,{error:'request_not_found'});
  const records=(st.gmailReplies||[]).filter(x=>x.requestId===requestId).map(x=>({
   messageId:x.messageId,threadId:x.threadId,requestId:x.requestId,
@@ -309,7 +374,7 @@ if(/^\/api\/requests\/[^/]+\/correspondence$/.test(u.pathname)&&req.method==='GE
   notice:HOSTED_DEMO?'المرفقات مخزنة كبيانات وصفية تجريبية، وفتح الملفات عبر Gmail معطل في التجربة.':'فتح المرفقات يتطلب بقاء اتصال Gmail ساريًا.'});
 }
 if(u.pathname==='/api/requests'&&req.method==='POST'){
- const st=load(),b=await body(req);
+ const st=await load(),b=await body(req);
  const plain=(v,max)=>typeof v==='string'?v.replace(/[\x00-\x1f\x7f]/g,' ').trim().slice(0,max):'';
  const title=plain(b.title,180),product=plain(b.product,180),quantity=plain(b.quantity,90);
  const specs=plain(b.specifications,2000),terms=plain(b.incoterm||'FOB',8).toUpperCase();
@@ -337,10 +402,19 @@ if(u.pathname==='/api/requests'&&req.method==='POST'){
  st.activity=Array.isArray(st.activity)?st.activity:[];
  st.requests.unshift(x);
  st.activity.unshift({time:x.createdAt,type:'request',requestId:x.id,text:'إنشاء '+x.id});
- save(st);return json(res,201,x);
+ await save(st);return json(res,201,x);
 }
-let mm=u.pathname.match(new RegExp('^/api/requests/([^/]+)/market-scan$'));if(mm&&req.method==='POST'){let st=load(),b=await body(req),x=(st.requests||[]).find(x=>x.id===mm[1]);if(!x)return json(res,404,{error:'request_not_found'});let scan=await marketScan(st,{...x,sourceObservations:b.sourceObservations||[]});st.marketScans=st.marketScans||[];st.marketScans.unshift(scan);x.marketScanId=scan.id;x.marketStatus=scan.resultStatus;st.activity.unshift({time:new Date().toISOString(),type:'market_scan',text:'Market Intelligence '+x.id+' — '+scan.sourceCount+' sources'});save(st);return json(res,200,scan)}
-if(u.pathname==='/api/market-scans'&&req.method==='GET'){let st=load();return json(res,200,st.marketScans||[])}
+// Request-scoped, read-only procurement specification analysis. No external calls.
+let analysisRoute=u.pathname.match(/^\/api\/requests\/([^/]+)\/analysis$/);
+if(analysisRoute&&req.method==='GET'){
+ const st=await load(),record=(st.requests||[]).find(x=>x.id===analysisRoute[1]);
+ if(!record)return json(res,404,{error:'request_not_found'});
+ const analysis=analyzeRequest(record),provider=configuredProvider();
+ return json(res,200,{...analysis,liveSearch:{configured:provider!=='none',provider},
+   requiresHumanVerification:true});
+}
+let mm=u.pathname.match(new RegExp('^/api/requests/([^/]+)/market-scan$'));if(mm&&req.method==='POST'){let st=await load(),b=await body(req),x=(st.requests||[]).find(x=>x.id===mm[1]);if(!x)return json(res,404,{error:'request_not_found'});let scan=await marketScan(st,{...x,sourceObservations:b.sourceObservations||[]});st.marketScans=st.marketScans||[];st.marketScans.unshift(scan);x.marketScanId=scan.id;x.marketStatus=scan.resultStatus;st.activity.unshift({time:new Date().toISOString(),type:'market_scan',text:'Market Intelligence '+x.id+' — '+scan.sourceCount+' sources'});await save(st);return json(res,200,scan)}
+if(u.pathname==='/api/market-scans'&&req.method==='GET'){let st=await load();return json(res,200,st.marketScans||[])}
 
 if(u.pathname==='/api/market-intelligence/search'&&req.method==='POST'){
   const input=await body(req);
@@ -391,23 +465,45 @@ if(u.pathname==='/api/market-intelligence/contacts'&&req.method==='POST'){
 if(u.pathname==='/api/market-intelligence/convert'&&req.method==='POST'){
   const input=await body(req),draft=prepareConversion(input);
   if(!draft.ok)return json(res,draft.status,{error:draft.error,message:draft.message||draft.error});
-  const st=load();
+  const st=await load();
   st.requests=Array.isArray(st.requests)?st.requests:[];
   st.suppliers=Array.isArray(st.suppliers)?st.suppliers:[];
   st.activity=Array.isArray(st.activity)?st.activity:[];
-  st.requests.unshift(draft.request);
+  const targetId=typeof input.targetRequestId==='string'?input.targetRequestId.trim():'';
+  let request=draft.request,attachedToExistingRequest=false;
+  if(targetId){
+    const existing=st.requests.find(x=>x.id===targetId);
+    if(!existing)return json(res,404,{error:'target_request_not_found'});
+    if(existing.incoterm!=='FOB')return json(res,422,{error:'target_request_requires_FOB'});
+    if([existing.product,existing.quantity,existing.specifications].some((v,i)=>
+      String(v||'').trim()!==String([draft.request.product,draft.request.quantity,draft.request.specifications][i]||'').trim()))
+      return json(res,409,{error:'request_details_changed',
+        message:'بيانات الطلب لا تطابق البحث الحالي. حدث الصفحة وأعد اختيار طلب الشراء الصحيح.'});
+    const attached=new Set(existing.selectedSupplierIds||[]);
+    const duplicates=draft.suppliers.filter(s=>st.suppliers.some(prev=>
+      attached.has(prev.id)&&prev.name?.trim().toLowerCase()===s.name.trim().toLowerCase()));
+    if(duplicates.length)return json(res,409,{error:'supplier_already_selected',
+      message:'يوجد مورد مختار مسبقًا بالاسم نفسه داخل هذا الطلب. راجع الموردين قبل إعادة الإضافة.'});
+    for(const supplier of draft.suppliers){supplier.associatedRequestId=targetId;attached.add(supplier.id)}
+    existing.selectedSupplierIds=[...attached];
+    existing.outreachStatus='draft_review_required';
+    request=existing;attachedToExistingRequest=true;
+  }else{
+    st.requests.unshift(draft.request);
+  }
   st.suppliers.push(...draft.suppliers);
-  st.activity.unshift({time:new Date().toISOString(),type:'rfq_draft_created',
-    text:'أنشئت مسودة '+draft.request.id+' مع '+draft.suppliers.length+' مورّدين مختارين — لم تُرسل أي رسائل'});
-  save(st);
-  return json(res,201,{request:draft.request,suppliers:draft.suppliers,
-    drafts:outreachDrafts(draft.request,draft.suppliers),
-    sentCount:0,persistence:HOSTED_DEMO?'temporary-demo':'local-file'});
+  st.activity.unshift({time:new Date().toISOString(),type:'rfq_draft_created',requestId:request.id,
+    text:(attachedToExistingRequest?'أضيفت شركات مستهدفة إلى ':'أنشئت مسودة ')+request.id+
+      ' مع '+draft.suppliers.length+' مورّدين مختارين — لم تُرسل أي رسائل'});
+  await save(st);
+  return json(res,attachedToExistingRequest?200:201,{request,suppliers:draft.suppliers,
+    attachedToExistingRequest,drafts:outreachDrafts(request,draft.suppliers),
+    sentCount:0,persistence:HOSTED_DEMO?'temporary-demo':store.durable?'postgres':'local-file'});
 }
 
 let attachMarketRoute=u.pathname.match(/^\/api\/requests\/([^/]+)\/market-suppliers$/);
 if(attachMarketRoute&&req.method==='POST'){
- const st=load(),request=(st.requests||[]).find(r=>r.id===attachMarketRoute[1]);
+ const st=await load(),request=(st.requests||[]).find(r=>r.id===attachMarketRoute[1]);
  if(!request)return json(res,404,{error:'request_not_found'});
  if(String(request.incoterm||'FOB').toUpperCase()!=='FOB')
   return json(res,422,{error:'request_requires_FOB',message:'لا يمكن إضافة عروض FOB إلى طلب أساسه التجاري مختلف دون مراجعة الطلب.'});
@@ -434,15 +530,15 @@ if(attachMarketRoute&&req.method==='POST'){
  }
  if(added.length)st.activity.unshift({time:new Date().toISOString(),type:'rfq_supplier_shortlist',
   requestId:request.id,text:'أضيف '+added.length+' موردًا مرشحًا إلى '+request.id+' دون إرسال مراسلات'});
- save(st);
+ await save(st);
  return json(res,200,{ok:true,requestId:request.id,request,suppliers:added,added,alreadyExists:already,
   linkedSuppliers:request.selectedSupplierIds.length,sentCount:0,
-  drafts:outreachDrafts(request,added),persistence:HOSTED_DEMO?'temporary-demo':'local-file',
+  drafts:outreachDrafts(request,added),persistence:HOSTED_DEMO?'temporary-demo':store.durable?'postgres':'local-file',
   warning:'هذه ترشيحات بحث ولم تُتحقق هويات الشركات أو عناوين البريد آليًا.'});
 }
 let outreachRoute=u.pathname.match(/^\/api\/requests\/([^/]+)\/outreach-drafts$/);
 if(outreachRoute&&req.method==='GET'){
-  const st=load(),request=(st.requests||[]).find(x=>x.id===outreachRoute[1]);
+  const st=await load(),request=(st.requests||[]).find(x=>x.id===outreachRoute[1]);
   if(!request)return json(res,404,{error:'request_not_found'});
   const chosen=(st.suppliers||[]).filter(x=>(request.selectedSupplierIds||[]).includes(x.id));
   return json(res,200,{requestId:request.id,status:request.outreachStatus||'unknown',
@@ -474,18 +570,18 @@ if(micsearch&&req.method==='GET'){
   return json(res,r.status,x)
 }
 let wm=u.pathname.match(/^\/api\/requests\/([^/]+)\/workspace$/);
-if(wm&&req.method==='GET'){let st=load(),x=(st.requests||[]).find(x=>x.id===wm[1]);if(!x)return json(res,404,{error:'request_not_found'});return json(res,200,{request:x,workspace:ensureWorkspace(x)})}
-if(wm&&req.method==='PATCH'){let st=load(),b=await body(req),x=(st.requests||[]).find(x=>x.id===wm[1]);if(!x)return json(res,404,{error:'request_not_found'});let w=ensureWorkspace(x),allowed=['specifications','analysisRules','commercialTerms','supplierStrategy','scenarios','facts','aiInstructions'];if(!allowed.includes(b.section))return json(res,400,{error:'invalid_workspace_section'});let item=addWorkspaceItem(x,b.section,b.value,b.status||'Confirmed Decision',b.source||'Manual UI');save(st);return json(res,200,{item,workspace:w})}
+if(wm&&req.method==='GET'){let st=await load(),x=(st.requests||[]).find(x=>x.id===wm[1]);if(!x)return json(res,404,{error:'request_not_found'});return json(res,200,{request:x,workspace:ensureWorkspace(x)})}
+if(wm&&req.method==='PATCH'){let st=await load(),b=await body(req),x=(st.requests||[]).find(x=>x.id===wm[1]);if(!x)return json(res,404,{error:'request_not_found'});let w=ensureWorkspace(x),allowed=['specifications','analysisRules','commercialTerms','supplierStrategy','scenarios','facts','aiInstructions'];if(!allowed.includes(b.section))return json(res,400,{error:'invalid_workspace_section'});let item=addWorkspaceItem(x,b.section,b.value,b.status||'Confirmed Decision',b.source||'Manual UI');await save(st);return json(res,200,{item,workspace:w})}
 let cm=u.pathname.match(/^\/api\/requests\/([^/]+)\/copilot$/);
-if(cm&&req.method==='POST'){let st=load(),b=await body(req),base=(st.requests||[]).find(x=>x.id===cm[1]);if(!base)return json(res,404,{error:'request_not_found'});let message=String(b.message||'').trim();if(!message)return json(res,400,{error:'message_required'});let x=requestRef(st,message,cm[1])||base,w=ensureWorkspace(x);w.chat.push({role:'user',text:message,time:new Date().toISOString()});let actions=copilotPlan(message),executed=[];for(const a of actions){if(a.type==='add_context')executed.push(addWorkspaceItem(x,a.section,a.value,'Confirmed Decision','AI Copilot from user instruction'))}let read=copilotRead(st,x,message),reply;if(executed.length){reply='تم تنفيذ '+executed.length+' تحديث على '+x.id+'.\n'+executed.map(z=>'✓ '+z.value).join('\n');let after=copilotRead(st,x,message);if(after&&after.answer)reply+='\n\n'+after.answer}else if(read){reply=read.answer+'\n\nالمصدر: '+read.source}else{reply='أستطيع الاستعلام من بيانات الطلبات والموردين والعروض والمواصفات والشروط وسجل البريد، أو تنفيذ تحديثات على Workspace. لم أجد بعد استعلامًا مدعومًا بشكل موثوق في هذه الصياغة، لذلك لم أغيّر أي بيانات.'}w.chat.push({role:'assistant',text:reply,time:new Date().toISOString(),requestId:x.id,executed:executed.map(z=>z.id)});auditWorkspace(x,executed.length?'copilot_action':'copilot_query',message,'AI Copilot',null,{requestId:x.id,executed:executed.map(z=>z.id)});save(st);return json(res,200,{reply,requestId:x.id,intent:executed.length?'act':read?'ask':'unknown',executed,workspace:w})}
-let sm=u.pathname.match(/^\/api\/suppliers\/([^/]+)$/);if(sm&&req.method==='PATCH'){let st=load(),b=await body(req),x=st.suppliers.find(x=>x.id===sm[1]);if(!x)return json(res,404,{error:'not_found'});Object.assign(x,b);save(st);return json(res,200,x)}
-let am=u.pathname.match(/^\/api\/approvals\/([^/]+)$/);if(am&&req.method==='PATCH'){let st=load(),b=await body(req),x=st.approvals.find(x=>x.id===am[1]);if(!x)return json(res,404,{error:'not_found'});x.status=b.status||x.status;x.updatedAt=new Date().toISOString();save(st);return json(res,200,x)}
-if(u.pathname==='/api/settings'&&req.method==='PATCH'){let st=load(),b=await body(req);st.settings={...st.settings,...b};save(st);return json(res,200,st.settings)}
+if(cm&&req.method==='POST'){let st=await load(),b=await body(req),base=(st.requests||[]).find(x=>x.id===cm[1]);if(!base)return json(res,404,{error:'request_not_found'});let message=String(b.message||'').trim();if(!message)return json(res,400,{error:'message_required'});let x=requestRef(st,message,cm[1])||base,w=ensureWorkspace(x);w.chat.push({role:'user',text:message,time:new Date().toISOString()});let actions=copilotPlan(message),executed=[];for(const a of actions){if(a.type==='add_context')executed.push(addWorkspaceItem(x,a.section,a.value,'Confirmed Decision','AI Copilot from user instruction'))}let read=copilotRead(st,x,message),reply;if(executed.length){reply='تم تنفيذ '+executed.length+' تحديث على '+x.id+'.\n'+executed.map(z=>'✓ '+z.value).join('\n');let after=copilotRead(st,x,message);if(after&&after.answer)reply+='\n\n'+after.answer}else if(read){reply=read.answer+'\n\nالمصدر: '+read.source}else{reply='أستطيع الاستعلام من بيانات الطلبات والموردين والعروض والمواصفات والشروط وسجل البريد، أو تنفيذ تحديثات على Workspace. لم أجد بعد استعلامًا مدعومًا بشكل موثوق في هذه الصياغة، لذلك لم أغيّر أي بيانات.'}w.chat.push({role:'assistant',text:reply,time:new Date().toISOString(),requestId:x.id,executed:executed.map(z=>z.id)});auditWorkspace(x,executed.length?'copilot_action':'copilot_query',message,'AI Copilot',null,{requestId:x.id,executed:executed.map(z=>z.id)});await save(st);return json(res,200,{reply,requestId:x.id,intent:executed.length?'act':read?'ask':'unknown',executed,workspace:w})}
+let sm=u.pathname.match(/^\/api\/suppliers\/([^/]+)$/);if(sm&&req.method==='PATCH'){let st=await load(),b=await body(req),x=st.suppliers.find(x=>x.id===sm[1]);if(!x)return json(res,404,{error:'not_found'});Object.assign(x,b);await save(st);return json(res,200,x)}
+let am=u.pathname.match(/^\/api\/approvals\/([^/]+)$/);if(am&&req.method==='PATCH'){let st=await load(),b=await body(req),x=st.approvals.find(x=>x.id===am[1]);if(!x)return json(res,404,{error:'not_found'});x.status=b.status||x.status;x.updatedAt=new Date().toISOString();await save(st);return json(res,200,x)}
+if(u.pathname==='/api/settings'&&req.method==='PATCH'){let st=await load(),b=await body(req);st.settings={...st.settings,...b};await save(st);return json(res,200,st.settings)}
 
 
 if(u.pathname==='/api/system-status'&&req.method==='GET'){
  const provider=configuredProvider();
- const availableMail=!!(GCLIENT&&GSECRET)&&!!oauth().refresh_token;
+ const availableMail=!!(GCLIENT&&GSECRET)&&!!(await oauth()).refresh_token;
  const serviceList=[
   {id:'private-access',name:'الدخول المحمي',status:'available',detail:HOSTED_DEMO?'دخول إداري واحد للتجربة؛ ليست صلاحيات فردية':'بوابة محمية'},
   {id:'market-page',name:'صفحة بحث المنتج والموردين',status:'available',detail:'تشغيل الواجهة وإنشاء قائمة مرشحين'},
@@ -502,12 +598,12 @@ if(u.pathname==='/api/system-status'&&req.method==='GET'){
  return json(res,200,{checkedAt:new Date().toISOString(),staging:HOSTED_DEMO,services:serviceList});
 }
 if(u.pathname==='/api/price-comparison'&&req.method==='GET'){
-  const st=load(),requestId=u.searchParams.get('requestId')||null;
+  const st=await load(),requestId=u.searchParams.get('requestId')||null;
   if(requestId&&!(st.requests||[]).some(x=>x.id===requestId))return json(res,404,{error:'request_not_found'});
   return json(res,200,priceAnalysis(st,{requestId}));
 }
 if(u.pathname==='/api/monthly-report'&&req.method==='GET'){
-  const st=load(),requestId=u.searchParams.get('requestId')||null,
+  const st=await load(),requestId=u.searchParams.get('requestId')||null,
     audience=u.searchParams.get('audience')||'management',rawMonth=u.searchParams.get('month');
   if(requestId&&!(st.requests||[]).some(x=>x.id===requestId))return json(res,404,{error:'request_not_found'});
   if(!['buyer','management'].includes(audience))return json(res,422,{error:'audience_not_supported'});
@@ -515,7 +611,7 @@ if(u.pathname==='/api/monthly-report'&&req.method==='GET'){
   return json(res,200,monthlyReport(st,{month:rawMonth,requestId,audience}));
 }
 if(u.pathname==='/api/daily-report'&&req.method==='GET'){
-  const st=load(),requestId=u.searchParams.get('requestId')||null,
+  const st=await load(),requestId=u.searchParams.get('requestId')||null,
     audience=u.searchParams.get('audience')||'management',
     requestedDay=u.searchParams.get('date')||null;
   if(requestId&&!(st.requests||[]).some(x=>x.id===requestId))return json(res,404,{error:'request_not_found'});
@@ -527,7 +623,7 @@ if(u.pathname==='/api/daily-report'&&req.method==='GET'){
 // Quote registration is deliberately "received/unverified". Staff must review real evidence
 // and explicitly verify each line before it can affect the benchmark.
 if(u.pathname==='/api/quotes/structured'&&req.method==='POST'){
-  const b=await body(req),st=load(),supplier=(st.suppliers||[]).find(x=>x.id===b.supplierId),
+  const b=await body(req),st=await load(),supplier=(st.suppliers||[]).find(x=>x.id===b.supplierId),
     request=(st.requests||[]).find(x=>x.id===b.requestId);
   if(!supplier||!request)return json(res,422,{error:'known_request_and_supplier_required'});
   if(supplier.associatedRequestId&&supplier.associatedRequestId!==b.requestId)
@@ -561,11 +657,11 @@ if(u.pathname==='/api/quotes/structured'&&req.method==='POST'){
   st.quotes=st.quotes||[];st.quotes.unshift(quote);
   st.activity=st.activity||[];st.activity.unshift({type:'quote_received',time:quote.receivedAt,
     requestId:quote.requestId,text:'عرض جديد '+quote.id+' — يحتاج فحص المستند والتحقق'});
-  save(st);return json(res,201,quote);
+  await save(st);return json(res,201,quote);
 }
 let verifyQuote=u.pathname.match(/^\/api\/quotes\/([^/]+)\/verify$/);
 if(verifyQuote&&req.method==='POST'){
-  const st=load(),q=(st.quotes||[]).find(x=>x.id===verifyQuote[1]),
+  const st=await load(),q=(st.quotes||[]).find(x=>x.id===verifyQuote[1]),
     b=await body(req);
   if(!q)return json(res,404,{error:'quote_not_found'});
   if(q.evidenceClass==='Verified Quote')return json(res,409,{error:'already_verified'});
@@ -579,17 +675,45 @@ if(verifyQuote&&req.method==='POST'){
   q.verifiedAt=new Date().toISOString();q.verifiedBy=HOSTED_DEMO?'demo-admin-review':'authorized-operator';
   st.activity=st.activity||[];st.activity.unshift({type:'quote_verified',time:q.verifiedAt,
     requestId:q.requestId,text:'تم توثيق '+q.id+' بعد مراجعة بشرية: '+q.reviewNote});
-  save(st);return json(res,200,{id:q.id,evidenceClass:q.evidenceClass,
+  await save(st);return json(res,200,{id:q.id,evidenceClass:q.evidenceClass,
     comparison:priceAnalysis(st,{requestId:q.requestId})});
 }
 
 if(u.pathname==='/api/quotes'&&req.method==='POST')return json(res,410,{error:'legacy_unverified_quote_write_disabled',message:'استخدم الإدخال المنظم /api/quotes/structured حتى لا تدخل أسعار دون إثبات.'});
-if(u.pathname==='/api/agent/run'&&req.method==='POST'){let st=load(),b=await body(req);if(b.action==='followup'&&st.settings?.dryRun)return json(res,409,{error:'dry_run_enabled',message:'وضع الحماية مفعل: لا يسمح بإرسال متابعة جماعية فعلية.'});if(b.action==='followup'&&st.settings?.requirePerMessageApproval)return json(res,409,{error:'per_message_approval_required',message:'يلزم اعتماد كل رسالة ومستلم بشكل منفصل قبل الإرسال.'});if(b.action==='followup'&&!gate(st,'followup'))return json(res,409,{error:'approval_required',message:'تحتاج موافقة قبل الإرسال'});if(b.action==='followup'){let targets=st.suppliers.filter(s=>!['رد','تم الرد — ننتظر العرض'].includes(s.status)&&!s.excluded&&s.email);let sent=[];for(let s of targets){await sendMail(s.email,'Follow-up: RFQ-001 – Cold Storage Project, Sana’a','Dear '+s.name+',\n\nThis is a follow-up regarding RFQ-001 for our cold storage project in Sana’a, Yemen. Please send your technical and commercial quotation, including cooling load, equipment brands/models, daily pull-down capacity, 24h power consumption, panel specifications, FOB price/port, CBM/gross weight, lead time, warranty and payment terms.\n\nBest regards,\nAlharir shipping and export');sent.push(s.name)}st.activity.unshift({time:new Date().toISOString(),type:'agent',text:'تم إرسال متابعة إلى '+sent.length+' مورد'});save(st);return json(res,200,{ok:true,sent})}st.activity.unshift({time:new Date().toISOString(),type:'agent',text:'تشغيل الوكيل: '+(b.action||'analyze')});save(st);return json(res,200,{ok:true,action:b.action||'analyze'})}
+if(u.pathname==='/api/agent/run'&&req.method==='POST'){let st=await load(),b=await body(req);if(b.action==='followup'&&st.settings?.dryRun)return json(res,409,{error:'dry_run_enabled',message:'وضع الحماية مفعل: لا يسمح بإرسال متابعة جماعية فعلية.'});if(b.action==='followup'&&st.settings?.requirePerMessageApproval)return json(res,409,{error:'per_message_approval_required',message:'يلزم اعتماد كل رسالة ومستلم بشكل منفصل قبل الإرسال.'});if(b.action==='followup'&&!gate(st,'followup'))return json(res,409,{error:'approval_required',message:'تحتاج موافقة قبل الإرسال'});if(b.action==='followup'){let targets=st.suppliers.filter(s=>!['رد','تم الرد — ننتظر العرض'].includes(s.status)&&!s.excluded&&s.email);let sent=[];for(let s of targets){await sendMail(s.email,'Follow-up: RFQ-001 – Cold Storage Project, Sana’a','Dear '+s.name+',\n\nThis is a follow-up regarding RFQ-001 for our cold storage project in Sana’a, Yemen. Please send your technical and commercial quotation, including cooling load, equipment brands/models, daily pull-down capacity, 24h power consumption, panel specifications, FOB price/port, CBM/gross weight, lead time, warranty and payment terms.\n\nBest regards,\nAlharir shipping and export');sent.push(s.name)}st.activity.unshift({time:new Date().toISOString(),type:'agent',text:'تم إرسال متابعة إلى '+sent.length+' مورد'});await save(st);return json(res,200,{ok:true,sent})}st.activity.unshift({time:new Date().toISOString(),type:'agent',text:'تشغيل الوكيل: '+(b.action||'analyze')});await save(st);return json(res,200,{ok:true,action:b.action||'analyze'})}
 let rw=u.pathname.match(/^\/requests\/([^/]+)$/);if(rw&&req.method==='GET'){res.writeHead(302,{Location:'/workspace.html?id='+encodeURIComponent(rw[1])});return res.end()}
 let file=u.pathname==='/'?'index.html':u.pathname.replace(/^\//,'');
 if(file.includes('..')||file.includes('\\')||path.isAbsolute(file))return json(res,400,{error:'invalid_path'});let fp=path.join(PUB,file);if(fp.startsWith(PUB)&&fs.existsSync(fp)){let ext=path.extname(fp);res.writeHead(200,{'Content-Type':({'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.json':'application/json; charset=utf-8','.png':'image/png','.webp':'image/webp','.ico':'image/x-icon'}[ext]||'application/octet-stream'),'X-Content-Type-Options':'nosniff','Cache-Control':HOSTED_DEMO?'private, no-store':'no-cache','Vary':'Authorization'});return fs.createReadStream(fp).pipe(res)}res.writeHead(404);res.end('Not found')
 }catch(e){
   if(e&&e.message==='gmail_token_expired_or_revoked')return json(res,401,{error:'gmail_token_expired_or_revoked',message:'انتهت أو أُلغيت صلاحية Gmail. أعد ربط Gmail من صفحة الوكيل مرة واحدة لإنشاء Refresh Token جديد.'});
   if(e&&e.message==='gmail_not_connected')return json(res,401,{error:'gmail_not_connected',message:'Gmail غير مرتبط حاليًا. استخدم زر ربط Gmail ثم أعد المحاولة.'});
-  json(res,500,{error:e.message})
-}});server.listen(process.env.PORT||8787,()=>console.log('Procurement V2: http://localhost:'+(process.env.PORT||8787)));
+  if(e&&e.code==='STATE_CONFLICT')return json(res,409,{error:'state_revision_conflict',message:'تم تحديث البيانات بالتزامن. حدّث الصفحة وأعد المحاولة.'});
+   if(process.env.PROCUREMENT_PRODUCTION==='true'){
+     console.error('Production request failed',e.message);
+     return json(res,500,{error:'internal_error',message:'تعذر إكمال العملية، راجع سجلات النظام.'});
+   }
+   json(res,500,{error:e.message})
+}});store.ready().then(()=>{
+ server.listen(process.env.PORT||8787,()=>console.log('Procurement V2 listening on port '+(process.env.PORT||8787)));
+  // Operational diagnostics only. Never log tokens, email addresses or OAuth secrets.
+  oauth().then(tokens=>console.log('Gmail readiness (no secrets): clientConfigured='+Boolean(GCLIENT&&GSECRET)+
+    ',expectedMailboxConfigured='+Boolean(process.env.GMAIL_EXPECTED_EMAIL)+
+    ',tokenStored='+Boolean(tokens.refresh_token)+
+    ',autoSyncEnabled='+(LIVE&&process.env.GMAIL_AUTO_SYNC==='true')))
+    .catch(e=>console.error('Gmail readiness check failed: '+(e.code||'oauth_store_unavailable')));
+
+ if(LIVE&&process.env.GMAIL_AUTO_SYNC==='true'){
+  const timer=setInterval(async()=>{
+   if(syncInProgress)return;
+   syncInProgress=true;
+   try{
+    if(!oauthConfig().ok||!(await oauth()).refresh_token)return;
+    await verifyCompanyMailbox();
+    const report=await syncGmail();
+    console.log('Gmail read-only sync: queries='+report.queries+', added='+report.added);
+   }catch(e){console.error('Gmail read-only sync failed:',e.code||e.message)}
+   finally{syncInProgress=false}
+  },30*60*1000);
+  timer.unref();
+ }
+}).catch(e=>{console.error('Persistent state startup failed:',e.message);process.exitCode=1;});

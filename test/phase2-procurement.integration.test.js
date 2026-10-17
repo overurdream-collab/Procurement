@@ -17,7 +17,8 @@ test('new request has genuine RTL design, accessible fields, no fake prices and 
  assert.match(html,/id="sumTitle"/);
  assert.match(html,/id="sidebar"/);
  assert.match(html,/clientRequestKey/);
- assert.match(html,/resultStatus==='search-not-configured'/);
+ assert.match(html,/scan=1#market/);
+ assert.match(html,/requestId=/);
  assert.doesNotMatch(html,/<script[^>]*src="https?:/);
  const script=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x=>x[1]);
  assert.equal(script.length,1);new Function(script[0]);
