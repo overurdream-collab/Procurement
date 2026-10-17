@@ -26,6 +26,8 @@ if(HOSTED_DEMO && !fs.existsSync(DATA)){
 const GCLIENT=(process.env.GOOGLE_CLIENT_ID||'').trim(),GSECRET=(process.env.GOOGLE_CLIENT_SECRET||'').trim(),BASE=(process.env.APP_BASE_URL||'http://localhost:'+(process.env.PORT||8787)).replace(/\/$/,''),REDIRECT=BASE+'/api/gmail/callback';
 const oauthConfig=()=>{
   if(!GCLIENT||!GSECRET)return {ok:false,error:'missing_google_oauth_config',message:'إعداد Gmail غير مكتمل. أضف GOOGLE_CLIENT_ID و GOOGLE_CLIENT_SECRET في متغيرات البيئة الخاصة بخدمة Render المحمية.'};
+  if(LIVE && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(process.env.GMAIL_EXPECTED_EMAIL||''))
+    return {ok:false,error:'missing_expected_mailbox',message:'حدد GMAIL_EXPECTED_EMAIL لضمان ربط حساب الشركة الصحيح فقط.'};
   if(!/^[0-9]+-[a-z0-9_-]+\.apps\.googleusercontent\.com$/i.test(GCLIENT))return {ok:false,error:'invalid_google_client_id',message:'GOOGLE_CLIENT_ID غير صالح. استخدم OAuth Client ID من نوع Web application والمنتهي بـ apps.googleusercontent.com.'};
   if(!/^https?:\/\//i.test(BASE))return {ok:false,error:'invalid_app_base_url',message:'APP_BASE_URL غير صالح.'};
   return {ok:true};
@@ -97,6 +99,13 @@ async function accessToken(){
   }
 }
 async function gmail(endpoint,opt={}){let token=await accessToken(),r=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/'+endpoint,{...opt,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',...(opt.headers||{})}}),t=await r.json();if(!r.ok)throw Error(t.error?.message||'gmail_error');return t}
+async function verifyCompanyMailbox(){
+ const p=await gmail('profile'),address=String(p.emailAddress||'').trim().toLowerCase();
+ if(!address)throw Error('gmail_profile_missing_email');
+ const expected=String(process.env.GMAIL_EXPECTED_EMAIL||'').trim().toLowerCase();
+ if(expected&&address!==expected)throw Error('gmail_account_mismatch');
+ return {emailAddress:address,messagesTotal:Number(p.messagesTotal||0)};
+}
 const b64url=s=>Buffer.from(s).toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 async function sendMail(to,subject,text){if(process.env.PRODUCTION_READONLY_MAIL==='true')throw Error('gmail_outbound_disabled_in_readonly_mode');let raw=['To: '+to,'Subject: =?UTF-8?B?'+Buffer.from(subject).toString('base64')+'?=','MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','',''+text].join('\r\n');return gmail('messages/send',{method:'POST',body:JSON.stringify({raw:b64url(raw)})})}
 function headers(m){return Object.fromEntries((m.payload?.headers||[]).map(h=>[h.name.toLowerCase(),h.value]))}
@@ -272,9 +281,32 @@ let u=new URL(req.url,'http://localhost');if(u.pathname==='/api/state'&&req.meth
 if(u.pathname==='/api/storage/status'&&req.method==='GET'){
  const status=await store.diagnostics();return json(res,200,status);
 }
-if(u.pathname==='/api/gmail/status'&&req.method==='GET'){let cfg=oauthConfig();return json(res,200,{connected:!!(await oauth()).refresh_token,configured:cfg.ok,readOnly:true,redirectUri:REDIRECT,error:cfg.ok?null:cfg.error,message:cfg.ok?null:cfg.message});}
+if(u.pathname==='/api/gmail/status'&&req.method==='GET'){
+ const cfg=oauthConfig(),tokens=await oauth(),st=await load();
+ return json(res,200,{connected:!!tokens.refresh_token,configured:cfg.ok,readOnly:true,
+ verifiedAccount:tokens.verifiedEmail||null,lastSync:st.gmailSyncStatus||null,
+ autoSyncEnabled:LIVE&&process.env.GMAIL_AUTO_SYNC==='true',
+ autoSyncMode:'best-effort-while-service-awake',
+ redirectUri:REDIRECT,error:cfg.ok?null:cfg.error,message:cfg.ok?null:cfg.message});
+}
+if(u.pathname==='/api/gmail/verify'&&req.method==='GET'){
+ const cfg=oauthConfig();if(!cfg.ok)return json(res,409,cfg);
+ if(!(await oauth()).refresh_token)return json(res,409,{error:'gmail_not_connected'});
+ const p=await verifyCompanyMailbox();
+ return json(res,200,{ok:true,account:p.emailAddress,readOnly:true,messagesTotal:p.messagesTotal});
+}
 if(u.pathname==='/api/gmail/connect'&&req.method==='GET'){let cfg=oauthConfig();if(!cfg.ok)return json(res,400,cfg);let state=crypto.randomBytes(18).toString('hex');await saveOauth({...(await oauth()),state});let q=new URLSearchParams({client_id:GCLIENT,redirect_uri:REDIRECT,response_type:'code',scope:'https://www.googleapis.com/auth/gmail.readonly',access_type:'offline',prompt:'consent',state});res.writeHead(302,{Location:'https://accounts.google.com/o/oauth2/v2/auth?'+q});return res.end()}
-if(u.pathname==='/api/gmail/callback'&&req.method==='GET'){let o=await oauth();if(!u.searchParams.get('code')||u.searchParams.get('state')!==o.state)return json(res,400,{error:'invalid_oauth_state'});let t=await formPost('https://oauth2.googleapis.com/token',{code:u.searchParams.get('code'),client_id:GCLIENT,client_secret:GSECRET,redirect_uri:REDIRECT,grant_type:'authorization_code'});await saveOauth({...t,expires_at:Date.now()+t.expires_in*1000});res.writeHead(302,{Location:'/#gmail'});return res.end()}
+if(u.pathname==='/api/gmail/callback'&&req.method==='GET'){let o=await oauth();if(!u.searchParams.get('code')||u.searchParams.get('state')!==o.state)return json(res,400,{error:'invalid_oauth_state'});let t=await formPost('https://oauth2.googleapis.com/token',{code:u.searchParams.get('code'),client_id:GCLIENT,client_secret:GSECRET,redirect_uri:REDIRECT,grant_type:'authorization_code'});
+ const scopes=String(t.scope||'').split(/\s+/).filter(Boolean);
+ if(!scopes.includes('https://www.googleapis.com/auth/gmail.readonly')||
+    scopes.some(v=>/gmail\.(?:send|modify)/.test(v)))
+   return json(res,403,{error:'unexpected_oauth_scope',message:'التفويض لا يطابق صلاحية Gmail للقراءة فقط.'});
+ if(!t.refresh_token)return json(res,409,{error:'google_refresh_token_missing'});
+ await saveOauth({...t,state:null,expires_at:Date.now()+t.expires_in*1000});
+ try{
+  const p=await verifyCompanyMailbox();await saveOauth({...await oauth(),verifiedEmail:p.emailAddress});
+ }catch(e){await clearOauth();throw e}
+ res.writeHead(302,{Location:'/#gmail'});return res.end()}
 if(u.pathname==='/api/gmail/disconnect'&&req.method==='POST'){await clearOauth();return json(res,200,{ok:true})}
 if(u.pathname==='/api/gmail/sync'&&req.method==='POST'){let cfg=oauthConfig();if(!cfg.ok)return json(res,400,cfg);if(!(await oauth()).refresh_token)return json(res,409,{error:'gmail_not_connected',message:'اربط Gmail أولاً ثم أعد المزامنة.'});return json(res,200,await syncGmail());}
 
