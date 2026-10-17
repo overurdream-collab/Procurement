@@ -9,8 +9,11 @@ function analyzeRequest(request){
   incoterm=clean(request.incoterm||'',15).toUpperCase(),currency=clean(request.currency||'',10).toUpperCase(),
   market=clean(request.targetMarkets||request.deliveryCountry||'',180);
  const t=(product+' '+specifications).toLowerCase();
- const isPanel=/\b(?:pir|pur|puf|pu)\b|(?:cold\s*room|insulated|sandwich)\s*panels?|(?:ألواح|ساندوتش|عزل).*?(?:تبريد|p[iu]r|غرف)/i.test(t);
- const isColdRoom=!isPanel&&/cold\s*(?:storage|room)|walk.?in\s*(?:cooler|freezer)|غرف[ة]?\s*(?:تبريد|تجميد)|مخزن\s*(?:مبرد|مجمد)/i.test(t);
+ const productLower=product.toLowerCase();
+ const panelProduct=/\b(?:pir|pur|puf|pu)\s*(?:insulated\s*)?panels?\b|(?:cold\s*room|insulated|sandwich)\s*panels?|(?:ألواح|ساندوتش|بانل)/i.test(productLower);
+ const roomProduct=/cold\s*(?:storage|room)|walk.?in\s*(?:cooler|freezer)|غرف[ة]?\s*(?:تبريد|تجميد)|مخزن\s*(?:مبرد|مجمد)/i.test(productLower)&&!panelProduct;
+ const isPanel=panelProduct||(!roomProduct&&/\b(?:pir|pur|puf|pu)\b|(?:cold\s*room|insulated|sandwich)\s*panels?|(?:ألواح|ساندوتش|عزل).*?(?:تبريد|p[iu]r|غرف)/i.test(t));
+ const isColdRoom=roomProduct||(!isPanel&&/cold\s*(?:storage|room)|walk.?in\s*(?:cooler|freezer)|غرف[ة]?\s*(?:تبريد|تجميد)|مخزن\s*(?:مبرد|مجمد)/i.test(t));
  const isRefrigeration=!isPanel&&!isColdRoom&&/compressor|condensing\s*unit|refrigeration\s*unit|evaporator|ضاغط|كمبروسر|وحدة\s*تكثيف|مبخر/i.test(t);
  const kind=isPanel?'insulated_panels':isColdRoom?'complete_cold_room':isRefrigeration?'refrigeration_equipment':'general_product';
  const panelThickness=numeric(t,/\b(\d{2,3}(?:\.\d+)?)\s*(?:mm|ملم|مم)\b/i);
